@@ -76,13 +76,15 @@ pnpm build-only
 
 首次使用本地 Halo 建议先做一次 Halo 线上实例的"备份与恢复"，用真实数据做调试基础（见 `docs/configuration.md` "本地数据"章节）。
 
-## 路线图
+## 路线图与版本
 
-当前 Sprint 焦点：**工程基建 + 上游已知 bug 修复**。完整 roadmap 见 [TODO.md](TODO.md)。
+- 当前 Sprint 焦点：**工程基建 + 上游已知 bug 修复**。完整 roadmap 见 [TODO.md](TODO.md)
+- 版本变更历史见 [CHANGELOG.md](CHANGELOG.md)
 
 ## 贡献
 
-欢迎 issue / PR：
+欢迎 issue / PR——完整流程、commit 规范、PR Checklist 见 **[CONTRIBUTING.md](CONTRIBUTING.md)**，社区行为准则见 **[CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md)**。
+
 - **Bug** → [提交 issue](https://github.com/Lau0x/halo-theme-joe-next/issues/new)
 - **Feature** → 先开 issue 讨论，再 PR
 - 所有修改遵循 CC BY-NC-SA 4.0，PR 合并视为同意该条款

@@ -16,8 +16,8 @@
 | 7 | [upstream #365](https://github.com/jiewenhuang/halo-theme-joe3.0/issues/365) / [#366](https://github.com/jiewenhuang/halo-theme-joe3.0/issues/366) | 百度收录 API 证书过期导致页面报错 | 直接移除百度推送或换 HTTPS 备用端点 |
 | 8 | [upstream #371](https://github.com/jiewenhuang/halo-theme-joe3.0/issues/371) | busuanzi 访客统计服务报错 | 加 try/catch 兜底或移除依赖 |
 | 9 | [upstream #363](https://github.com/jiewenhuang/halo-theme-joe3.0/issues/363) | 控制台报错 | 要看具体是哪些 |
-| 10 | [upstream #380](https://github.com/jiewenhuang/halo-theme-joe3.0/issues/380) | 标题文字阴影渲染不对 | CSS text-shadow 调 |
-| 11 | [upstream #351](https://github.com/jiewenhuang/halo-theme-joe3.0/issues/351) | Waline 路由跳转 BUG | Waline 评论插件配合问题 |
+| 10 | [upstream #380](https://github.com/jiewenhuang/halo-theme-joe3.0/issues/380) | 标题文字阴影渲染不对 | 🅿️ **Parking** · 上游 issue 描述太简（只说"渲染不对"未说具体页面 / 偏移量 / 颜色哪个不对），需要用户提供截图 + 复现环境。无复现情况下摸黑改 `text-shadow` ROI 太低。有人反馈再动。 |
+| 11 | [upstream #351](https://github.com/jiewenhuang/halo-theme-joe3.0/issues/351) | Waline 路由跳转 BUG | 🅿️ **Parking** · 依赖用户启用了 Waline 评论系统（本主题默认走 Halo 原生评论 + `plugin-comment-widget`）。具体"路由跳转"也不明确（是 hash? pushState? 还是 Waline 里点回复跳到错 DOM？）。需要用 Waline 的用户提供复现路径。 |
 
 ## 🟡 P1 · 已知高价值 feature（用户呼声高）
 
@@ -83,12 +83,12 @@
 
 **发布 v1.6.0 的前置条件**（全部满足才发）：
 
-- [ ] 至少 1 个 `-next.X` 版本在生产（blog.laoda.de）稳定跑 1 周无 critical bug
-- [ ] P0 剩余 bug 清完：`#380` 标题阴影、`#353` 搜索空格 + 图片顺序错乱
+- [ ] 至少 1 个 `-next.X` 版本在生产（维护者博客）稳定跑 1 周无 critical bug
+- [x] ✅ **可复现的 P0 bug 全部清完**：#361 #365 #366 #367 #368 #369 #371 #389 + #353 图片顺序部分（防御加固）。剩余 #380 / #351 / #363 / #353 搜索部分因**缺复现路径**已 parking 到 v1.6.1+，不作为 v1.6.0 硬门槛
 - [ ] Sprint 3 主要优化完成：主题层性能（CSS 拆分 + JS defer）、a11y 系统修
 - [ ] 更新 README 顶部 badge 从 pre-release 示例切到正式版
 - [ ] 至少 2 名社区用户（除 maintainer 外）装过并报告无问题
-- [ ] 写一份正式的 `CHANGELOG.md`（整合所有 `-next.X` 的变更）
+- [x] ✅ **`CHANGELOG.md` 整合完成**（covers next.1 → next.4 + Unreleased）
 
 **发布命令**（条件全满足后）：
 ```bash
