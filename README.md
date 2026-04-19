@@ -49,7 +49,8 @@
 - ✅ 友情链接、瞬时（moments）、图库（photos）插件适配
 - ✅ 博主栏天气（心知天气）· 自定义 socials · 头像挂件
 
-完整配置说明见 **[docs/configuration.md](docs/configuration.md)**。
+完整配置说明见 **[docs/configuration.md](docs/configuration.md)**。  
+部署时如果用 Nginx Proxy Manager 反代，看 **[docs/deployment/npm-setup.md](docs/deployment/npm-setup.md)**（含 gzip / 安全头 / securityheaders.com A+ 完整配置 + 坑点注释）。
 
 ## 本地开发
 
