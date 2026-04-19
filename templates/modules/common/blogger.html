@@ -37,17 +37,27 @@
             onload="Joe.loadedPlaceholderReplaceImg(this, 'AvatarImg')"
             onerror="Joe.errorImg(this, 'ErrAvatarImg')"
           />
+          <!--
+            Fix: avatar_frame / avatar_widget URL was broken after Halo started
+            appending ?v=<version> to @{...} expressions. Original code:
+              th:src="@{/assets/frame/}+'/'+${frame}+'.png'"
+            concatenated '/bull-puff.png' AFTER the query string, producing:
+              /assets/frame?v=1.5.1-next.2/bull-puff.png
+            which 404'd and dumped alt text "挂架"/"相框" on the page.
+            Fix: use Thymeleaf __var__ syntax so the variable expands INSIDE
+            the URL path before Halo appends the version query at the end.
+          -->
           <th:block th:if="${theme.config.blogger.avatar_frame != '0'}">
             <img
               th:class="'avatar_frame '+${theme.config.blogger.avatar_frame}"
-              th:src="@{/assets/frame/}+'/'+${theme.config.blogger.avatar_frame}+'.png'"
+              th:src="@{/assets/frame/__${theme.config.blogger.avatar_frame}__.png}"
               alt="挂架"
             />
           </th:block>
           <th:block th:if="${theme.config.blogger.avatar_widget != '0'}">
             <img
               th:class="'avatar_widget '+${theme.config.blogger.avatar_widget}"
-              th:src="@{/assets/widget/}+'/'+${theme.config.blogger.avatar_widget}+'.gif'"
+              th:src="@{/assets/widget/__${theme.config.blogger.avatar_widget}__.gif}"
               alt="相框"
             />
           </th:block>
