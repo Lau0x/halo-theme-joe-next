@@ -1,12 +1,12 @@
 <!doctype html>
 <html th:lang="${#locale.toLanguageTag}" xmlns:th="https://www.thymeleaf.org">
   <th:block th:fragment="loading">
-    <div class="joe_loading">
+    <div class="joe_loading" role="status" aria-label="加载中">
       <th:block th:if="${htmlType == 'photos'}">
-        <img th:src="@{/assets/svg/loading-ball.svg}" />
+        <img th:src="@{/assets/svg/loading-ball.svg}" alt="" aria-hidden="true" />
       </th:block>
       <th:block th:if="${htmlType != 'photos'}">
-        <img th:src="@{/assets/svg/loading-ball.svg}" />
+        <img th:src="@{/assets/svg/loading-ball.svg}" alt="" aria-hidden="true" />
       </th:block>
     </div>
   </th:block>

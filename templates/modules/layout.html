@@ -25,7 +25,16 @@
     />
     <meta http-equiv="x-dns-prefetch-control" content="on" />
     <meta name="site" th:content="${site.url}" />
-    <!-- OG -->
+
+    <!-- Base SEO · description 补齐（原主题只有 og:description） -->
+    <meta name="description" th:content="${site.seo.description}" />
+    <!-- canonical · 防重复内容惩罚 + 指向权威版本 URL -->
+    <link rel="canonical" th:href="${site.url}" />
+    <!-- theme-color · 移动端地址栏着色 -->
+    <meta name="theme-color" content="#3a63ed" />
+    <meta name="msapplication-TileColor" content="#3a63ed" />
+
+    <!-- Open Graph -->
     <meta property="og:image" th:content="${site.favicon}" />
     <!-- Fix upstream bug: was th:content="site.seo.description" (missing ${}),
          rendered the literal string "site.seo.description" as the social
@@ -37,6 +46,12 @@
     <meta property="og:site_name" th:content="${site.title}+'-'+${site.subtitle}" />
     <meta property="og:url" th:content="${site.url}" />
     <meta property="og:title" th:content="${title}" />
+
+    <!-- Twitter Card · summary_large_image 让 X 分享卡显示大图 -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" th:content="${title}" />
+    <meta name="twitter:description" th:content="${site.seo.description}" />
+    <meta name="twitter:image" th:content="${site.favicon}" />
     <meta property="twitter:partner" content="ogwp" />
     <!-- /OG -->
 

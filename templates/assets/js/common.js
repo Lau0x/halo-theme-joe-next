@@ -43,7 +43,7 @@ const commonContext = {
 				localStorage.setItem("data-mode", theme);
 				commonContext.initCommentTheme();
 			} catch (err) {
-				console.log(err);
+				console.error(err);
 			}
 		});
 	},
@@ -253,7 +253,7 @@ const commonContext = {
 				});
 			})
 			.catch((err) => {
-				console.log(err);
+				console.error(err);
 			});
 	},
 	/* 渲染PDF */

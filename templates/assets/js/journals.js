@@ -109,7 +109,6 @@ const journalContext = {
 			// if (!$parent.hasClass("open")) {
 			// 	return;
 			// }
-			console.log("ping")
 			$parent.toggleClass("open");
 			$parent
 				.find(".journal_comment_expander_txt")

@@ -239,7 +239,7 @@ const censusContext = {
 					setTimeout(initChart, 2000);
 				})
 				.catch((err) => {
-					console.log(err);
+					console.error(err);
 				});
 		}
 	},
@@ -331,7 +331,7 @@ const censusContext = {
 				});
 			})
 			.catch((err) => {
-				console.log(err);
+				console.error(err);
 			});
 	},
 	/* 初始化归档 */
@@ -380,7 +380,7 @@ const censusContext = {
 					$(".joe_census__filing .button").html("加载更多");
 				})
 				.catch((err) => {
-					console.log(err);
+					console.error(err);
 				});
 		}
 		initFiling();

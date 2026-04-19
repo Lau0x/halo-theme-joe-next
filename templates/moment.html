@@ -92,6 +92,7 @@
                             <img
                               th:if="${momentItem.type.name == 'PHOTO'}"
                               th:src="${momentItem.url}"
+                              alt="瞬间图片"
                               onerror="Joe.errorImg(this, 'LoadFailedImg')"
                             />
                             <joe-dplayer
