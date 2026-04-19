@@ -72,6 +72,32 @@
 
 ---
 
+## 🎯 发布里程碑 · v1.6.0 稳定正式版
+
+所有 `v1.5.1-next.X` 都是 pre-release（开发迭代版本）。下一个 tag **不带 `-` 后缀**的 release 将是第一个**正式稳定版**（GitHub "Latest release" 指向它）。
+
+**版本号选择**：`v1.6.0`
+- 不用 `v1.5.1`（避免和上游未来 patch 撞号）
+- 不用 `v2.0.0`（无 breaking change，不是大版本）
+
+**发布 v1.6.0 的前置条件**（全部满足才发）：
+
+- [ ] 至少 1 个 `-next.X` 版本在生产（blog.laoda.de）稳定跑 1 周无 critical bug
+- [ ] P0 剩余 bug 清完：`#380` 标题阴影、`#353` 搜索空格 + 图片顺序错乱
+- [ ] Sprint 3 主要优化完成：主题层性能（CSS 拆分 + JS defer）、a11y 系统修
+- [ ] 更新 README 顶部 badge 从 pre-release 示例切到正式版
+- [ ] 至少 2 名社区用户（除 maintainer 外）装过并报告无问题
+- [ ] 写一份正式的 `CHANGELOG.md`（整合所有 `-next.X` 的变更）
+
+**发布命令**（条件全满足后）：
+```bash
+git tag -a v1.6.0 -m "## 🎉 Joe3 Next 第一个正式稳定版
+...亮点..."
+git push origin v1.6.0
+```
+
+---
+
 > 📝 **开发流程**（参考 README）：
 > 1. `docker compose -f docker-compose.dev.yml up -d` —— 起本地 Halo
 > 2. 改代码
