@@ -47,6 +47,7 @@
 
 | # | 项 | 为什么想做 |
 |---|---|---|
+| 0 | 注册 Halo 官方应用市场 发布 Joe3 Next | 现在用户只能靠 Watch GH 手动升级；发到 halo.run/store 后后台会推送升级提示。需要在 halo.run/developers 注册账号 + 提交审核获得新的 app-id（绝**不能**复用原作者的 app-ZxiPb） |
 | 1 | [upstream #364](https://github.com/jiewenhuang/halo-theme-joe3.0/issues/364) pjax 支持 | 页面切换不刷新，提升体验，但对 Thymeleaf 主题改造大 |
 | 2 | [upstream #339](https://github.com/jiewenhuang/halo-theme-joe3.0/issues/339) 中英切换 | 配合 Halo 国际化做 |
 | 3 | 自加 SEO meta 自动化（og:description / twitter:card / JSON-LD） | 博主维护者不用手动填每篇文章 meta |
