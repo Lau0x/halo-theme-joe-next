@@ -48,6 +48,55 @@
   color: #666;
 }
 
+/* ---- a11y / SEO utility: 视觉隐藏但屏幕阅读器可读
+ *      用于给首页、列表页等加"视觉上不需要但对 SEO / a11y 必需"的 h1 / heading ---- */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* ---- 文章 / 页面正文图片默认排版（fix upstream: 原主题图片无节制拉伸） ----
+ *      - 文章里的图默认 60% 宽度居中（手机自适应回 95%）
+ *      - 三个语义 class 让博主在写文章时手动指定尺寸：
+ *          .special-15 / .special-30 / .full
+ *      - 保持 class 名稳定以兼容老文章 */
+#post-inner img,
+#singlePage-inner img {
+  display: block;
+  margin: 0 auto;
+  max-width: 100%;
+  height: auto;
+  box-sizing: border-box;
+}
+/* 文章 */
+#post-inner img { width: 60%; }
+#post-inner img.special-30 { width: 30%; }
+#post-inner img.special-15 { width: 15%; }
+#post-inner img.full { width: 100%; }
+/* 自定义页面 */
+#singlePage-inner img { width: 75%; }
+#singlePage-inner img.special-30 { width: 30%; }
+#singlePage-inner img.special-15 { width: 15%; }
+#singlePage-inner img.full { width: 100%; }
+/* 移动端 / 窄屏：60% 在手机上太窄，回退到 95%，.special-* 和 .full 保持语义 */
+@media (max-width: 768px) {
+  #post-inner img,
+  #singlePage-inner img { width: 95%; }
+  #post-inner img.special-30,
+  #singlePage-inner img.special-30 { width: 45%; }
+  #post-inner img.special-15,
+  #singlePage-inner img.special-15 { width: 25%; }
+  #post-inner img.full,
+  #singlePage-inner img.full { width: 100%; }
+}
+
 /* ---- 暗色：正文 / 摘要 / 评论文字色 ---- */
 html[data-mode='dark'] {
   .joe_detail__article {
