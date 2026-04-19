@@ -10,8 +10,11 @@
 #   http://localhost:8090           → 前台
 #   http://localhost:8090/console   → 后台（首次访问会走 setup 创建管理员）
 #
-# 主题以 ro 方式挂载到容器的 themes/theme-Joe3/，改 templates/*.html
-# 不用重启，前台刷新即可；改 less/js 需要先跑 `pnpm build-only`。
+# 主题开发流程（不用 bind mount —— Halo 备份恢复和 ro mount 冲突）：
+#   1. 本地改 templates/*.html 或 less/js 源码
+#   2. 改 less/js 后先跑 `pnpm build-only`
+#   3. `./scripts/theme-sync.sh` —— 把本地改动同步进容器的 themes/ 目录
+#   4. 前台刷新立即生效（Halo Thymeleaf 热加载）
 
 services:
   halo:
@@ -21,10 +24,8 @@ services:
     ports:
       - "8090:8090"
     volumes:
-      # Halo 数据目录（数据库、附件、配置）
+      # Halo 数据目录（数据库、附件、配置、themes）
       - halo2-data:/root/.halo2
-      # 本主题源码只读挂载 —— metadata.name 必须和目录名一致
-      - ./:/root/.halo2/themes/theme-Joe3:ro
     environment:
       - HALO_EXTERNAL_URL=http://localhost:8090/
       - HALO_SECURITY_INITIALIZER_SUPERADMINUSERNAME=admin
