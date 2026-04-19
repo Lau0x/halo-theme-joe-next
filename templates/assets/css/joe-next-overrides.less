@@ -1,0 +1,69 @@
+/* =================================================================
+ * Joe3 Next · Readability Defaults
+ * =================================================================
+ * 在上游 Joe3 基础上微调中文博客阅读体验：
+ *   - 加深正文文字颜色（#333 / #c9d1d9 for dark）
+ *   - 提高正文字号到 16px + 行高 1.8
+ *   - 调色摘要 / 评论组件 / 搜索组件
+ *
+ * 如果你不喜欢这些默认值，可以在 Halo Console → 系统 → 设置 →
+ * 代码注入 → 全局 head 标签 里用 <style> 覆盖（示例见
+ * docs/configuration.md 的"自定义阅读样式"章节）。
+ * ================================================================= */
+
+/* ---- 评论 / 搜索组件调色（通过 halo-comment-widget / halo-search-widget
+ *       暴露的 CSS 变量微调，保持与主题主色协调） ---- */
+:root {
+  --halo-cw-primary-1-color: #3a63ed;
+  --halo-cw-primary-2-color: #818cf8;
+  --halo-cw-primary-3-color: #a5b4fc;
+
+  --halo-search-widget-base-font-size: 14px;
+  --halo-search-widget-base-rounded: 8px;
+  --halo-search-widget-base-bg-color: #ffffff;
+  --halo-search-widget-primary-color: #1a73e8;
+  --halo-search-widget-muted-color: #5f6368;
+  --halo-search-widget-content-color: #202124;
+  --halo-search-widget-modal-bg-color: #ffffff;
+  --halo-search-widget-modal-layer-color: rgba(0, 0, 0, 0.1);
+  --halo-search-widget-hit-bg-color: #f1f3f4;
+  --halo-search-widget-divider-color: #e0e0e0;
+  --halo-search-widget-kbd-border-color: #dadce0;
+  --halo-search-widget-kbd-shadow: 0 1px 3px rgba(60, 64, 67, 0.3);
+}
+
+/* ---- 亮色：文章正文加深 + 字号提升 ---- */
+.joe_detail__article {
+  p,
+  li,
+  td {
+    color: #333;
+    font-size: 16px;
+    line-height: 1.8;
+  }
+}
+
+/* ---- 亮色：首页摘要柔化对比度 ---- */
+.joe_list .abstract {
+  color: #666;
+}
+
+/* ---- 暗色：正文 / 摘要 / 评论文字色 ---- */
+html[data-mode='dark'] {
+  .joe_detail__article {
+    p,
+    li,
+    td {
+      color: #c9d1d9;
+    }
+  }
+
+  .joe_list .abstract {
+    color: #8b949e;
+  }
+
+  /* 评论组件暗色文字 */
+  --halo-cw-text-1-color: #c9d1d9;
+  --halo-cw-text-2-color: #b0b8c4;
+  --halo-cw-text-3-color: #8b949e;
+}

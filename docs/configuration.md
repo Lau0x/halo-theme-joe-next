@@ -11,6 +11,7 @@
 - [博主信息 · 天气](#博主信息--天气)
 - [菜单图标 · Iconfont](#菜单图标--iconfont)
 - [自定义标签样式](#自定义标签样式)
+- [自定义阅读样式](#自定义阅读样式--覆盖-next-默认)
 - [本地数据](#本地数据-用真实数据做开发调试)
 
 ---
@@ -133,6 +134,78 @@ jiewen joe-icon-tupian
 标签样式参考：[Joe3 部分样式](https://www.jiewen.run/archives/joe3style)（原作者维护的文档）
 
 也可以直接使用 Halo 的 [plugin-custom-elements](https://github.com/halo-sigs/plugin-custom-elements)。
+
+---
+
+## 自定义阅读样式 · 覆盖 Next 默认
+
+Joe3 Next 在上游基础上**内置了若干可读性优化**，定义在 `templates/assets/css/joe-next-overrides.less`：
+
+- 文章正文加深字色（亮色 `#333` / 暗色 `#c9d1d9`）并增大字号到 16px
+- 首页摘要柔化（亮色 `#666` / 暗色 `#8b949e`）
+- 调色评论组件 / 搜索组件的几个 CSS 变量
+
+这些是**主题内置默认**，装了就生效，不用手动复制粘贴代码注入。
+
+### 想改怎么办
+
+去 **Halo Console → 系统 → 设置 → 代码注入 → 全局 head 标签**，用 `<style>` 覆盖即可（代码注入优先级高于主题 CSS）。
+
+**示例 · 把正文字号改到 18px，字色改成更黑的 #1a1a1a**：
+
+```html
+<style>
+  .joe_detail__article p,
+  .joe_detail__article li,
+  .joe_detail__article td {
+    color: #1a1a1a !important;
+    font-size: 18px !important;
+  }
+
+  html[data-mode='dark'] .joe_detail__article p,
+  html[data-mode='dark'] .joe_detail__article li,
+  html[data-mode='dark'] .joe_detail__article td {
+    color: #e6edf3 !important;
+  }
+</style>
+```
+
+### 为什么代码注入要写 `!important`
+
+主题 CSS（`joe-next-overrides.min.css`）是**正常加载的 stylesheet**，你在代码注入里写的 `<style>` 虽然在 HTML 更靠下（理论上优先级高），但是 **Halo 把代码注入插在 `<head>` 内且特异性可能不够**，加 `!important` 最稳。
+
+### 可调的 CSS 变量（不用写选择器就能换色）
+
+```html
+<style>
+  :root {
+    --halo-cw-primary-1-color: #ff6b35;   /* 评论主色 */
+    --halo-search-widget-primary-color: #ff6b35;   /* 搜索主色 */
+  }
+</style>
+```
+
+完整变量清单见 `templates/assets/css/joe-next-overrides.less` 的 `:root` 块。
+
+### 彻底"恢复上游原版"
+
+如果你就是想要完全未调整的 Joe3 原版视觉，在代码注入里写：
+
+```html
+<style>
+  /* 取消所有 Next readability 覆盖 */
+  .joe_detail__article p,
+  .joe_detail__article li,
+  .joe_detail__article td {
+    all: revert !important;
+  }
+  .joe_list .abstract {
+    color: revert !important;
+  }
+</style>
+```
+
+或者 fork 这个主题 → 删掉 `joe-next-overrides.less` 引用再装回去。
 
 ---
 

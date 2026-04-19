@@ -103,6 +103,12 @@
       as="style"
       th:href="${source_link+'/assets/css/min/global.min.css?v='+theme.spec.version}"
     />
+    <!-- Joe3 Next readability defaults — 必须在 global.min.css 之后加载才能覆盖 -->
+    <link
+      rel="preload stylesheet"
+      as="style"
+      th:href="${source_link+'/assets/css/min/joe-next-overrides.min.css?v='+theme.spec.version}"
+    />
     <th:block th:if="${htmlType == 'index'}">
       <link
         rel="preload stylesheet"
