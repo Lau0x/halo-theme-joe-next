@@ -211,68 +211,26 @@ const commonContext = {
 			});
 		}
 	},
-	/* 获取页面百度收录情况 */
+	/* 百度收录提示
+	 * Fix upstream#365 #366: 原实现调用 https://bbchin.com/halo-api/bd/iscollect 和 /bd/push
+	 *   — 该第三方代理的 SSL 证书已过期，Edge/Chrome 会把整个博客标记为"不安全"，
+	 *   或直接阻止请求。bbchin.com 不受我们控制，无法修复服务端。
+	 *
+	 * 新行为：不再自动检测 / 自动推送。如果用户开了该开关，直接显示"查询百度收录"的
+	 *   站长平台链接 — 点击在新标签页打开官方入口。
+	 *
+	 * 保留 ThemeConfig.check_baidu_collect 开关只是为了向下兼容 — 未来版本里会把
+	 *   这个字段以及 baidu_token 字段一起淘汰。
+	 */
 	initBaidu() {
 		if (!ThemeConfig.check_baidu_collect || !$("#joe_baidu_record").length)
 			return;
-		Utils.request({
-			url: ThemeConfig.BASE_URL + "/halo-api/bd/iscollect",
-			method: "GET",
-			returnRaw: true,
-			data: {
-				url: ThemeConfig.blog_url + window.location.pathname,
-			},
-		})
-			.then((res) => {
-				if (res.data && res.data.collected) {
-					$("#joe_baidu_record").css("color", "#67c23a").html("已收录");
-				} else {
-					/* 如果填写了Token，则自动推送给百度 */
-					if (ThemeConfig.baidu_token) {
-						$("#joe_baidu_record").html(
-							"<span style=\"color: #e6a23c\">未收录，推送中...</span>"
-						);
-						let _timer = setTimeout(function () {
-							Utils.request({
-								url: ThemeConfig.BASE_URL + "/halo-api/bd/push",
-								method: "POST",
-								returnRaw: true,
-								data: {
-									site: ThemeConfig.blog_url,
-									token: ThemeConfig.baidu_token,
-									urls: window.location.href,
-								},
-							})
-								.then((res) => {
-									if (res.data.success === 0) {
-										$("#joe_baidu_record").html(
-											"<span style=\"color: #f56c6c\">推送失败，请检查！</span>"
-										);
-									} else {
-										$("#joe_baidu_record").html(
-											"<span style=\"color: #67c23a\">推送成功！</span>"
-										);
-									}
-								})
-								.catch((err) => {
-									console.log(err);
-								});
-							clearTimeout(_timer);
-							_timer = null;
-						}, 1000);
-					} else {
-						const url = `https://ziyuan.baidu.com/linksubmit/url?sitename=${encodeURI(
-							window.location.href
-						)}`;
-						$("#joe_baidu_record").html(
-							`<a target="_blank" href="${url}" rel="noopener noreferrer nofollow" style="color: #f56c6c">未收录，提交收录</a>`
-						);
-					}
-				}
-			})
-			.catch((err) => {
-				console.log(err);
-			});
+		const url = `https://ziyuan.baidu.com/linksubmit/url?sitename=${encodeURIComponent(
+			window.location.href
+		)}`;
+		$("#joe_baidu_record").html(
+			`<a target="_blank" href="${url}" rel="noopener noreferrer nofollow" style="color: #f56c6c">查询/提交收录</a>`
+		);
 	},
 	/* 音乐播放器 */
 	initMusic() {
@@ -489,6 +447,13 @@ const commonContext = {
 	},
 	/* 全局图片预览（文章、日志页等） */
 	initGallery() {
+		// Fix upstream#361: 禁用 fancybox 的 hash 联动。
+		//   原默认行为会在 URL 追加 #fancybox-Joe-N，Halo 依靠 URL 变化统计阅读量，
+		//   用户点图片放大就被计入阅读量，使统计失真。关闭 hash 后图片放大不再
+		//   写 location.hash，阅读量只记真实的页面访问。
+		if (typeof $.fancybox !== "undefined" && $.fancybox.defaults) {
+			$.fancybox.defaults.hash = false;
+		}
 		// 只对符合条件的图片开启预览功能
 		const $allImgs = $(
 			".page-post .joe_detail__article img:not([class]), .page-journals .joe_journal_block img:not([class]), .page-sheet img:not([class])"
@@ -498,7 +463,7 @@ const commonContext = {
 			const $this = $(this);
 			$this.wrap(
 				$(
-					`<span style="display: block;" data-fancybox="Joe" href="${$this.attr(
+					`<span style="display: block;" data-fancybox="Joe" data-hash="false" href="${$this.attr(
 						"src"
 					)}"></span>`
 				)
