@@ -37,12 +37,14 @@
 | 1 | 代码审计 | `templates/modules/config.html:389` **硬编码** `'%cTheme By Jiewen \| 版本 V' + ThemeConfig.version` | 控制台输出硬编码作者和版本，应改为从 `theme.yaml` 动态读取 或删掉 credit 放到代码注释 |
 | 2 | 代码审计 | ~~`.gitignore` 已忽略 `templates/assets/{css,js}/min/` 但这些文件**仍被 git tracked**~~ | ✅ **已完成**（fork-bootstrap 阶段一并清理，`git ls-files` 返回 0；构建产物现由 CI 生成、不入库） |
 | 3 | 代码审计 | jQuery 版本 3.5.1（2020）过时，最新是 3.7.1 | 升级到 3.7.1，或评估是否能**完全移除 jQuery** 改用原生 DOM |
-| 4 | 代码审计 | `templates/assets/` 总体 35MB，`lib/` 目录下有 DPlayer / APlayer / 各种 polyfill | 审计实际用到哪些，裁掉未使用的 lib |
-| 5 | 自加 | 缺少 GitHub Actions CI | 每次 push 自动 `pnpm build` + 上传 zip artifact |
-| 6 | 自加 | 缺少 Release workflow | 打 tag 时自动发 GH Release + 上传 theme zip |
-| 7 | 自加 | 缺少 `CONTRIBUTING.md` / `CODE_OF_CONDUCT.md` | 接棒维护者应有的社区治理文件 |
-| 8 | 自加 | 缺少 Dependabot / Renovate | 自动提 PR 升级依赖 |
-| 9 | 自加 | `docs/` 目录空着 | 整理使用文档（替代原作者分散在多个 jiewen.run/archives 的文章） |
+| 4 | 代码审计 | `templates/assets/lib/` 21 MB · 部分 lib 未被引用 | 🟡 **Audit 已出**（v1.5.1-next.5 次）—— **高可信度 0 引用 candidate（可删 ~284 KB）**：`jquery-ui/` (248K) · `packery/` (16K) · `jquery-pjax/` (12K) · `jquery-toc/` (8K)。**待核查**：`katex@0.13.18/` (2.3 MB, global.less 有样式但没引 JS，疑似"样式存 lib 废") · `pdfjs/` (6.9 MB, 3 处引用但如无 PDF embed 需求可移除) · `halo-comment/` (8.2 MB, 原生评论走插件后主题内这份可能冗余)。**下个 PR 开 `chore/unused-libs` 分支处理，需用户生产验证** |
+| 5 | 自加 | ~~缺少 GitHub Actions CI~~ | ✅ `build.yml` 已加 |
+| 6 | 自加 | ~~缺少 Release workflow~~ | ✅ `release.yml` 已加（含 annotated tag highlight） |
+| 7 | 自加 | ~~缺少 `CONTRIBUTING.md` / `CODE_OF_CONDUCT.md`~~ | ✅ 已加（Contributor Covenant 2.1） |
+| 8 | 自加 | ~~缺少 Dependabot / Renovate~~ | ✅ `.github/dependabot.yml` 已加 |
+| 9 | 自加 | ~~`docs/` 目录空着~~ | ✅ `docs/configuration.md` + `docs/deployment/npm-setup.md` |
+| 10 | 代码审计 | ~~layout.html 里 jQuery 同步加载阻塞 render~~ | ✅ 已加 `defer` + body inline script 加 DOMContentLoaded guard（v1.5.1-next.5 次） |
+| 11 | 代码审计 | ~~`custom.js` 22 处调试 `console.log`~~ | ✅ 已全部注释（保留 warn），0 活跃 log |
 
 ## 🔵 P3 · 长期理想（不急，但想过）
 
