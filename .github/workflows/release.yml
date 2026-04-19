@@ -72,19 +72,25 @@ jobs:
           name: ${{ inputs.tag || github.ref_name }}
           files: ${{ steps.find-zip.outputs.zip }}
           generate_release_notes: true
+          # append_body=true 让我们手写的 body 追加到 GitHub 自动生成的 commit 列表
+          # 之后。否则 body 会覆盖 auto-notes，订阅者邮件里看不到这次改了什么。
+          append_body: true
           draft: false
           prerelease: ${{ contains(inputs.tag || github.ref_name, '-') }}
           body: |
-            Halo 主题 Joe3 Next 版本 `${{ inputs.tag || github.ref_name }}` 发布。
 
-            ## 安装
+            ---
 
-            下载下方 `halo-theme-joe3-*.zip`，在 Halo Console → 外观 → 主题 → 安装 中上传。
+            ## 安装 / 升级
+
+            下方 `theme-Joe3-*.zip` 直接在 Halo Console → 外观 → 主题 → 安装/升级 中上传。
+            升级覆盖保留所有配置（metadata.name / settingName / configMapName 不变）。
+
+            ## 获取更新通知
+
+            本主题暂未登陆 Halo 官方应用市场，Halo 后台不会推送升级提示。
+            请在本仓库右上角 **Watch → Custom → Releases** 订阅，新版本发布时 GitHub 会邮件通知你。
 
             ## License
 
             [CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/) — 原作 © Jiewenhuang，本 fork 由 Roy Leo 继续维护。
-
-            ---
-
-            _Release notes below auto-generated from commits since the previous tag._
