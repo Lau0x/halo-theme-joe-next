@@ -28,6 +28,9 @@ jobs:
         uses: actions/checkout@v4
         with:
           ref: ${{ inputs.tag || github.ref }}
+          # Need full history so `git describe --tags` can find the previous
+          # release tag to build the commit list in the release body.
+          fetch-depth: 0
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -65,19 +68,46 @@ jobs:
           echo "zip=$zip_file" >> "$GITHUB_OUTPUT"
           echo "Release zip: $zip_file ($(du -h "$zip_file" | cut -f1))"
 
+      - name: Build commit list since previous tag
+        id: commits
+        run: |
+          # We commit direct to main without PRs, so GitHub's auto
+          # "What's Changed" section is empty. Generate our own from
+          # `git log` between previous release tag and current tag.
+          git fetch --tags --force --quiet
+          current_tag="${{ inputs.tag || github.ref_name }}"
+          previous_tag=$(git describe --tags --abbrev=0 "${current_tag}^" 2>/dev/null || true)
+          if [ -z "$previous_tag" ]; then
+            log=$(git log --no-merges --pretty="- %s ([\`%h\`](https://github.com/${{ github.repository }}/commit/%H))" "${current_tag}")
+            range="initial release up to ${current_tag}"
+          else
+            log=$(git log --no-merges --pretty="- %s ([\`%h\`](https://github.com/${{ github.repository }}/commit/%H))" "${previous_tag}..${current_tag}")
+            range="${previous_tag} → ${current_tag}"
+          fi
+          {
+            echo "commits<<EOF"
+            echo "$log"
+            echo "EOF"
+            echo "range=${range}"
+          } >> "$GITHUB_OUTPUT"
+
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ inputs.tag || github.ref_name }}
           name: ${{ inputs.tag || github.ref_name }}
           files: ${{ steps.find-zip.outputs.zip }}
-          generate_release_notes: true
-          # append_body=true 让我们手写的 body 追加到 GitHub 自动生成的 commit 列表
-          # 之后。否则 body 会覆盖 auto-notes，订阅者邮件里看不到这次改了什么。
-          append_body: true
+          # 不用 GitHub 的自动 release notes —— 它只对带 PR 的 merge 有效。
+          # 我们走 direct-to-main，所以自己 git log 生成列表。
+          generate_release_notes: false
           draft: false
           prerelease: ${{ contains(inputs.tag || github.ref_name, '-') }}
           body: |
+            ## 本次变更（${{ steps.commits.outputs.range }}）
+
+            ${{ steps.commits.outputs.commits }}
+
+            [查看完整 diff](https://github.com/${{ github.repository }}/compare/${{ steps.commits.outputs.range }})
 
             ---
 
