@@ -46,10 +46,12 @@ jobs:
       - name: Find theme zip
         id: find-zip
         run: |
-          zip_file=$(ls -1 *.zip 2>/dev/null | head -n1)
+          # @halo-dev/theme-package-cli outputs into dist/
+          zip_file=$(ls -1 dist/*.zip 2>/dev/null | head -n1)
           if [ -z "$zip_file" ]; then
             echo "::error::No theme zip was produced by pnpm build"
-            ls -la
+            echo "--- repo root ---"; ls -la
+            echo "--- dist/ ---";     ls -la dist/ 2>/dev/null || echo "(dist/ missing)"
             exit 1
           fi
           echo "zip=$zip_file" >> "$GITHUB_OUTPUT"
