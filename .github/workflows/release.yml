@@ -79,16 +79,19 @@ jobs:
           previous_tag=$(git describe --tags --abbrev=0 "${current_tag}^" 2>/dev/null || true)
           if [ -z "$previous_tag" ]; then
             log=$(git log --no-merges --pretty="- %s ([\`%h\`](https://github.com/${{ github.repository }}/commit/%H))" "${current_tag}")
-            range="initial release up to ${current_tag}"
+            human_range="initial release up to ${current_tag}"
+            diff_path="${current_tag}"
           else
             log=$(git log --no-merges --pretty="- %s ([\`%h\`](https://github.com/${{ github.repository }}/commit/%H))" "${previous_tag}..${current_tag}")
-            range="${previous_tag} → ${current_tag}"
+            human_range="${previous_tag} → ${current_tag}"
+            diff_path="${previous_tag}...${current_tag}"
           fi
           {
             echo "commits<<EOF"
             echo "$log"
             echo "EOF"
-            echo "range=${range}"
+            echo "human_range=${human_range}"
+            echo "diff_path=${diff_path}"
           } >> "$GITHUB_OUTPUT"
 
       - name: Create GitHub Release
@@ -103,11 +106,11 @@ jobs:
           draft: false
           prerelease: ${{ contains(inputs.tag || github.ref_name, '-') }}
           body: |
-            ## 本次变更（${{ steps.commits.outputs.range }}）
+            ## 本次变更（${{ steps.commits.outputs.human_range }}）
 
             ${{ steps.commits.outputs.commits }}
 
-            [查看完整 diff](https://github.com/${{ github.repository }}/compare/${{ steps.commits.outputs.range }})
+            [查看完整 diff](https://github.com/${{ github.repository }}/compare/${{ steps.commits.outputs.diff_path }})
 
             ---
 
