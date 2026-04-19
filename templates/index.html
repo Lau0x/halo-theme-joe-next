@@ -18,6 +18,10 @@
           class="joe_container joe_main_container page-index"
           th:classappend="|${theme.config.theme.enable_show_in_up ? 'animated showInUp':''} ${theme.config.aside.aside_position == 'left' ? 'revert':''}|"
         >
+          <!-- Visually hidden h1 for SEO & a11y. Site title lives in the
+               navbar as a link, without a semantic <h1> search engines and
+               screen readers treat the home page as heading-less. -->
+          <h1 class="sr-only" th:text="${site.title}"></h1>
           <div class="joe_main">
             <div class="joe_index">
               <!--                      轮播图-->

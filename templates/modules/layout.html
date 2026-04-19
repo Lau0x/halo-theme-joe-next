@@ -27,7 +27,11 @@
     <meta name="site" th:content="${site.url}" />
     <!-- OG -->
     <meta property="og:image" th:content="${site.favicon}" />
-    <meta property="og:description" th:content="site.seo.description" />
+    <!-- Fix upstream bug: was th:content="site.seo.description" (missing ${}),
+         rendered the literal string "site.seo.description" as the social
+         preview description. Every share to WeChat / X / Facebook showed that
+         literal token instead of the actual site description. -->
+    <meta property="og:description" th:content="${site.seo.description}" />
     <meta property="og:type" content="website" />
     <meta property="og:locale" content="zh_CN" />
     <meta property="og:site_name" th:content="${site.title}+'-'+${site.subtitle}" />
