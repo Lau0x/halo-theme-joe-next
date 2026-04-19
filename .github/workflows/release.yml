@@ -1,0 +1,90 @@
+name: Release
+
+# 打 tag (v*) 时触发：构建 theme zip → 创建 GitHub Release → 上传 zip 作为 asset
+# 用法：
+#   git tag v1.6.0
+#   git push origin v1.6.0
+# → 几分钟后 releases 页面出现 v1.6.0，附 halo-theme-joe3-1.6.0.zip
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Tag to release (must already exist)'
+        required: true
+
+permissions:
+  contents: write   # 创建 release 需要
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.tag || github.ref }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Setup pnpm (via Corepack)
+        run: |
+          corepack enable
+          corepack prepare --activate
+
+      - name: Cache pnpm store
+        uses: actions/cache@v4
+        with:
+          path: ~/.local/share/pnpm/store/v3
+          key: ${{ runner.os }}-pnpm-${{ hashFiles('pnpm-lock.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-pnpm-
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build theme zip
+        run: pnpm build
+
+      - name: Locate theme zip
+        id: find-zip
+        run: |
+          zip_file=$(ls -1 dist/*.zip 2>/dev/null | head -n1)
+          if [ -z "$zip_file" ]; then
+            echo "::error::No theme zip in dist/"
+            ls -la dist/ 2>/dev/null || echo "(dist/ missing)"
+            exit 1
+          fi
+          echo "zip=$zip_file" >> "$GITHUB_OUTPUT"
+          echo "Release zip: $zip_file ($(du -h "$zip_file" | cut -f1))"
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ inputs.tag || github.ref_name }}
+          name: ${{ inputs.tag || github.ref_name }}
+          files: ${{ steps.find-zip.outputs.zip }}
+          generate_release_notes: true
+          draft: false
+          prerelease: ${{ contains(inputs.tag || github.ref_name, '-') }}
+          body: |
+            Halo 主题 Joe3 Next 版本 `${{ inputs.tag || github.ref_name }}` 发布。
+
+            ## 安装
+
+            下载下方 `halo-theme-joe3-*.zip`，在 Halo Console → 外观 → 主题 → 安装 中上传。
+
+            ## License
+
+            [CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/) — 原作 © Jiewenhuang，本 fork 由 Roy Leo 继续维护。
+
+            ---
+
+            _Release notes below auto-generated from commits since the previous tag._
