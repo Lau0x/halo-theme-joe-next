@@ -2,10 +2,22 @@ apiVersion: theme.halo.run/v1alpha1
 kind: Theme
 metadata:
   name: theme-Joe3
-  annotations:
-    # Add supports for Halo App Store
-    # https://www.halo.run/store/apps/app-ZxiPb
-    'store.halo.run/app-id': 'app-ZxiPb'
+  # Removed: store.halo.run/app-id annotation
+  #
+  # Upstream (Jiewenhuang) published Theme Joe3 to the Halo App Store under
+  # app-ZxiPb. If this fork kept that annotation, every user of Joe3 Next
+  # would see an "upgrade available" prompt pointing back to the upstream
+  # app-store listing and silently lose all our fixes on one click.
+  #
+  # Three options for reintroducing an upgrade channel in the future:
+  #   (a) Publish this fork as a new Halo App Store app (requires dev
+  #       account + submission review at halo.run/developers)
+  #   (b) Host our own update manifest and point Halo at it (if/when
+  #       Halo supports a self-hosted update-feed annotation)
+  #   (c) Keep manual: users watch the GitHub repo releases page for
+  #       notifications, pull the zip, upgrade via Console.
+  #
+  # Until (a) lands, (c) is the safe default.
 spec:
   displayName: Theme Joe3 Next
   author:
@@ -17,7 +29,7 @@ spec:
   repo: 'https://github.com/Lau0x/halo-theme-joe-next'
   settingName: 'theme-Joe-setting'
   configMapName: 'theme-Joe-configMap'
-  version: '1.5.1-next.2'
+  version: '1.5.1-next.3'
   requires: '>=2.22.2'
   customTemplates:
     page:
