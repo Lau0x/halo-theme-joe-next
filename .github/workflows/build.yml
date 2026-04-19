@@ -1,0 +1,64 @@
+name: Build
+
+# 每次 push 到 main 或 PR 时跑：验证构建没坏 + 上传可安装的 theme zip 作为 artifact
+# 方便贡献者从 GH Actions 页面直接下载预览版
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Setup pnpm (via Corepack, pinned by packageManager field)
+        run: |
+          corepack enable
+          corepack prepare --activate
+          pnpm --version
+
+      - name: Cache pnpm store
+        uses: actions/cache@v4
+        with:
+          path: ~/.local/share/pnpm/store/v3
+          key: ${{ runner.os }}-pnpm-${{ hashFiles('pnpm-lock.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-pnpm-
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build (rolldown + theme-package zip)
+        run: pnpm build
+
+      - name: Find theme zip
+        id: find-zip
+        run: |
+          zip_file=$(ls -1 *.zip 2>/dev/null | head -n1)
+          if [ -z "$zip_file" ]; then
+            echo "::error::No theme zip was produced by pnpm build"
+            ls -la
+            exit 1
+          fi
+          echo "zip=$zip_file" >> "$GITHUB_OUTPUT"
+          echo "Built: $zip_file ($(du -h "$zip_file" | cut -f1))"
+
+      - name: Upload theme zip artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: halo-theme-joe-next-${{ github.sha }}
+          path: ${{ steps.find-zip.outputs.zip }}
+          if-no-files-found: error
+          retention-days: 30
