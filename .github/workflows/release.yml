@@ -68,7 +68,7 @@ jobs:
           echo "zip=$zip_file" >> "$GITHUB_OUTPUT"
           echo "Release zip: $zip_file ($(du -h "$zip_file" | cut -f1))"
 
-      - name: Build commit list since previous tag
+      - name: Build commit list + tag highlight since previous tag
         id: commits
         run: |
           # We commit direct to main without PRs, so GitHub's auto
@@ -86,12 +86,26 @@ jobs:
             human_range="${previous_tag} → ${current_tag}"
             diff_path="${previous_tag}...${current_tag}"
           fi
+
+          # If the release tag is annotated (git tag -a vX.Y.Z -m "..."), extract
+          # the message body as a release-specific highlight. Lightweight tags
+          # yield an empty string — skipped silently.
+          tag_type=$(git cat-file -t "${current_tag}" 2>/dev/null || echo "")
+          if [ "$tag_type" = "tag" ]; then
+            highlight=$(git tag -l --format='%(contents)' "${current_tag}" | sed '/^-----BEGIN PGP/,$d')
+          else
+            highlight=""
+          fi
+
           {
             echo "commits<<EOF"
             echo "$log"
             echo "EOF"
             echo "human_range=${human_range}"
             echo "diff_path=${diff_path}"
+            echo "highlight<<EOF"
+            echo "$highlight"
+            echo "EOF"
           } >> "$GITHUB_OUTPUT"
 
       - name: Create GitHub Release
@@ -106,6 +120,8 @@ jobs:
           draft: false
           prerelease: ${{ contains(inputs.tag || github.ref_name, '-') }}
           body: |
+            ${{ steps.commits.outputs.highlight }}
+
             ## 本次变更（${{ steps.commits.outputs.human_range }}）
 
             ${{ steps.commits.outputs.commits }}
@@ -114,10 +130,17 @@ jobs:
 
             ---
 
+            ## 🚨 升级注意事项
+
+            - ✅ **配置不会丢**：`metadata.name` / `settingName` / `configMapName` 全部与上游 Joe3 一致，升级是 Halo 的"同主题覆盖"行为，后台所有设置（博主信息、Waline Token、颜色等）都保留
+            - 📦 **建议升级前先备份**：Halo Console → 工具 → 备份与恢复 → 创建备份。万一视觉改动不喜欢，5 秒可回滚
+            - ⬇️ **回退方法**：从 [Releases 页](https://github.com/${{ github.repository }}/releases) 下载旧版 zip 重新上传即可
+            - ⚠️ **新增 setting 字段**：升级后 "主题设置"里可能出现新选项，默认值安全（不启用），需要时再开
+            - 🚫 **别重复升级到官方市场版**：本 fork 已拆除 `store.halo.run/app-id` 避免反向升级，但如果你从 halo.run/store 安装过原版 Joe3 再覆盖本 fork，可能混装——建议先卸载原版再安装本 fork
+
             ## 安装 / 升级
 
             下方 `theme-Joe3-*.zip` 直接在 Halo Console → 外观 → 主题 → 安装/升级 中上传。
-            升级覆盖保留所有配置（metadata.name / settingName / configMapName 不变）。
 
             ## 获取更新通知
 
