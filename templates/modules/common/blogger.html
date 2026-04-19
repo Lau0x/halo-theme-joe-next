@@ -2,14 +2,19 @@
 <html th:lang="${#locale.toLanguageTag}" xmlns:th="https://www.thymeleaf.org">
   <th:block th:fragment="blogger">
     <section class="joe_aside__item author">
+      <!--
+        Fix upstream#389: 博主栏背景图输入链接无效
+        原实现用 lazyload + 外链 data-src，懒加载失败时 placeholder 会一直挂着。
+        改为：外链有效 → 直接加载；空 → fallback 到本地；加载失败 → 回退到本地。
+        Credit: Jiewenhuang (upstream#389)
+      -->
       <img
         width="100%"
         height="120"
-        class="image lazyload"
-        th:data-src="${theme.config.blogger.author_bg}"
-        th:src="@{/assets/img/author_bg.jpg}"
+        class="image"
+        th:src="${theme.config.blogger.author_bg ?: '/themes/theme-Joe3/assets/img/author_bg.jpg'}"
         alt="博主栏壁纸"
-        onerror="Joe.errorImg(this)"
+        th:onerror="this.onerror=null;this.src='/themes/theme-Joe3/assets/img/author_bg.jpg'"
       />
       <div class="user">
         <div

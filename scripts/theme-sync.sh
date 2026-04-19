@@ -2,12 +2,13 @@
 # theme-sync.sh —— 把本地主题源码同步到本地 Halo dev 容器
 #
 # 用法：
-#   ./scripts/theme-sync.sh                  # 全量同步（默认）
+#   ./scripts/theme-sync.sh                  # 全量同步 + 自动重启 Halo（默认）
 #   ./scripts/theme-sync.sh --templates      # 只同步 templates/（最常用，HTML/CSS/JS）
 #   ./scripts/theme-sync.sh --settings       # 只同步 theme.yaml / settings.yaml / annotation-setting.yaml
 #   ./scripts/theme-sync.sh --build-first    # 先跑 pnpm build-only 再同步（改 less/js 后用）
+#   ./scripts/theme-sync.sh --no-restart     # 同步后不重启 Halo（仅改静态资源如 img 时用）
 #
-# 同步后 Halo 会自动热加载 Thymeleaf 模板，前台刷新即可看到改动。
+# 默认会 docker restart halo-joe-dev 让 Thymeleaf 模板缓存失效，约 15 秒重启完成。
 
 set -euo pipefail
 
@@ -20,11 +21,13 @@ RED='\033[0;31m'; GREEN='\033[0;32m'; YELLOW='\033[1;33m'; NC='\033[0m'
 # 参数解析
 MODE="full"
 BUILD_FIRST=false
+RESTART=true
 for arg in "$@"; do
   case "$arg" in
     --templates) MODE="templates" ;;
     --settings) MODE="settings" ;;
     --build-first) BUILD_FIRST=true ;;
+    --no-restart) RESTART=false ;;
     -h|--help)
       head -12 "$0" | tail -11 | sed 's/^# \?//'
       exit 0 ;;
@@ -74,4 +77,14 @@ case "$MODE" in
     ;;
 esac
 
-echo -e "${GREEN}同步完成。前台刷新查看改动。${NC}"
+if $RESTART; then
+  echo -e "${YELLOW}>>> 重启 Halo 让 Thymeleaf 模板缓存失效（约 15s）${NC}"
+  docker restart "$CONTAINER" > /dev/null
+  for i in $(seq 1 12); do
+    code=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:8090/actuator/health 2>/dev/null)
+    [ "$code" = "200" ] && echo -e "${GREEN}Halo 就绪（${i}×5s）${NC}" && break
+    sleep 5
+  done
+else
+  echo -e "${YELLOW}同步完成（未重启，templates 改动可能被 Thymeleaf 缓存）${NC}"
+fi
