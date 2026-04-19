@@ -16,7 +16,7 @@
 
 ## 相关文档
 
-- **[NPM 反代部署配置](./deployment/npm-setup.md)** — 用 Nginx Proxy Manager 反代 Halo 时的完整配置：gzip、安全头、HSTS、securityheaders.com A+ 评分设置 + 踩坑解释
+- **[NPM 反代部署配置](./deployment/npm-setup.md)** — 用 Nginx Proxy Manager 反代 Halo 时的完整配置：gzip、安全头、HSTS、securityheaders.com A 评级设置 + 踩坑解释
 
 ---
 
