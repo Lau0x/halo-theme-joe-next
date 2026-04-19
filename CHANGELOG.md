@@ -12,18 +12,44 @@
 
 未发布（main 分支当前状态）。下一个 tag 预计继续走 `v1.5.1-next.X` 线，直到 [TODO.md 中 v1.6.0 的前置条件](TODO.md#-发布里程碑--v160-稳定正式版) 全部满足，才切正式版 `v1.6.0`。
 
+---
+
+## [1.5.1-next.5] · 2026-04-19 · 🔥 密集迭代
+
+**Sprint 3 一波流**——把 a11y / SEO / 性能 / 新 feature 一次推到位，一次升级拿齐。
+
 ### Added
-- 社区治理三件套：`CONTRIBUTING.md` / `CODE_OF_CONDUCT.md`（Contributor Covenant 2.1）/ `.github/dependabot.yml`（npm 周扫 + GitHub Actions 月扫）
-- `docs/deployment/npm-setup.md` · Nginx Proxy Manager 反代配置指南（gzip / 安全头 / HSTS / `add_header` 继承陷阱深剖）
+- **社区治理三件套**：`CONTRIBUTING.md` / `CODE_OF_CONDUCT.md`（Contributor Covenant 2.1）/ `.github/dependabot.yml`（npm 周扫 + GitHub Actions 月扫）
+- **`docs/deployment/npm-setup.md`** · Nginx Proxy Manager 反代配置指南（gzip / 安全头 / HSTS / `add_header` 继承陷阱深剖）
+- **文章底部版权框可配置**（closes [upstream#360](https://github.com/jiewenhuang/halo-theme-joe3.0/issues/360)）：
+  - `enable_post_copyright` · 整体开关
+  - `copyright_owner_override` · 覆盖版权归属显示名（默认用贡献者昵称）
+  - `copyright_owner_url` · 版权归属链接（可指向作者主页）
+- **海外分享渠道**（closes [upstream#358](https://github.com/jiewenhuang/halo-theme-joe3.0/issues/358)）：
+  - `enable_share_x` · X (Twitter) 分享按钮
+  - `enable_share_telegram` · Telegram 分享按钮
+  - 默认关闭，面向海外读者的博主按需开启
+- **SEO meta 补齐**：`<meta name="description">` / `<link rel="canonical">` / `<meta name="theme-color">` / Twitter Card 完整（summary_large_image + title/desc/image）
+- **a11y 覆盖**：所有 `<img>` 补齐 `alt`（覆盖率 91% → 100%），icon 按钮补 `aria-label`（搜索 / 分享按钮），loading 容器加 `role="status"`
 
 ### Fixed
-- **图库页顺序错乱**：`IntersectionObserver` 复用单例防 leak、layout debounce 80ms 防抖动、isotope `sortBy='original-order'` 锚定后端迭代顺序（refs [upstream#353](https://github.com/jiewenhuang/halo-theme-joe3.0/issues/353) 图片顺序部分）
+- **🎨 图库页顺序错乱**（refs [upstream#353](https://github.com/jiewenhuang/halo-theme-joe3.0/issues/353) 图片顺序部分）：
+  - `IntersectionObserver` 复用单例防 leak（之前每次分页新建 observer）
+  - Layout debounce 80ms 合并（之前每张图 onload 都独立 layout 引发抖动）
+  - isotope 加 `sortBy='original-order'`，`data-order` 锚定后端迭代顺序，跨页 append 不再错乱
+- **🚀 jQuery defer**：layout.html 里 jQuery 不再 render-blocking。FCP（首次内容绘制）在慢网环境预计有改善；body 内两处 inline `$()` 调用（page_links / links）已加 `DOMContentLoaded` guard 保证依赖顺序
 
 ### Changed
-- 文档中 securityheaders.com 评级从 "A+" 修正为实际的 "A"（A+ 需配 CSP，Halo 主题架构下成本高，已在 FAQ 说明可选升级路径）
+- 文档中 securityheaders.com 评级从 "A+" 修正为实际的 "A"（A+ 需配 CSP，Halo 主题架构下成本高；`docs/deployment/npm-setup.md` FAQ 新增「想拿 A+ 怎么办」的 Report-Only 渐进路径）
+- `custom.js` · 19 处 `JoeReadLimited` 业务调试 `console.log` 全部注释（保留 3 处 `console.warn` 真警告）；`main.js`+`journals.js` 残留 log 清理；5 处 catch 的 `console.log(err)` 改 `console.error(err)` 语义正确
 
 ### Routed out
-- upstream#353 搜索不能打空格：非主题层问题（走 Halo 官方 `plugin-search-widget`，主题内相关代码已注释），建议去插件仓库报
+- **upstream#353 搜索不能打空格** · 非主题层：走 Halo 官方 `plugin-search-widget` 插件，主题 `common.js` 内相关代码已注释；建议去 [plugin-search-widget issues](https://github.com/halo-sigs/plugin-search-widget/issues) 报告
+- **upstream#380 标题阴影 / upstream#351 Waline 路由 / upstream#363 控制台报错** · 🅿️ **Parking**：issue 描述过简、无复现路径，需用户提供具体截图 + 环境才能精修。不阻塞 v1.6.0 发布
+
+### Chore
+- TODO.md 同步：P2.2（min/ git 追踪）/ P2.5-P2.9（CI / COC / docs）全部标 ✅；v1.6.0 milestone 的 gate 与现状对齐
+- lib audit 已出（~284 KB 高可信度 0 引用 candidate：jquery-ui / packery / jquery-pjax / jquery-toc），删除动作独立 PR `chore/unused-libs`，需生产验证后再做
 
 ---
 
