@@ -21,9 +21,16 @@
           class="avatar_wrapper"
           th:classappend="${theme.config.blogger.avatar_type == 'circle' ? 'circle':'round'}"
         >
+          <!--
+            Fix upstream#367: 博主头像更新后不刷新
+            根因：avatar URL 本身没变（内容覆盖同名图 or 外部 URL），浏览器 HTTP 缓存住。
+            对策：拼 '?v=<theme.spec.version>' 作 cache-bust。用户换头像后随主题 patch bump
+                 缓存自动失效。对已带 query 的 URL 用 & 连接避免破坏原 query。
+          -->
           <img
             class="avatar lazyload"
-            th:data-src="${theme.config.blogger.avatar ?: (theme.config.blogger.default_avatar ?: '/themes/theme-Joe3/assets/img/transparent-placeholder.png')}"
+            th:with="avatarRaw=${theme.config.blogger.avatar ?: (theme.config.blogger.default_avatar ?: '/themes/theme-Joe3/assets/img/transparent-placeholder.png')}"
+            th:data-src="${avatarRaw + (#strings.contains(avatarRaw, '?') ? '&' : '?') + 'v=' + theme.spec.version}"
             th:src="${theme.config.blogger.lazyload_avatar}"
             alt="博主头像"
             th:data-text-avatar="${theme.config.blogger.nickname ?: site.title}"
