@@ -1,6 +1,13 @@
 <!doctype html>
 <html th:lang="${#locale.toLanguageTag}" xmlns:th="https://www.thymeleaf.org">
-  <th:block th:fragment="post_copyright">
+  <!--
+    Fix refs upstream#360: 允许修改文章页底部信息
+    - enable_post_copyright (switch, 默认 true) · 整体开关
+    - copyright_owner_override (text, 默认空) · 覆盖版权归属名称
+    - copyright_owner_url (text, 默认空) · 版权归属链接
+    - passage_rights_content (textarea, 默认空) · 许可协议文案（已有）
+  -->
+  <th:block th:fragment="post_copyright" th:if="${theme.config.post.enable_post_copyright}">
     <div class="joe_detail__copyright">
       <div class="content">
         <div class="item">
@@ -16,9 +23,18 @@
           </svg>
           <span>版权归属：</span>
           <th:block
-            th:with="contributor = ${contributorFinder.getContributor(post.status.contributors[post.status.contributors.size()-1])}"
+            th:with="contributor = ${contributorFinder.getContributor(post.status.contributors[post.status.contributors.size()-1])},
+                     ownerName = ${#strings.isEmpty(theme.config.post.copyright_owner_override) ? contributor.displayName : theme.config.post.copyright_owner_override},
+                     ownerUrl = ${theme.config.post.copyright_owner_url}"
           >
-            <span class="text">[[${contributor.displayName}]]</span>
+            <span class="text">
+              <th:block th:if="${#strings.isEmpty(ownerUrl)}"> [[${ownerName}]] </th:block>
+              <th:block th:unless="${#strings.isEmpty(ownerUrl)}">
+                <a class="link" th:href="${ownerUrl}" target="_blank" rel="noopener noreferrer"
+                  >[[${ownerName}]]</a
+                >
+              </th:block>
+            </span>
           </th:block>
         </div>
         <div class="item">

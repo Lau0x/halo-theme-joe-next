@@ -143,6 +143,54 @@
                 </div>
               </a>
             </th:block>
+            <!-- #358 分享渠道扩展 · X (Twitter) -->
+            <th:block th:if="${theme.config.post.enable_share_x}">
+              <a
+                th:href="'https://twitter.com/intent/tweet?url='+${site_url}+${post.status.permalink}+'&text='+${post.spec.title}"
+                target="_blank"
+                rel="noopener noreferrer"
+                title="分享到 X"
+                aria-label="分享到 X (Twitter)"
+              >
+                <svg
+                  class="icon"
+                  viewBox="0 0 24 24"
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="28"
+                  height="28"
+                >
+                  <circle cx="12" cy="12" r="12" fill="#000" />
+                  <path
+                    d="M16.244 5.25h2.058l-4.499 5.14 5.293 6.995H14.61l-3.245-4.242-3.717 4.242H5.59l4.81-5.498L5.316 5.25h4.498l2.933 3.876zm-.723 10.903h1.14L8.72 6.347H7.497z"
+                    fill="#FFF"
+                  />
+                </svg>
+              </a>
+            </th:block>
+            <!-- #358 分享渠道扩展 · Telegram -->
+            <th:block th:if="${theme.config.post.enable_share_telegram}">
+              <a
+                th:href="'https://t.me/share/url?url='+${site_url}+${post.status.permalink}+'&text='+${post.spec.title}"
+                target="_blank"
+                rel="noopener noreferrer"
+                title="分享到 Telegram"
+                aria-label="分享到 Telegram"
+              >
+                <svg
+                  class="icon"
+                  viewBox="0 0 24 24"
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="30"
+                  height="30"
+                >
+                  <circle cx="12" cy="12" r="12" fill="#27A7E7" />
+                  <path
+                    d="M5.492 11.692l11.27-4.345c.523-.19.98.128.81.919l-1.918 9.04c-.142.64-.525.796-1.061.495l-2.933-2.162-1.415 1.362c-.157.157-.289.289-.593.289l.21-2.986 5.436-4.912c.236-.208-.052-.325-.365-.117L8.215 12.5l-2.896-.904c-.629-.198-.643-.628.173-.904z"
+                    fill="#FFF"
+                  />
+                </svg>
+              </a>
+            </th:block>
           </div>
         </div>
       </th:block>

@@ -2236,6 +2236,22 @@ spec:
           key: enable_share_weibo
           label: 微博分享
           value: true
+        # --- #358 分享渠道扩展：海外社交 ---
+        - $formkit: switch
+          name: enable_share_x
+          id: enable_share_x
+          key: enable_share_x
+          label: X (Twitter) 分享
+          value: false
+          help: '面向海外读者时开启。点击会打开 X (Twitter) 的"发推"页并预填文章标题和链接。'
+        - $formkit: switch
+          name: enable_share_telegram
+          id: enable_share_telegram
+          key: enable_share_telegram
+          label: Telegram 分享
+          value: false
+          help: '面向海外读者时开启。点击会打开 Telegram 的分享弹窗并预填文章标题和链接。'
+        # --- #358 分享渠道扩展 END ---
         - $formkit: switch
           name: enable_share_link
           id: enable_share_link
@@ -2257,6 +2273,31 @@ spec:
           label: 许可协议文案
           value: ''
           help: '自定义文章页底部版权模块中的“作品采用”文案，为空则使用默认文案，一般不用设置'
+        # --- 文章底部版权框可配置 (refs upstream#360) ---
+        - $formkit: switch
+          name: enable_post_copyright
+          id: enable_post_copyright
+          key: enable_post_copyright
+          label: 显示文章底部版权框
+          value: true
+          help: '关闭后整块「版权归属 / 本文链接 / 许可协议」的底部框不再显示（某些站点不需要展示版权信息）'
+        - $formkit: text
+          if: '$get(enable_post_copyright).value === true'
+          name: copyright_owner_override
+          id: copyright_owner_override
+          key: copyright_owner_override
+          label: 版权归属·自定义名称
+          value: ''
+          help: '留空则使用 Halo 该文章的贡献者昵称。设置后会替换版权归属显示的名称（例如统一显示站点名）。'
+        - $formkit: text
+          if: '$get(enable_post_copyright).value === true'
+          name: copyright_owner_url
+          id: copyright_owner_url
+          key: copyright_owner_url
+          label: 版权归属·链接
+          value: ''
+          help: '留空则版权归属是纯文本。设置后变成可点击链接（通常指向作者主页或 About 页）。'
+        # --- 文章底部版权框可配置 END ---
         - $formkit: switch
           name: enable_donate
           id: enable_donate
