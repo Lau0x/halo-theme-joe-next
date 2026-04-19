@@ -7,14 +7,14 @@ metadata:
     # https://www.halo.run/store/apps/app-ZxiPb
     'store.halo.run/app-id': 'app-ZxiPb'
 spec:
-  displayName: Theme Joe3
+  displayName: Theme Joe3 Next
   author:
-    name: Jiewenhuang
-    website: 'https://www.jiewen.run'
-  description: Halo 2.0主题 Joe3
+    name: Roy Leo (continued from Jiewenhuang)
+    website: 'https://blog.laoda.de'
+  description: 'Community-maintained continuation of Halo Theme Joe3, originally by Jiewenhuang. Adds features and fixes while upstream is inactive.'
   logo: 'https://wmimg.com/i/70/2023/08/64d3c41d5bde2.webp'
-  homepage: 'https://www.jiewen.run'
-  repo: 'https://github.com/jiewenhuang/halo-theme-joe3.0'
+  homepage: 'https://blog.laoda.de'
+  repo: 'https://github.com/Lau0x/halo-theme-joe-next'
   settingName: 'theme-Joe-setting'
   configMapName: 'theme-Joe-configMap'
   version: '1.5.0'

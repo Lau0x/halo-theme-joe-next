@@ -1,12 +1,20 @@
 
-<h1 align="center"> Halo Theme Joe3  </h1>
+<h1 align="center"> Halo Theme Joe3 · Next </h1>
+
+<blockquote align="center">
+  <strong>🚧 Community-maintained continuation</strong><br>
+  This is a friendly fork of <a href="https://github.com/jiewenhuang/halo-theme-joe3.0">halo-theme-joe3.0</a> by <a href="https://github.com/jiewenhuang">Jiewenhuang</a>.<br>
+  The original author's development has paused; this repo continues maintenance and adds new features.<br>
+  Original work © Jiewenhuang, licensed under <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/">CC BY-NC-SA 4.0</a>. This fork is released under the same license.<br>
+  Upstream is preserved as a <code>upstream</code> remote — changes may be contributed back when feasible.
+</blockquote>
 
 <p class="badge-row" align="center">
   <a href="https://halo.run" target="_blank">
-    <img src="https://img.shields.io/badge/dynamic/yaml?label=Halo&query=%24.spec.require&url=https://raw.githubusercontent.com/jiewenhuang/halo-theme-joe3.0/main/theme.yaml&color=113,195,71" alt="Halo"/>
+    <img src="https://img.shields.io/badge/dynamic/yaml?label=Halo&query=%24.spec.require&url=https://raw.githubusercontent.com/Lau0x/halo-theme-joe-next/main/theme.yaml&color=113,195,71" alt="Halo"/>
   </a>
-  <a href="https://github.com/jiewenhuang/halo-theme-joe3.0/releases" target="_blank">
-    <img src="https://img.shields.io/github/v/release/jiewenhuang/halo-theme-joe3.0" alt="Release"/>
+  <a href="https://github.com/Lau0x/halo-theme-joe-next/releases" target="_blank">
+    <img src="https://img.shields.io/github/v/release/Lau0x/halo-theme-joe-next" alt="Release"/>
   </a>
   <a href="https://halo.run" target="_blank">
     <img src="https://img.shields.io/badge/License-CC%20BY--NC--SA%204.0-orange" alt="License"/>
@@ -27,7 +35,7 @@
 ## 安裝
 
 ### 下载安装
-下载[releases](https://github.com/jiewenhuang/halo-theme-joe3.0/releases)或者直接[下载代码](https://github.com/jiewenhuang/halo-theme-joe3.0)，通过 Halo Console 后台主题安装处上传即可。
+下载[releases](https://github.com/Lau0x/halo-theme-joe-next/releases)或者直接[下载代码](https://github.com/Lau0x/halo-theme-joe-next)，通过 Halo Console 后台主题安装处上传即可。
 
 ## 使用说明
 > 1、首次使用请先把主题所有配置保存一遍  
