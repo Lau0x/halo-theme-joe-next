@@ -10,7 +10,29 @@
 
 ## [Unreleased]
 
-未发布（main 分支当前状态）。下一个 tag 预计继续走 `v1.5.1-next.X` 线，直到 [TODO.md 中 v1.6.0 的前置条件](TODO.md#-发布里程碑--v160-稳定正式版) 全部满足，才切正式版 `v1.6.0`。
+未发布（main 分支当前状态）。
+
+---
+
+## [1.5.1-next.6] · 2026-04-20 · 🚨 Critical Hotfix
+
+### Fixed (Critical)
+- **🔥 回退 jQuery defer**，修复 v1.5.1-next.5 引入的**全站 JS 崩溃**
+
+  **现象**：升级到 next.5 后，**留言板（便利贴）** / **图库懒加载** / **代码复制** 等所有依赖 jQuery 的主题交互全部失效，console 报 `$ is not defined`
+
+  **根因**：next.5 给 `<head>` 里的 jQuery 加 `defer` 是错误决策。按 HTML5 规范：
+  - `<body>` 内的普通 `<script src>` 在 HTML parser 到达时**立即同步执行**
+  - `<head>` 内的 `<script defer>` 延迟到 **HTML parse 完成后** 执行
+  - **因此**：`tail.html` 里的 `common.min.js` / `journals.min.js` / `photos.min.js` 等 body script 永远**早于** defer 的 jQuery 执行，导致全面 `ReferenceError`
+  - 之前的 commit message 里写 "body JS 在 jQuery 之后加载" 是对 defer 时序的**错误理解**
+
+  **修复**：移除 layout.html 里 jQuery 的 `defer` 属性，恢复同步加载（牺牲 FCP 换正确性）。DOMContentLoaded guard（page_links / links）保留——对同步 jQuery 也无害，且是未来做性能优化时的正确姿势
+
+  **未来的正确方向**（parking 到独立 PR）：若要真正优化 render-blocking，需要给 **tail.html 里所有 jQuery-dep script 统一加 defer**（fancybox / qrcode / common / index / post / journals / photos / ...），让它们和 jQuery 按 defer 顺序执行。本次 hotfix 不做这个大改造
+
+### Recommendation
+**所有 v1.5.1-next.5 用户立即升级到 next.6**。next.5 生产升级会导致主题 JS 全挂。
 
 ---
 

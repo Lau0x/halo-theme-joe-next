@@ -58,13 +58,13 @@
     <th:block th:replace="~{modules/config :: config}" />
     <th:block th:replace="~{modules/link :: links}" />
     <!--
-      jQuery 加 defer · 取消 render-blocking。
-      defer 保证脚本并行下载、按顺序执行、且在 DOMContentLoaded 之前完成。
-      所有 body 内的 inline `$()` 调用必须包在 DOMContentLoaded 事件里，
-      否则 inline 脚本解析到时 jQuery 还没执行完会 ReferenceError: $ is not defined。
-      （目前 page_links.html / links.html 两处 inline 排序脚本已做 DOMContentLoaded guard）
+      ⚠️ 重要 · 切勿再加 defer 到 jQuery！
+      v1.5.1-next.5 曾尝试 defer 导致留言板（journals.js 便利贴初始化）全面挂掉，
+      根因：body 内的 <script src> 立即执行，永远**早于** head defer jQuery 执行完，
+      导致 common.min.js / journals.min.js / photos.min.js 加载时 $ is not defined。
+      正确 FCP 优化需要给 tail.html 里所有 jQuery-dep script 统一加 defer（已 parking）。
     -->
-    <script defer th:src="@{/assets/lib/jquery@3.5.1/jquery.min.js}"></script>
+    <script th:src="@{/assets/lib/jquery@3.5.1/jquery.min.js}"></script>
   </head>
   <!-- /OG -->
   <th:block th:replace="${content}"></th:block>
