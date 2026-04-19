@@ -169,15 +169,21 @@ const commonContext = {
 						$this.parent("pre").toggleClass("close");
 					});
 				}
-				// 代码复制
+				// 代码复制（fix upstream#369: 原实现只认 code[class*="language-"]，
+				//   没装语法高亮插件时选择器匹配不到 → 复制为空。这里改为优先取
+				//   高亮后的元素，退回到原始 <code>，最后兜底 pre 本身。）
 				if (ThemeConfig.enable_code_copy) {
-					const text = $item.find('code[class*="language-"]').text();
 					const span = $(
 						"<span class=\"copy-button\"><i class=\"joe-font joe-icon-copy\" title=\"复制代码\"></i></span>"
 					);
 					new ClipboardJS(span[0], {
-						// text: () => text + "\r\n\r\n" + ThemeConfig.copy_right_text,
-						text: () => text,
+						text: () => {
+							const $highlighted = $item.find('code[class*="language-"]');
+							if ($highlighted.length) return $highlighted.text();
+							const $anyCode = $item.find("code");
+							if ($anyCode.length) return $anyCode.text();
+							return $item.text();
+						},
 					}).on("success", () => Qmsg.success("复制成功！"));
 					$item.addClass("c_copy").append(span);
 				}
