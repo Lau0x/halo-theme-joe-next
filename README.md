@@ -1,220 +1,101 @@
+<h1 align="center">Halo Theme Joe3 · Next</h1>
 
-<h1 align="center"> Halo Theme Joe3 · Next </h1>
+<p align="center">
+  <strong>Halo 2.x 博客主题</strong><br>
+  卡片化设计 · 响应式 · 深色模式 · 文章目录 · 代码高亮 · 评论系统
+</p>
 
 <blockquote align="center">
   <strong>🚧 Community-maintained continuation</strong><br>
-  This is a friendly fork of <a href="https://github.com/jiewenhuang/halo-theme-joe3.0">halo-theme-joe3.0</a> by <a href="https://github.com/jiewenhuang">Jiewenhuang</a>.<br>
-  The original author's development has paused; this repo continues maintenance and adds new features.<br>
-  Original work © Jiewenhuang, licensed under <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/">CC BY-NC-SA 4.0</a>. This fork is released under the same license.<br>
-  Upstream is preserved as a <code>upstream</code> remote — changes may be contributed back when feasible.
+  This is a friendly fork of <a href="https://github.com/jiewenhuang/halo-theme-joe3.0">halo-theme-joe3.0</a> by <a href="https://github.com/jiewenhuang">Jiewenhuang</a>.
+  The original author's development has paused; this repo continues maintenance and adds new features under the same <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/">CC BY-NC-SA 4.0</a> license.
 </blockquote>
 
-<p class="badge-row" align="center">
-  <a href="https://halo.run" target="_blank">
-    <img src="https://img.shields.io/badge/dynamic/yaml?label=Halo&query=%24.spec.require&url=https://raw.githubusercontent.com/Lau0x/halo-theme-joe-next/main/theme.yaml&color=113,195,71" alt="Halo"/>
-  </a>
-  <a href="https://github.com/Lau0x/halo-theme-joe-next/releases" target="_blank">
-    <img src="https://img.shields.io/github/v/release/Lau0x/halo-theme-joe-next" alt="Release"/>
-  </a>
-  <a href="https://halo.run" target="_blank">
-    <img src="https://img.shields.io/badge/License-CC%20BY--NC--SA%204.0-orange" alt="License"/>
-  </a>
+<p align="center">
+  <a href="https://halo.run" target="_blank"><img src="https://img.shields.io/badge/dynamic/yaml?label=Halo&query=%24.spec.require&url=https://raw.githubusercontent.com/Lau0x/halo-theme-joe-next/main/theme.yaml&color=113,195,71" alt="Halo"/></a>
+  <a href="https://github.com/Lau0x/halo-theme-joe-next/releases"><img src="https://img.shields.io/github/v/release/Lau0x/halo-theme-joe-next" alt="Release"/></a>
+  <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/"><img src="https://img.shields.io/badge/License-CC%20BY--NC--SA%204.0-orange" alt="License"/></a>
+</p>
+
+<p align="center">
+  <img width="100%" src="https://wmimg.com/i/70/2023/08/64d3c41d5bde2.webp" alt="Theme Joe3 Next screenshot"/>
+</p>
+
+<p align="center">
+  参考站点：<a href="https://blog.laoda.de">blog.laoda.de</a>（维护者博客，基于此主题）· 原作者预览：<a href="https://www.jiewen.run/?preview-theme=theme-Joe3">jiewen.run</a>
 </p>
 
 ---
-<p align="center">
-<img width="100%" src="https://wmimg.com/i/70/2023/08/64d3c41d5bde2.webp">
-</p>
 
-预览：[Jiewen's Blog](https://www.jiewen.run/?preview-theme=theme-Joe3)
+## 安装
 
-文档：部分配置请参考 [Joe3不完全使用指导指南](https://www.jiewen.run/archives/joe3use)
-> halo-theme-Joe3 是一款 [Halo2.0](https://halo.run/) 的博客主题  
-> 由[halo-theme-joe2.0](https://github.com/qinhua/halo-theme-joe2.0)适配而来，感谢原作者的无私奉献
+要求 **Halo ≥ 2.22.2**。
 
-## 安裝
+1. 下载最新 [release](https://github.com/Lau0x/halo-theme-joe-next/releases) 的 `halo-theme-joe3-next.zip`
+2. Halo Console → 外观 → 主题 → 安装 → 上传 zip
+3. 启用主题
+4. 外观 → 主题 → 设置 中完成所有配置（首次使用建议每一项保存一遍）
 
-### 下载安装
-下载[releases](https://github.com/Lau0x/halo-theme-joe-next/releases)或者直接[下载代码](https://github.com/Lau0x/halo-theme-joe-next)，通过 Halo Console 后台主题安装处上传即可。
+## 功能清单
 
-## 使用说明
-> 1、首次使用请先把主题所有配置保存一遍  
-> 2、部分功能使用插件进行实现  
-> 3、请配合Halo2.8.0及以上版本使用  
-> 4、菜单栏的图标请使用[iconfont](https://www.iconfont.cn/)的图标，需要填入Font Family 和图标代码例如：`jiewen joe-icon-tupian`  
-> 5、使用自定义标签样式请以插入HTML文本形式使用，标签请参考[Joe3部分样式](https://www.jiewen.run/archives/joe3style)或者直接使用插件标签
+- ✅ 卡片化设计 · 响应式 · 深色模式 · 文章目录
+- ✅ 代码块语言标签 + 复制
+- ✅ 字数统计 · 相关文章 · 全文搜索
+- ✅ Waline / Halo 原生 评论系统任选
+- ✅ 友情链接、瞬时（moments）、图库（photos）插件适配
+- ✅ 博主栏天气（心知天气）· 自定义 socials · 头像挂件
 
-- [x] 卡片化设计
-- [x] 响应式主题
-- [x] 深色模式
-- [X] 文章目录
-- [X] 代码高亮/语言/复制）
-- [x] [文章搜索](https://github.com/halo-sigs/plugin-search-widget)
-- [x] 显示字数统计
-- [x] 显示相关文章
-- [X] [评论系统](https://github.com/halo-sigs/plugin-comment-widget)
-- [x] [友情链接](https://github.com/halo-sigs/plugin-links)  
-- [x] [瞬时](https://github.com/halo-sigs/plugin-moments)  
-- [x] [图库](https://github.com/halo-sigs/plugin-photos)  
-- [x] 其他功能
+完整配置说明见 **[docs/configuration.md](docs/configuration.md)**。
 
-## 主题配置
+## 本地开发
 
-### 基本设置
-
-#### Waline设置
-
-##### Waline基础配置
-
-该配置项可以对Waline进行自定义基础配置，内容为json格式，如果配置未生效，请先检查填入的内容是否为json格式，可以前往[JSON校验网站](https://www.json.cn/)进行格式校验。为了方便用户填写，这里提供如下样例，具体所代表的含义以及更多配置项请参考[Waline官网](https://waline.js.org/)。
-
-```json
-{
-  "search":false,
-  "reaction":true,
-  "login":"force",
-  "locale": {
-     "placeholder":"欢迎评论啦啦啦"
-  },
-   "emoji": [
-      "//unpkg.com/@waline/emojis@1.2.0/weibo",
-      "//unpkg.com/@waline/emojis@1.2.0/bmoji"
-    ]  
-}
-```
-
-##### Waline图片上传配置
-
-该配置项可以配置Waline的图片上传方式
-
-+ 默认
-
-默认的图片上传方式上传的图片最大只能128Kb
-
-+ 兰空图床
-
-该配置项可以配置Waline的图片上传至兰空图床，需要自建兰空图床服务
-
-##### 兰空图床上传设置
-
-+ 兰空图床服务端地址
-
-兰空图床服务端地址，如 https://img.example.com/api/v1/upload 不要加结尾反斜杠
-
-+ 兰空图床Token
-
-兰空图床Token，如 `2|1bJbwlqBfnggmOMEZqXT5XusaIwqiZjCDs7r1Ob5`，通过配置Token可以进行图片上传的权限控制，如果为空则以游客身份上传（需要在兰空图床开放游客上传的权限）
-
-如何获取Token?
-
-通过兰空图床api获取，请求示例如下：
+需要 Docker + Node ≥ 18。
 
 ```bash
-curl -X POST https://img.example.com/api/v1/tokens \
--H "Content-Type: application/json" \
--d '{
-  "email": "email@qq.com",
-  "password": "password***"
-}'
+# 1. 起本地 Halo（http://localhost:8090，admin/halo-dev-2026）
+docker compose -f docker-compose.dev.yml up -d
+
+# 2. 安装依赖 + 首次构建
+corepack enable && corepack prepare pnpm@10.26.0 --activate
+pnpm install
+pnpm build-only
+
+# 3. 同步主题到容器（docker cp + 自动重启让 Thymeleaf 重载）
+./scripts/theme-sync.sh
 ```
 
-如果出现如下报错，请在末尾加入参数`-k`来忽略证书验证
+开发循环：
+- 改 `templates/*.html` → `./scripts/theme-sync.sh --templates`
+- 改 `templates/assets/{js,css}/*.{js,less}` → `./scripts/theme-sync.sh --build-first`
+- 改 `theme.yaml` / `settings.yaml` → `./scripts/theme-sync.sh --settings`
 
-```bash
-curl: (60) schannel: SEC_E_UNTRUSTED_ROOT (0x80090325) - More details here: https://curl.se/docs/sslcerts.html
+首次使用本地 Halo 建议先做一次 Halo 线上实例的"备份与恢复"，用真实数据做调试基础（见 `docs/configuration.md` "本地数据"章节）。
 
-curl failed to verify the legitimacy of the server and therefore could not
-establish a secure connection to it.
-```
+## 路线图
 
-返回结果示例：
+当前 Sprint 焦点：**工程基建 + 上游已知 bug 修复**。完整 roadmap 见 [TODO.md](TODO.md)。
 
-```json
-{"status":true,"message":"success","data":{"token":"2|1bJbwlqBfnggmOMEZqXT5XusaIwqiZjCDs7r1Ob5"}}
-```
+## 贡献
 
-### 博主信息
+欢迎 issue / PR：
+- **Bug** → [提交 issue](https://github.com/Lau0x/halo-theme-joe-next/issues/new)
+- **Feature** → 先开 issue 讨论，再 PR
+- 所有修改遵循 CC BY-NC-SA 4.0，PR 合并视为同意该条款
 
-#### 展示天气信息
+只维护 `main` 一个分支，直接在 `main` 基础上开 feature branch。
 
->注意：天气的文字颜色为白色，考虑到用户使用的背景不同，如果不合适，请自行通过代码注入修改字体颜色以适配自己的博客
+## 感谢
 
-改配置项配置博主信息是否展示天气信息
+此主题建立在许多前辈的工作之上：
 
-#### 天气插件token
+- 🙏 [Jiewenhuang / halo-theme-joe3.0](https://github.com/jiewenhuang/halo-theme-joe3.0) — 本 fork 的直接上游
+- [qinhua / halo-theme-joe2.0](https://github.com/qinhua/halo-theme-joe2.0) — Halo 1.x 时代的 Joe2.0
+- [HaoOuBa / Joe](https://github.com/HaoOuBa/Joe) — 最早的 Typecho Joe 主题
+- [Halo](https://halo.run) · [theme-starter](https://github.com/halo-dev/theme-starter)
+- 配套插件：[plugin-links](https://github.com/halo-sigs/plugin-links) · [plugin-comment-widget](https://github.com/halo-sigs/plugin-comment-widget) · [plugin-search-widget](https://github.com/halo-sigs/plugin-search-widget) · [plugin-moments](https://github.com/halo-sigs/plugin-moments) · [plugin-photos](https://github.com/halo-sigs/plugin-photos)
 
-由于和风天气插件已经停止服务，所以将其替换为心知天气插件
+## License
 
-1. 注册账号
+[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/) — © Jiewenhuang (original), fork maintained by Roy Leo.
 
-前往[心知天气官网](https://www.seniverse.com/)注册账号并登录控制台
-
-2. 添加产品
-
-具体操作如下图所示：
-
-![添加产品](docs/joe3_20240915184016.webp)
-
-3. 配置插件并获取token
-
-前往该[网站](https://www.seniverse.com/widgetv3)配置插件，目前该网站在控制台中不可见，不知道是不是也要停止服务了😅
-
-首先配置插件：
-
-![配置插件](docs/joe3_20240915185024.webp)
-
-其次点击生成代码获取token：
-
-![获取token](docs/joe3_20240915185129.webp)
-
-## 预览
-
-WIP
-## TODO
-- [ ] 优化图库
-- [ ] ......
-
-
-### 🏭 贡献
-
-> 如果你想帮助完善 `Joe3.0` 主题，请：
-
-- 点 `star`
-- 提 `issue`
-- 修 `bugs`
-- 推 `pr`
-
-<br>  
-
-### 奉献提示
-~~此仓库分为main和dev分支，如何您想奉献代码，请fork dev分支，开发完成后提交pr到dev分支，dev分支会定期合并到main分支，main分支为稳定版本且dev分支才是最新代码，不接受pr。~~  
-现在只维护main分支，dev分支不再维护，如有需要请直接提交pr到main分支。
-
-
-### 🙆‍♂️ 感谢
-
-在此感谢以下项目提供的支持：
-
-- [Halo](https://halo.run)
-- [theme-starter](https://github.com/halo-dev/theme-starter)
-- [Typecho Themes Joe](https://github.com/HaoOuBa/Joe)
-- [Halo-theme-Joe2.0](https://github.com/qinhua/halo-theme-joe2.0)
-- [Halo-theme-hao](https://github.com/liuzhihang/halo-theme-hao)
-- [Halo-theme-sakura](https://github.com/LIlGG/halo-theme-sakura/tree/next)
-- [plugin-links](https://github.com/halo-sigs/plugin-links)
-- [plugin-comment-widget](https://github.com/halo-sigs/plugin-comment-widget)
-- [plugin-search-widget](https://github.com/halo-sigs/plugin-search-widget)
-- [plugin-moments](https://github.com/halo-sigs/plugin-moments)
-- [plugin-photos](https://github.com/halo-sigs/plugin-photos)
-- ......
-
-<br>
-
-### 交流群
-QQ群号（929708466）欢迎大家前来交流分享  
-
-![QQ群](https://www.jiewen.run/upload/IMG_3508(20240717-140309).JPG)  
-
-### TinyTale小程序  
-[TinyTale Halo微信小程序正式版发布](https://www.jiewen.run/archives/TinyTale-formal-edition)
-![TinyTale](https://www.jiewen.run/upload/111.png)
+允许自由使用、修改、分享；必须署名；不能商用；衍生作品需同协议。
