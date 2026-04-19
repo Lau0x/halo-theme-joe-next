@@ -726,6 +726,22 @@ spec:
               label: 'Joe Slate'
             - value: 'joe_future.woff2'
               label: 'Joe Future'
+        - $formkit: select
+          name: lxgw_wenkai_variant
+          id: lxgw_wenkai_variant
+          key: lxgw_wenkai_variant
+          label: 霞鹜文楷 (LXGW WenKai)
+          value: 'off'
+          help: '通过 CDN 加载霞鹜文楷中文字体（优先级高于"网站字体"）。三个变体任选其一或关闭。'
+          options:
+            - value: 'off'
+              label: 关闭
+            - value: 'lxgw-wenkai-webfont'
+              label: '霞鹜文楷 标准版（完整字符集，约 12MB）'
+            - value: 'lxgw-wenkai-screen-webfont'
+              label: '霞鹜文楷 屏幕版（屏显优化，推荐）'
+            - value: 'lxgw-wenkai-lite-webfont'
+              label: '霞鹜文楷 Lite（精简字符集，加载最快）'
     - group: carousel
       label: 轮播图
       formSchema:

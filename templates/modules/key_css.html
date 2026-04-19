@@ -1,6 +1,20 @@
 <!doctype html>
 <html th:lang="${#locale.toLanguageTag}" xmlns:th="http://www.thymeleaf.org">
   <th:block th:fragment="key_css">
+    <!--
+      霞鹜文楷 LXGW WenKai 中文字体，通过 jsDelivr CDN 加载。
+      由用户在"主题设置 → 主题 → 霞鹜文楷 (LXGW WenKai)" 选择变体。
+      关闭时不加载。Refs: upstream#362
+    -->
+    <th:block
+      th:if="${theme.config.theme.lxgw_wenkai_variant != null} and ${theme.config.theme.lxgw_wenkai_variant != 'off'}"
+    >
+      <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin="" />
+      <link
+        rel="stylesheet"
+        th:href="'https://cdn.jsdelivr.net/npm/' + ${theme.config.theme.lxgw_wenkai_variant} + '/style.css'"
+      />
+    </th:block>
     <style th:inline="text">
       [# th:if="${theme.config.other.rip_mode}"]
       html {
@@ -37,9 +51,9 @@
           --scroll-bar: [[${theme.config.theme.scrollbar_color ?: '#c0c4cc'}]];
           --loading-bar:  [[${theme.config.theme.loading_bar_color ?: 'var(--theme)'}]];
           --img-max-width: 100%;
-          font-family: "Joe Font", "Helvetica Neue", Helvetica, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "微软雅黑", Arial, "sans-serif";
-          --halo-comment-widget-base-font-family: "Joe Font", "Helvetica Neue", Helvetica, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "微软雅黑", Arial, "sans-serif";
-          --halo-search-widget-base-font-family: "Joe Font", "Helvetica Neue", Helvetica, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "微软雅黑", Arial, "sans-serif";
+          font-family: "LXGW WenKai", "LXGW WenKai Screen", "LXGW WenKai Lite", "Joe Font", "Helvetica Neue", Helvetica, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "微软雅黑", Arial, "sans-serif";
+          --halo-comment-widget-base-font-family: "LXGW WenKai", "LXGW WenKai Screen", "LXGW WenKai Lite", "Joe Font", "Helvetica Neue", Helvetica, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "微软雅黑", Arial, "sans-serif";
+          --halo-search-widget-base-font-family: "LXGW WenKai", "LXGW WenKai Screen", "LXGW WenKai Lite", "Joe Font", "Helvetica Neue", Helvetica, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "微软雅黑", Arial, "sans-serif";
           --halo-comment-widget-base-color: var(--main);
           --halo-comment-widget-base-info-color:var(--routine);
 
