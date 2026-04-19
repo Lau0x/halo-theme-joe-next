@@ -57,7 +57,14 @@
 
     <th:block th:replace="~{modules/config :: config}" />
     <th:block th:replace="~{modules/link :: links}" />
-    <script th:src="@{/assets/lib/jquery@3.5.1/jquery.min.js}"></script>
+    <!--
+      jQuery 加 defer · 取消 render-blocking。
+      defer 保证脚本并行下载、按顺序执行、且在 DOMContentLoaded 之前完成。
+      所有 body 内的 inline `$()` 调用必须包在 DOMContentLoaded 事件里，
+      否则 inline 脚本解析到时 jQuery 还没执行完会 ReferenceError: $ is not defined。
+      （目前 page_links.html / links.html 两处 inline 排序脚本已做 DOMContentLoaded guard）
+    -->
+    <script defer th:src="@{/assets/lib/jquery@3.5.1/jquery.min.js}"></script>
   </head>
   <!-- /OG -->
   <th:block th:replace="${content}"></th:block>
