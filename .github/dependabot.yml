@@ -1,0 +1,59 @@
+# Dependabot 配置 · 自动扫依赖更新并提 PR
+# 文档: https://docs.github.com/code-security/dependabot/dependabot-version-updates/configuration-options-for-the-dependabot.yml-file
+#
+# 策略：
+# - npm（主题构建工具链：rolldown / less / postcss / TypeScript）每周一扫
+# - GitHub Actions（build.yml / release.yml 用的 setup-node / softprops 等）每月扫
+# - patch + minor 合并为一个 PR 组，major 单独提（避免意外 breaking）
+
+version: 2
+updates:
+  # 主题自身的前端依赖（pnpm 通过 package.json 管）
+  - package-ecosystem: "npm"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+      timezone: "Asia/Shanghai"
+    open-pull-requests-limit: 5
+    labels:
+      - "dependencies"
+      - "npm"
+    commit-message:
+      prefix: "chore(deps)"
+      include: "scope"
+    groups:
+      # patch/minor 合并——多数是安全补丁+小版本，一次 review 一次 merge
+      minor-and-patch:
+        patterns:
+          - "*"
+        update-types:
+          - "minor"
+          - "patch"
+    # major 升级单独提 PR，需要人工评估 breaking change
+    ignore:
+      # 锁死 pnpm 主版本（Corepack 管的），dependabot 别碰
+      - dependency-name: "pnpm"
+        update-types:
+          - "version-update:semver-major"
+
+  # CI / Release workflow 里用的 Actions
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "monthly"
+      day: "monday"
+      time: "09:00"
+      timezone: "Asia/Shanghai"
+    open-pull-requests-limit: 3
+    labels:
+      - "dependencies"
+      - "github-actions"
+    commit-message:
+      prefix: "ci(deps)"
+      include: "scope"
+    groups:
+      all-actions:
+        patterns:
+          - "*"

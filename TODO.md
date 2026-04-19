@@ -34,7 +34,7 @@
 | # | 发现来源 | 项 | 说明 |
 |---|---|---|---|
 | 1 | 代码审计 | `templates/modules/config.html:389` **硬编码** `'%cTheme By Jiewen \| 版本 V' + ThemeConfig.version` | 控制台输出硬编码作者和版本，应改为从 `theme.yaml` 动态读取 或删掉 credit 放到代码注释 |
-| 2 | 代码审计 | `.gitignore` 已忽略 `templates/assets/{css,js}/min/` 但这些文件**仍被 git tracked** | 应 `git rm --cached -r templates/assets/{css,js}/min` 让构建产物不再入库，CI 负责生成 |
+| 2 | 代码审计 | ~~`.gitignore` 已忽略 `templates/assets/{css,js}/min/` 但这些文件**仍被 git tracked**~~ | ✅ **已完成**（fork-bootstrap 阶段一并清理，`git ls-files` 返回 0；构建产物现由 CI 生成、不入库） |
 | 3 | 代码审计 | jQuery 版本 3.5.1（2020）过时，最新是 3.7.1 | 升级到 3.7.1，或评估是否能**完全移除 jQuery** 改用原生 DOM |
 | 4 | 代码审计 | `templates/assets/` 总体 35MB，`lib/` 目录下有 DPlayer / APlayer / 各种 polyfill | 审计实际用到哪些，裁掉未使用的 lib |
 | 5 | 自加 | 缺少 GitHub Actions CI | 每次 push 自动 `pnpm build` + 上传 zip artifact |
