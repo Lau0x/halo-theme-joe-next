@@ -272,7 +272,7 @@ document.addEventListener("DOMContentLoaded", () => {
 					commentKind: this.getAttribute("comment-kind"),
 					commentPlugin: this.getAttribute("comment-plugin"), // 'CommentWidgetPlugin' | 'WalinePlugin'
 				}
-				console.log('JoeReadLimited options:', this.options)
+				// JRL-debug: console.log('JoeReadLimited options:', this.options)
 
 				this.isUserCommented = false; // 是否已经评论过
 				this.render();
@@ -290,7 +290,7 @@ document.addEventListener("DOMContentLoaded", () => {
 			}
 
 			commentWidgetPluginCheckComment() {
-				console.log('call commentWidgetPluginCheckComment');
+				// JRL-debug: console.log('call commentWidgetPluginCheckComment');
 				this.runIntervalTask();
 
 				const isUseResetFetch = true; // 是否使用重置 fetch 请求 ajax 方法，在其中进行捕获提交的评论
@@ -304,7 +304,7 @@ document.addEventListener("DOMContentLoaded", () => {
 					if (!window._commentWidgetPluginFetch)
 						window._commentWidgetPluginFetch = window.fetch;
 
-					console.log('JoeReadLimited 覆盖 commentWidgetPlugin fetch 请求 ajax 方法！')
+					// JRL-debug: console.log('JoeReadLimited 覆盖 commentWidgetPlugin fetch 请求 ajax 方法！')
 					window.fetch = (url, options, ...args) => {
 						const pro = window._commentWidgetPluginFetch(url, options, ...args);
 						if (pro && typeof pro === 'object' && typeof pro.then === 'function') {
@@ -313,7 +313,7 @@ document.addEventListener("DOMContentLoaded", () => {
 									url === '/apis/api.halo.run/v1alpha1/comments' && options.method === 'POST'
 									&& res.ok && this.options.username !== 'anonymousUser' && !this.isUserCommented
 								) { // 提交评论，则说明用户已经评论了，注意：这里不能使用 res.json，否则会报错
-									console.log('JoeReadLimited commentWidgetPlugin 拦截到用户评论，不再检查评论！');
+									// JRL-debug: console.log('JoeReadLimited commentWidgetPlugin 拦截到用户评论，不再检查评论！');
 									this.removeReadLimited();
 								}
 
@@ -327,7 +327,7 @@ document.addEventListener("DOMContentLoaded", () => {
 			}
 
 			walineCheckComment() {
-				console.log('call walineCheckComment');
+				// JRL-debug: console.log('call walineCheckComment');
 
 				// TODO qiushaocloud: 我目前没有 waline 服务器，无法测试 waline 插件的评论检查功能，希望有能力的伙伴可以帮忙实现一下。我这里提供的是一种定时的思路，也可以参考下 commentWidgetPluginCheckComment 的两种实现方式。
 				
@@ -341,14 +341,14 @@ document.addEventListener("DOMContentLoaded", () => {
 
 			runIntervalTask() {
 				if (this.options.username === 'anonymousUser') {
-					console.log('JoeReadLimited 匿名用户，不检查评论！');
+					// JRL-debug: console.log('JoeReadLimited 匿名用户，不检查评论！');
 					this.checkTimer && clearInterval(this.checkTimer);
 					this.checkTimer = null;
 					return;
 				}
 
 				if (this.isUserCommented) {
-					console.log('JoeReadLimited 已经评论过，不再检查评论！')
+					// JRL-debug: console.log('JoeReadLimited 已经评论过，不再检查评论！')
 					this.removeReadLimited();
 					return;
 				}
@@ -361,14 +361,14 @@ document.addEventListener("DOMContentLoaded", () => {
 					this.checking = false;
 
 					if (isFinduserComment === null) {
-						console.log('JoeReadLimited 评论查找功能未实现或不可用，不再检查评论！');
+						// JRL-debug: console.log('JoeReadLimited 评论查找功能未实现或不可用，不再检查评论！');
 						this.checkTimer && clearInterval(this.checkTimer);
 						this.checkTimer = null;
 						return;
 					}
 
 					if (isFinduserComment) {
-						console.log('JoeReadLimited 找到评论，不再检查评论！')
+						// JRL-debug: console.log('JoeReadLimited 找到评论，不再检查评论！')
 						this.isUserCommented = true;
 						this.removeReadLimited();
 						return;
@@ -377,7 +377,7 @@ document.addEventListener("DOMContentLoaded", () => {
 			}
 
 			removeReadLimited () {
-				console.log('call removeReadLimited')
+				// JRL-debug: console.log('call removeReadLimited')
 				this.checking = false;
 				this.isUserCommented = true;
 				this.checkTimer && clearInterval(this.checkTimer);
@@ -387,7 +387,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
 				// 恢复 commentWidgetPlugin fetch 请求 ajax 方法
 				if (window._commentWidgetPluginFetch) {
-					console.log('JoeReadLimited 恢复 commentWidgetPlugin fetch 请求 ajax 方法！')
+					// JRL-debug: console.log('JoeReadLimited 恢复 commentWidgetPlugin fetch 请求 ajax 方法！')
 					window.fetch = window._commentWidgetPluginFetch;
 					delete window._commentWidgetPluginFetch;
 				}
@@ -398,13 +398,13 @@ document.addEventListener("DOMContentLoaded", () => {
 				const displayName = this.options.displayName;
 
 				if (displayName === 'anonymousUser') {
-					console.log('findFirstMyComment 匿名用户，不查找评论！, page:', page, ' ,displayName:', displayName, ' ,username:', username)
+					// JRL-debug: console.log('findFirstMyComment 匿名用户，不查找评论！, page:', page, ' ,displayName:', displayName, ' ,username:', username)
 					return onCallback(null);
 				}
 
 				if (this.options.commentPlugin === 'CommentWidgetPlugin') { // halo-comment-widget 插件，即 halo 默认评论插件
 					const reqUrl = `/apis/api.halo.run/v1alpha1/comments?group=content.halo.run&kind=${this.options.commentKind}&name=${this.options.commentName}&page=${page}&size=20&version=v1alpha1`;
-					// console.log('findFirstMyComment CommentWidgetPlugin ajax get reqUrl:', reqUrl, ' ,page:', page, ' ,displayName:', displayName, ' ,username:', username)
+					// // JRL-debug: console.log('findFirstMyComment CommentWidgetPlugin ajax get reqUrl:', reqUrl, ' ,page:', page, ' ,displayName:', displayName, ' ,username:', username)
 					$.ajax({
 						url: reqUrl,
 						type: "GET",
@@ -412,7 +412,7 @@ document.addEventListener("DOMContentLoaded", () => {
 					}).then((res) => {
 						const items = res.items;
 						if (!items.length) {
-							// console.log('findFirstMyComment CommentWidgetPlugin 没有找到评论！, reqUrl:', reqUrl, ' ,page:', page, ' ,displayName:', displayName, ' ,username:', username)
+							// // JRL-debug: console.log('findFirstMyComment CommentWidgetPlugin 没有找到评论！, reqUrl:', reqUrl, ' ,page:', page, ' ,displayName:', displayName, ' ,username:', username)
 							return onCallback(false);
 						}
 
@@ -436,16 +436,16 @@ document.addEventListener("DOMContentLoaded", () => {
 						}
 
 						if (userComment) {
-							console.log('findFirstMyComment CommentWidgetPlugin 找到评论！, reqUrl:', reqUrl, ' ,page:', page, ' ,displayName:', displayName, ' ,username:', username, ' ,userComment:', userComment)
+							// JRL-debug: console.log('findFirstMyComment CommentWidgetPlugin 找到评论！, reqUrl:', reqUrl, ' ,page:', page, ' ,displayName:', displayName, ' ,username:', username, ' ,userComment:', userComment)
 							return onCallback(!!userComment);
 						}
 
 						if (res.hasNext) { // 还有下一页，则继续查找
-							// console.log('findFirstMyComment CommentWidgetPlugin 还有下一页，继续查找！, reqUrl:', reqUrl, ' ,page:', page, ' ,displayName:', displayName, ' ,username:', username)
+							// // JRL-debug: console.log('findFirstMyComment CommentWidgetPlugin 还有下一页，继续查找！, reqUrl:', reqUrl, ' ,page:', page, ' ,displayName:', displayName, ' ,username:', username)
 							return this.findFirstMyComment(page + 1, onCallback);
 						}
 
-						// console.log('findFirstMyComment CommentWidgetPlugin 没有找到评论！, reqUrl:', reqUrl, ' ,page:', page, ' ,displayName:', displayName, ' ,username:', username)
+						// // JRL-debug: console.log('findFirstMyComment CommentWidgetPlugin 没有找到评论！, reqUrl:', reqUrl, ' ,page:', page, ' ,displayName:', displayName, ' ,username:', username)
 						return onCallback(false);
 					}).catch((xhr, status, error) => {
 						console.error('findFirstMyComment CommentWidgetPlugin catch err:', !!xhr, status, error, ' ,reqUrl:', reqUrl, ' ,page:', page, ' ,displayName:', displayName, ' ,username:', username);
@@ -481,7 +481,7 @@ document.addEventListener("DOMContentLoaded", () => {
 				const $comment = document.querySelector(".joe_comment");
 				const $header = document.querySelector(".joe_header");
 				const postID = $(".joe_detail").attr("data-cid");
-				console.log(postID)
+				// JRL-debug: console.log(postID)
 				if (!$comment || !$header) return;
 				this.$button.addEventListener("click", (e) => {
 					e.stopPropagation();
@@ -491,7 +491,7 @@ document.addEventListener("DOMContentLoaded", () => {
 					}
 
 					if (this.options.username === 'anonymousUser') {
-						console.log('JoeReadLimited 匿名用户，跳转到登录页面！')
+						// JRL-debug: console.log('JoeReadLimited 匿名用户，跳转到登录页面！')
 						window.location.href='/console/login?redirect_uri='+window.location.href;
 						return
 					}
