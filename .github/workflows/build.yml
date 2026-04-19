@@ -16,10 +16,10 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
           node-version: '20'
 
@@ -30,7 +30,7 @@ jobs:
           pnpm --version
 
       - name: Cache pnpm store
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: ~/.local/share/pnpm/store/v3
           key: ${{ runner.os }}-pnpm-${{ hashFiles('pnpm-lock.yaml') }}
@@ -58,7 +58,7 @@ jobs:
           echo "Built: $zip_file ($(du -h "$zip_file" | cut -f1))"
 
       - name: Upload theme zip artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: halo-theme-joe-next-${{ github.sha }}
           path: ${{ steps.find-zip.outputs.zip }}
