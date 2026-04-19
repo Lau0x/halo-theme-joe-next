@@ -40,10 +40,12 @@
                 th:data-index="${photos.page}"
               >
                 <!-- 预留空间 -->
+                <!-- data-order: 锚定后端迭代顺序，防止 isotope append 跨页后视觉错乱（fix upstream#353 图片顺序部分）-->
                 <div
                   class="grid-item wow fadeIn"
-                  th:each="photo : ${photos.items}"
+                  th:each="photo, photoStat : ${photos.items}"
                   th:data-sjsel="${photo.spec.groupName}"
+                  th:data-order="${photos.page * 10000 + photoStat.index}"
                 >
                   <div class="card__picture">
                     <a

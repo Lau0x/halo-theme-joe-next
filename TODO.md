@@ -11,7 +11,8 @@
 | 3 | [upstream #368](https://github.com/jiewenhuang/halo-theme-joe3.0/issues/368) | 暗黑模式的背景图设置不生效 | CSS 选择器问题 |
 | 4 | [upstream #367](https://github.com/jiewenhuang/halo-theme-joe3.0/issues/367) | 博主头像不更新（缓存） | 加 cache-busting query string |
 | 5 | [upstream #361](https://github.com/jiewenhuang/halo-theme-joe3.0/issues/361) | 点图片查看也会增加阅读量 | 图片点击事件误触发阅读计数 |
-| 6 | [upstream #353](https://github.com/jiewenhuang/halo-theme-joe3.0/issues/353) | 搜索框不能打空格、图片顺序错乱 | 搜索输入过滤 + 媒体索引 |
+| 6a | [upstream #353](https://github.com/jiewenhuang/halo-theme-joe3.0/issues/353) 拆分 A | ~~搜索框不能打空格~~ | ⚠️ **不在主题层**：搜索走 Halo 官方 `plugin-search-widget` 插件，主题 `common.js` 的搜索 handler 已全被注释。用户应到 [plugin-search-widget issues](https://github.com/halo-sigs/plugin-search-widget/issues) 报告 |
+| 6b | [upstream #353](https://github.com/jiewenhuang/halo-theme-joe3.0/issues/353) 拆分 B | 图片顺序错乱（图库页） | ✅ **已做防御性加固**（photos.js v2 + photos.html data-order）：Observer 复用、layout debounce、isotope sortBy 锚定后端顺序。若仍有具体顺序问题需用户提供复现截图 |
 | 7 | [upstream #365](https://github.com/jiewenhuang/halo-theme-joe3.0/issues/365) / [#366](https://github.com/jiewenhuang/halo-theme-joe3.0/issues/366) | 百度收录 API 证书过期导致页面报错 | 直接移除百度推送或换 HTTPS 备用端点 |
 | 8 | [upstream #371](https://github.com/jiewenhuang/halo-theme-joe3.0/issues/371) | busuanzi 访客统计服务报错 | 加 try/catch 兜底或移除依赖 |
 | 9 | [upstream #363](https://github.com/jiewenhuang/halo-theme-joe3.0/issues/363) | 控制台报错 | 要看具体是哪些 |
