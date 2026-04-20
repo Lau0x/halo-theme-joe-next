@@ -14,6 +14,27 @@
 
 ---
 
+## [1.5.1-next.16] · 2026-04-20 · 解除老广告位 max=1 限制
+
+### Changed
+- **`ads_top` / `ads_bottom` / `ads_aside` 三个广告数组的 `max: 1` 解除为 `max: 5`**
+  - 用户以前只能在「文章顶部 / 底部 / 侧边栏广告」各加 1 条，想多加广告得绕去"扩展 widget"但位置不够好
+  - 模板 `aside_post.html` / `ads_post.html` **早已用 `th:each` 循环**，支持多条，只是 Halo Console UI 被 `max: 1` 限死
+  - 解除后用户在「广告」tab 里直接添加多个广告位 · 所有广告都走原 `joe_advert-large` 显示路径 · 和单条时一样跟随 sticky 滚动
+
+### Rationale
+用户反馈："之前广告—启用文章侧边栏广告，这个就很好，不会内滚，我只是想着可以多添加 1-2 个这种广告"。next.14 加 `sticky-bottom` widget 位置 + 潜在的 TOC max-height CSS 调整都是**方向绕了**——用户真实诉求是"**让老的广告位支持多个**"，一行 `max: 5` 解决。
+
+### 扩展 widget 仍然保留
+next.14 加的 `position: top/sticky-top/sticky-bottom/bottom` 4 档扩展 widget 位置**仍然可用**，给需要"广告 + 公告 + 打赏 + 自定义 HTML"等混合场景的博主。想简单加多个广告直接用原广告位即可。
+
+### 验证
+- 3 处 `max: 1 → max: 5` 已改 ✅
+- YAML 语法 OK ✅
+- 模板已用 `th:each` 循环，0 需要改 ✅
+
+---
+
 ## [1.5.1-next.15] · 2026-04-20 · 旧 Service Worker 迁移清理
 
 ### Added

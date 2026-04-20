@@ -3325,7 +3325,7 @@ spec:
           id: ads_top
           key: ads_top
           label: 文章顶部广告图片
-          max: 1
+          max: 5
           value: []
           itemLabels:
             - type: 'image'
@@ -3374,7 +3374,7 @@ spec:
           id: ads_bottom
           key: ads_bottom
           label: 文章底部广告图片
-          max: 1
+          max: 5
           value: []
           itemLabels:
             - type: 'image'
@@ -3423,7 +3423,7 @@ spec:
           id: ads_aside
           key: ads_aside
           label: 文章侧边栏广告图片
-          max: 1
+          max: 5
           value: []
           itemLabels:
             - type: 'image'
