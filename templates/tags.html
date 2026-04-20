@@ -47,7 +47,7 @@
                             th:with="postCover = ${#lists.isEmpty(theme.config.home.post_thumbnail)? theme.config.basic.random_img_api_url+'?pageid='+tag.metadata.name : theme.config.home.post_thumbnail}"
                           >
                             <img
-                              width="100%"
+                              width="400"
                               height="120"
                               class="image lazyload"
                               th:with="cover = ${tag.spec.cover?: postCover}"

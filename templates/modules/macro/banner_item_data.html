@@ -13,8 +13,8 @@
           th:with="postCover = ${#lists.isEmpty(theme.config.home.post_thumbnail)? theme.config.basic.random_img_api_url+'?pageid='+post.metadata.name : theme.config.home.post_thumbnail}"
         >
           <img
-            width="100%"
-            height="100%"
+            width="1600"
+            height="900"
             class="thumbnail lazyload"
             th:with="cover = ${post.spec.cover ?: postCover}"
             th:data-src="${cover}"
@@ -54,8 +54,8 @@
           th:with="postCover = ${#lists.isEmpty(theme.config.home.post_thumbnail)? theme.config.basic.random_img_api_url+'?pageid='+banner_title : theme.config.home.post_thumbnail}"
         >
           <img
-            width="100%"
-            height="100%"
+            width="1600"
+            height="900"
             class="thumbnail lazyload"
             th:with="cover = ${banner_cover ?: postCover}"
             th:data-src="${cover}"
@@ -102,8 +102,8 @@
             th:with="postCover = ${#lists.isEmpty(theme.config.home.post_thumbnail)? theme.config.basic.random_img_api_url+'?pageid='+post.metadata.name : theme.config.home.post_thumbnail}"
           >
             <img
-              width="100%"
-              height="100%"
+              width="1600"
+              height="900"
               class="thumbnail lazyload"
               th:with="cover = ${post.spec.cover ?: postCover}"
               th:data-src="${cover}"

@@ -14,6 +14,30 @@
 
 ---
 
+## [1.6.9-rc.02] · 2026-04-21 · 🧼 补全 widget img numeric dim（prerelease）
+
+rc.01 验证发现 LHF-5 scope 不够：3 个主卡片模板已改，但 8+ widget 模板仍有 `width="100%"` 未修。rc.02 补完。
+
+### Fixed
+- `tags.html` · tag 侧边卡 `400×120`
+- `categories.html` · category 侧边卡 `400×120`
+- `modules/common/blogger.html` · 博主栏壁纸 `400×120`
+- `modules/macro/navbar.html` · slideout 侧边栏壁纸 + TOC 目录 bg · `400×150` (×2)
+- `modules/macro/hot_category.html` · 热门分类卡 + 自定义卡 · `400×120` (×2)
+- `modules/macro/banner_item_data.html` · 轮播 3 处（post/custom/hot） · `1600×900` (×3)
+
+### 保留不改
+- `modules/ads/ads_post.html` + `ads_aside.html` · 广告 `width="100%"` 保留 —— 用户自定义广告尺寸多变（970×250 / 728×90 / 300×250 等），硬编码数值反伤 CLS 预测精度。后续如需 CLS 完美可加 settings 字段让博主按实际广告标 dim
+
+### v1.6.9-rc.01 & rc.02 累计 scope
+- LHF-5 img dim: **11 处 `<img>` 补 numeric dim**（post_item / banner_item / relate_cards×2 / tags / categories / blogger / navbar×2 / hot_category×2 / banner_item_data×3）
+- LHF-6 jQuery 3.5.1 → 3.7.1
+- MED-1 OG image:alt + image:type + twitter:image:alt
+- MED-5 iconfont 本地化 + font-display:swap
+- 安全补丁 · Halo 动态菜单 10 处 `th:target` 条件 rel
+
+---
+
 ## [1.6.9-rc.01] · 2026-04-20 · ⚡ v1.6.9 性能+安全打包（选项 A · prerelease）
 
 Sprint v1.6.9 · audit 报告里的选项 A 打包：5 件改动并发 rc.01。
