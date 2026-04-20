@@ -1,9 +1,8 @@
-<h1 align="center">Halo Theme Joe3 · Next</h1>
-
 <p align="center">
-  <strong>Halo 2.x 博客主题</strong><br>
-  卡片化设计 · 响应式 · 深色模式 · 文章目录 · 代码高亮 · 评论系统
+  <img width="100%" src="docs/hero-banner.svg" alt="Halo Theme Joe3 · Next — A community-maintained Halo blog theme, continued with care."/>
 </p>
+
+<h1 align="center">Halo Theme Joe3 · Next</h1>
 
 <blockquote align="center">
   <strong>🚧 Community-maintained continuation</strong><br>
