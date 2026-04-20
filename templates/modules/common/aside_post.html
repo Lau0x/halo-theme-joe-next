@@ -10,12 +10,17 @@
         <th:block th:replace="~{modules/common/blogger :: blogger}" />
       </th:block>
 
-      <!-- 扩展 widget 渲染位置 · top（博主信息下方，首屏显眼） -->
+      <!-- 插入点 A · top · 博主下方 · sticky 外 · 首屏可见但滚动时滑走 -->
       <th:block th:if="${hasExtraWidgets and postAsidePos == 'top'}">
         <th:block th:replace="~{modules/common/aside_post :: post_aside_widgets}" />
       </th:block>
 
       <div class="joe_aside_post">
+        <!-- 插入点 B · sticky-top · TOC 上方 · sticky 内 · 跟随滚动 -->
+        <th:block th:if="${hasExtraWidgets and postAsidePos == 'sticky-top'}">
+          <th:block th:replace="~{modules/common/aside_post :: post_aside_widgets}" />
+        </th:block>
+
         <th:block
           th:if="${theme.config.post.enable_toc} and ${#annotations.getOrDefault(post, 'enable_toc', 'true') == 'true'}"
         >
@@ -26,6 +31,12 @@
             <div id="js-toc" class="toc"></div>
           </div>
         </th:block>
+
+        <!-- 插入点 C · sticky-bottom · TOC 下方（相关文章+原广告之前）· sticky 内 · 跟随滚动 · 推荐广告 -->
+        <th:block th:if="${hasExtraWidgets and postAsidePos == 'sticky-bottom'}">
+          <th:block th:replace="~{modules/common/aside_post :: post_aside_widgets}" />
+        </th:block>
+
         <th:block th:if="${theme.config.post.enable_relate_post == true}">
           <th:block th:replace="~{modules/macro/relate :: relate}" />
         </th:block>
@@ -39,7 +50,7 @@
         </th:block>
       </div>
 
-      <!-- 扩展 widget 渲染位置 · bottom（相关文章下方，保守默认） -->
+      <!-- 插入点 D · bottom · aside 最底 · sticky 外 · 兼容老位置 -->
       <th:block th:if="${hasExtraWidgets and postAsidePos == 'bottom'}">
         <th:block th:replace="~{modules/common/aside_post :: post_aside_widgets}" />
       </th:block>

@@ -14,6 +14,39 @@
 
 ---
 
+## [1.5.1-next.14] · 2026-04-20 · 扩展 widget 位置 4 档 + 空白修复
+
+### Added
+- **扩展 widget 位置从 2 档扩到 4 档**（解决 sticky 外广告滚动滑走）
+  - `top` · 博主信息下方（sticky 外 · 首屏可见，滚动时滑走）· 默认
+  - `sticky-top` · 文章目录上方（**sticky 内** · 跟随滚动吸顶）
+  - `sticky-bottom` · 文章目录下方（**sticky 内** · 跟随滚动 · 🌟 推荐广告）
+  - `bottom` · 侧边栏最底部（sticky 外 · 兼容老位置）
+- 模板 `aside_post.html` 在 `.joe_aside_post` 内外共 4 个插入点做条件渲染；设置项在「侧边栏」tab 最下方「扩展 widget 位置」
+
+### Fixed
+- **非文章页侧边栏「最后一个 widget 和倒数第二个之间出现空白」**
+  - 根因：原主题 `global.less:1913` 规则 `.joe_aside__item:last-child { position: sticky; top: 75px }` 设计时假设 widget 很少，让最后一个吸顶；但用户加了多个广告 widget 后，最后一个 sticky 脱流导致 DOM 原位置留空，出现视觉错位
+  - 修复：`joe-next-overrides.less` 新增 override `.joe_aside__item:last-child { position: static; top: auto; margin-bottom: 15px; }`
+  - 效果：最后一个 widget 回到正常流，空白消除；想要"吸顶"效果的请改用新的「扩展 widget 位置 = sticky-top / sticky-bottom」显式配置
+
+### 使用推荐
+- **广告类 widget** → `sticky-bottom`（文章目录下方 · 跟随滚动 · 不喧宾夺主）
+- **公告 / 打赏等非商业内容** → `top`（博主下方 · 首屏显眼）
+
+### ⚠️ 副作用提醒
+如果 sticky 容器（`.joe_aside_post`）里内容总高度 > 视口高度，浏览器会降级整个容器的 sticky 行为（TOC 和 widget 都不再吸顶）。若你 TOC 很长，建议：
+- 在 widget 里只加 1-2 个
+- 或者关闭「相关文章」（`主题 → 文章页 → 相关文章`）腾出视口空间
+
+### 验证
+本地 Halo 2.24 dev curl 实测：
+- 4 个 `th:if postAsidePos == '...'` 条件分支都在 aside_post.html 里 ✅
+- `.joe_aside__item:last-child{margin-bottom:15px;position:static;top:auto}` 已编译进 overrides.min.css ✅
+- 加载顺序：overrides 在 global 之后（link.html 104 → 110），override 生效 ✅
+
+---
+
 ## [1.5.1-next.13] · 2026-04-20 · 广告关闭 · 永久 → 会话级
 
 ### Changed

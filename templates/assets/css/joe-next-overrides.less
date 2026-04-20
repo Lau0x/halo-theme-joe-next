@@ -210,3 +210,25 @@ html[data-mode='dark'] .joe_advert__close {
     background: rgba(255, 255, 255, 0.55);
   }
 }
+
+/* ============================================
+ * 🔧 B1 · 禁用 aside widget 「最后一个 :last-child 自动 sticky」
+ * ============================================
+ * 原主题 global.less:1913 规则：
+ *   .joe_aside__item:last-child { position: sticky; top: 75px; }
+ *
+ * 这个设计假设 aside 里 widget 数量少（2-3 个），让最后一个吸顶
+ * 作为"最重要的内容始终可见"。但用户现在会加 N 个 widget（广告 /
+ * 公告 / 自定义）后，最后一个吸顶反而造成：
+ *   - DOM 空位（sticky 脱流后留空洞）
+ *   - 视觉错位（倒数第二个和最后一个之间出现一块空白）
+ *   - 语义不准（最后一个不一定是最重要的）
+ *
+ * Override：恢复正常流。用户若需要广告 sticky 跟随，用主题配置里
+ * 的 "扩展 widget 位置 = sticky-top / sticky-bottom" 显式选择。 */
+
+.joe_aside__item:last-child {
+  position: static;
+  top: auto;
+  margin-bottom: 15px;
+}

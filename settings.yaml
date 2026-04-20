@@ -2040,10 +2040,14 @@ spec:
           value: 'top'
           options:
             - value: 'top'
-              label: 博主信息下方（推荐 · 首屏显眼）
+              label: 博主信息下方（首屏可见 · sticky 外 · 滚动时滑走）
+            - value: 'sticky-top'
+              label: 文章目录上方（sticky 内 · 跟随滚动）
+            - value: 'sticky-bottom'
+              label: 文章目录下方（sticky 内 · 跟随滚动 · 推荐广告）
             - value: 'bottom'
-              label: 相关文章下方（原默认 · sticky 底部，可能被挤出视口）
-          help: '决定上面这些扩展 widget 在侧边栏的位置。top = 紧贴博主信息，广告/公告等最显眼；bottom = 所有内容最底部，sticky 滚动时容易被挤出视口。'
+              label: 侧边栏最底部（sticky 外 · 兼容老位置）
+          help: '决定扩展 widget 在文章页侧边栏的插入点。sticky 内的位置会跟随页面滚动（和 TOC 一起吸顶），sticky 外的位置只在首屏或页面底可见。推荐广告类 widget 用 sticky-bottom（在目录下方显示，不喧宾夺主且始终可见）。'
         - $formkit: array
           if: '$get(enable_post_aside).value == true'
           name: enable_post_aside_array
