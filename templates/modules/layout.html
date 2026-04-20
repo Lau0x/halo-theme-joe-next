@@ -26,33 +26,36 @@
     <meta http-equiv="x-dns-prefetch-control" content="on" />
     <meta name="site" th:content="${site.url}" />
 
-    <!-- Base SEO · description 补齐（原主题只有 og:description） -->
-    <meta name="description" th:content="${site.seo.description}" />
-    <!-- canonical · 防重复内容惩罚 + 指向权威版本 URL -->
-    <link rel="canonical" th:href="${site.url}" />
-    <!-- theme-color · 移动端地址栏着色 -->
-    <meta name="theme-color" content="#3a63ed" />
-    <meta name="msapplication-TileColor" content="#3a63ed" />
-
     <!--
-      Open Graph · 文章页用文章封面 + 摘要，其它页用站点 favicon + 描述
-      refs Q5 · Telegram / X 分享预览优化
-      用 th:with 计算一次，og/twitter 共用，避免重复三元表达式
+      统一计算本页权威 URL（canonical + og:url 共用）
+      - 文章页：站点 URL + 文章 permalink（两端 / 规范化，防双斜杠）
+      - 其它页：站点 URL
+      Halo 的 site.url 可能带或不带尾 /，permalink 带前导 /，这里统一剥尾 / 再拼接
     -->
     <th:block
-      th:with="ogImage = ${post != null and !#strings.isEmpty(post.spec.cover) ? post.spec.cover : site.favicon},
+      th:with="siteUrlClean = ${#strings.endsWith(site.url, '/') ? #strings.substring(site.url, 0, #strings.length(site.url) - 1) : site.url},
+               pageUrl = ${post != null ? siteUrlClean + post.status.permalink : site.url},
+               ogImage = ${post != null and !#strings.isEmpty(post.spec.cover) ? post.spec.cover : site.favicon},
                ogDesc  = ${post != null and !#strings.isEmpty(post.status.excerpt) ? post.status.excerpt : site.seo.description}"
     >
+      <!-- Base SEO · description 补齐（原主题只有 og:description） -->
+      <meta name="description" th:content="${ogDesc}" />
+      <!-- canonical · 文章页指向文章 URL 而非站点根（SEO 必要，否则 Google 可能降权文章） -->
+      <link rel="canonical" th:href="${pageUrl}" />
+      <!-- theme-color · 移动端地址栏着色 -->
+      <meta name="theme-color" content="#3a63ed" />
+      <meta name="msapplication-TileColor" content="#3a63ed" />
+
+      <!-- Open Graph · 文章页用文章封面 + 摘要 + 文章 URL，其它页用站点级 -->
       <meta property="og:image" th:content="${ogImage}" />
       <!-- Fix upstream bug: was th:content="site.seo.description" (missing ${}),
            rendered the literal string "site.seo.description" as the social
-           preview description. Every share to WeChat / X / Facebook showed that
-           literal token instead of the actual site description. -->
+           preview description. -->
       <meta property="og:description" th:content="${ogDesc}" />
       <meta property="og:type" th:content="${post != null ? 'article' : 'website'}" />
       <meta property="og:locale" content="zh_CN" />
       <meta property="og:site_name" th:content="${site.title}+'-'+${site.subtitle}" />
-      <meta property="og:url" th:content="${site.url}" />
+      <meta property="og:url" th:content="${pageUrl}" />
       <meta property="og:title" th:content="${title}" />
 
       <!-- Twitter Card · summary_large_image 让 X 分享卡显示大图 -->

@@ -14,6 +14,33 @@
 
 ---
 
+## [1.5.1-next.10] · 2026-04-20 · canonical / og:url 文章级 URL 修正
+
+### Fixed
+- **canonical + og:url 指向修正**：文章页的 `<link rel="canonical">` 和 `<meta property="og:url">` 以前**永远指向站点根**（`site.url`），不是文章 URL。这会导致：
+  - Google SEO 可能因 canonical 互指不一致**降低文章页排名**
+  - 分享到 Facebook / LinkedIn 时卡片点击可能跳到站点首页而非文章
+  - Google Search Console 报 "Duplicate content" 警告
+
+  **修复**：统一抽出 `pageUrl` 变量，文章页 = `site.url + post.status.permalink`，其它页 = `site.url`。顺带做双斜杠 guard（site.url 带尾 `/` 时先剥掉再拼）。`canonical` / `og:url` / 模板其它位置引用都走这个变量。
+- **`<meta name="description">` 也跟随文章化**：和 og:description 同步，文章页用 `post.status.excerpt`，其它页用 `site.seo.description`
+
+### Known caveat · Halo 核心双重 canonical
+`<halo:head>` 注入点 Halo 2.x 核心会**额外输出** 一个指向 `site.url` 的 canonical（固定 4 空格缩进，非主题控制）。因此文章页 HTML 里会同时有：
+- 主题输出的 canonical（href = 文章 URL，先出现）
+- Halo 核心注入的 canonical（href = 站点根，后出现）
+
+按 Google [官方文档](https://developers.google.com/search/docs/crawling-indexing/consolidated-duplicate-urls)，同页多个 canonical 时以 **文档顺序第一个** 为准——主题的 canonical 在前，所以 SEO 实际行为正确。但严格洁癖的 HTML validator 可能报 warning。这是 Halo 核心行为，主题层无法消除。独立 issue 可追踪 Halo 上游。
+
+### 验证
+本地 Halo 2.24 dev · theme-sync + curl：
+- 首页 canonical = `http://localhost:8090/` ✅
+- 首页 og:url = `http://localhost:8090/` ✅
+- 文章页 canonical = `http://localhost:8090/archives/lisa-host` ✅
+- 文章页 og:url = `http://localhost:8090/archives/lisa-host` ✅
+
+---
+
 ## [1.5.1-next.9] · 2026-04-20 · 文章页扩展侧边栏 widget
 
 ### Added
