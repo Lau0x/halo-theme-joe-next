@@ -14,6 +14,45 @@
 
 ---
 
+## [1.6.6-rc.09] · 2026-04-20 · 🎯 真正的根因 · 字符串拼接 bug（prerelease）
+
+**rc.08 debug marker 抓到真相**：`data-debug-cat-size="1"` —— post 只有 **1 个 category**。30 张卡片来自 **1 次 listByCategory 返回 31 条帖子**，不是外层多次迭代。
+
+### 真根因（7 版 rc 才抓到）
+```
+postFinder.listByCategory(1, (theme.config.post.post_related_recommend_count ?: 3) + 1, ...)
+                            ↑
+              Halo config 取出来是 String "3"
+              Elvis 操作符保留 String → "3"
+              + 1 是字符串拼接 → "31"
+              Spring 转换 "31" 成 int 31 作为 pageSize
+              fetch 31 条帖子 - 1 self-filter = 30 张卡片
+```
+
+v1.6.5 开始绑定 config 就一直是 30 卡，我从 rc.02 开始一直以为是**迭代 bug** 在改外层 th:each，**走了 6 版冤枉路**（rc.02/03/04/05/06/07 全错方向）。rc.08 debug marker 才把这个盲区捅开。
+
+### Fixed · rc.09
+```xml
+<th:block th:with="recommendCountRaw = ${theme.config.post.post_related_recommend_count ?: 3},
+                   recommendCountInt = ${T(java.lang.Integer).valueOf(recommendCountRaw.toString())},
+                   recommendPosts = ${postFinder.listByCategory(1, recommendCountInt + 1, category.metadata.name)}">
+```
+
+先 `toString()` 兜底，再 `Integer.valueOf()` 强制转 int，然后 `+1` 是真算术，pageSize = 4 → fetch 4 条 - 1 self = **3 张**。
+
+### 增强 debug marker
+```
+data-debug-count-raw / data-debug-count-class
+```
+暴露 config 实际 Java 类型（预期 `java.lang.String` 或 `java.lang.Integer`），为未来类似 debug 留抓手。
+
+### 顶层沉淀（写进 docs/release-sop.md）
+- **任何 `config_value + 常量` 表达式永远先 toString + Integer.valueOf 强制转 int**，Thymeleaf OGNL 对混类型的 `+` 运算默认字符串拼接
+- **连续 3 版同方向修复都失败 → 立刻停下加 debug marker**，我应该在 rc.05 就加，拖到 rc.08 才加是严重失职
+- **config 读取的类型假设永远用工具验证，不能凭感觉**（红线二"未验证就甩锅"的第 N 次踩雷）
+
+---
+
 ## [1.6.6-rc.08] · 2026-04-20 · 🔧 改用 Java subList 硬砍单元素（prerelease）
 
 **rc.07 实测 30 张全是不同内容** —— outer 真跑了 10 次（post 有 10 个 category），`outerStat.first` 在任何嵌套层级都没过滤。rc.04-07 连 4 版 stat 过滤无效。

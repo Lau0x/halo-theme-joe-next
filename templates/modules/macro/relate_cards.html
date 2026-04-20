@@ -1,20 +1,27 @@
 <!doctype html>
 <html th:lang="${#locale.toLanguageTag}" xmlns:th="https://www.thymeleaf.org">
   <!--
-    相关推荐卡片 · v1.6.6-rc.08
-    rc.04-rc.07 连续 4 版 outerStat.first 都没能过滤外层迭代, 哪怕拆 4 层嵌套也无效.
-    curl 实测 30 张卡片全是不同内容 → outer 真的跑了 10 次且每次不同 category.
-    rc.08 改用最硬方案: Java 层 List.subList(0, 1) 直接砍成 1 元素列表, th:each
-    无论如何最多跑 1 次. 不依赖任何 outerStat 语义.
-    同时加 data-debug span 供 curl 诊断实际 iteration 行为.
+    相关推荐卡片 · v1.6.6-rc.09
+    rc.08 debug marker 抓到真相: data-debug-cat-size="1" —— post 只有 1 个 category!
+    之前以为 outer 迭代 10 次是错的. 30 张卡片来自 1 次 listByCategory 返回 31 条
+    帖子. 根因: ${theme.config.post.post_related_recommend_count ?: 3} + 1 是
+    字符串拼接 "3" + 1 = "31" (config 类型 String, Elvis 保留 String, + 做 string
+    concat). Spring 转换 "31" → int 31 作为 pageSize, fetch 31 条 - 1 self = 30.
+    v1.6.5 绑定 config 后就一直是 30 卡, 我从 rc.02 开始一直以为是迭代 bug 在改外层,
+    走了 6 版冤枉路.
+    rc.09 修复:
+      th:with 先把 config 值 toString 再 Integer.valueOf 强制转 int, 然后 + 1 是真
+      算术, pageSize 正确 = 4. 加 debug marker 暴露 config 实际 Java 类型供验证.
   -->
   <th:block th:fragment="relate_cards">
     <th:block th:if="${not #lists.isEmpty(post.categories)} or ${not #lists.isEmpty(post.tags)}">
       <span
         style="display: none"
-        th:attr="data-debug-rc='rc.08',
+        th:attr="data-debug-rc='rc.09',
                  data-debug-cat-size=${#lists.size(post.categories)},
-                 data-debug-tag-size=${#lists.size(post.tags)}"
+                 data-debug-tag-size=${#lists.size(post.tags)},
+                 data-debug-count-raw=${theme.config.post.post_related_recommend_count},
+                 data-debug-count-class=${theme.config.post.post_related_recommend_count != null ? theme.config.post.post_related_recommend_count.getClass().getName() : 'null'}"
       ></span>
       <section class="joe_related">
         <div class="joe_related__title">
@@ -26,7 +33,9 @@
           <th:block th:if="${not #lists.isEmpty(post.categories)}">
             <th:block th:each="category : ${post.categories.subList(0, 1)}">
               <th:block
-                th:with="recommendPosts = ${postFinder.listByCategory(1, (theme.config.post.post_related_recommend_count ?: 3) + 1, category.metadata.name)}"
+                th:with="recommendCountRaw = ${theme.config.post.post_related_recommend_count ?: 3},
+                         recommendCountInt = ${T(java.lang.Integer).valueOf(recommendCountRaw.toString())},
+                         recommendPosts = ${postFinder.listByCategory(1, recommendCountInt + 1, category.metadata.name)}"
               >
                 <a
                   th:each="recommendPost : ${recommendPosts.items}"
@@ -69,7 +78,9 @@
           <th:block th:if="${#lists.isEmpty(post.categories)} and ${not #lists.isEmpty(post.tags)}">
             <th:block th:each="tag : ${post.tags.subList(0, 1)}">
               <th:block
-                th:with="recommendPosts = ${postFinder.listByTag(1, (theme.config.post.post_related_recommend_count ?: 3) + 1, tag.metadata.name)}"
+                th:with="recommendCountRaw = ${theme.config.post.post_related_recommend_count ?: 3},
+                         recommendCountInt = ${T(java.lang.Integer).valueOf(recommendCountRaw.toString())},
+                         recommendPosts = ${postFinder.listByTag(1, recommendCountInt + 1, tag.metadata.name)}"
               >
                 <a
                   th:each="recommendPost : ${recommendPosts.items}"
