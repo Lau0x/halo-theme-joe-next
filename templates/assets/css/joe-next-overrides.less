@@ -267,23 +267,41 @@ html[data-mode='dark'] .joe_advert__close {
 /* ============================================
  * 📰 评论区上方 · 相关推荐横向卡片 (since v1.5.1-next.20)
  * ============================================
- * 跟侧边栏原生的 relate widget（list 纵向排列）互补：
- * 这里是横排 3 列封面卡片，读完文章时主动引导下一篇。
- * 视觉语言：沿用首页卡片 + 主题变量，跟全站风格一致，
- * 暗色模式自动生效（所有色都走 CSS 变量）。 */
+ * v1.6.6 视觉重设计:
+ *   - 卡片去掉 --classA 灰底, 改 --background 白 + 细边框, 减轻视觉重量
+ *   - hover: 品牌蓝 #2A64F6 accent 阴影 + 边框变主题色, 呼应博客调性
+ *   - 标题前小竖线 accent bar (4px x 16px, 品牌蓝), 标识 section 层级
+ *   - meta 行上加 1px dashed 分隔, 弱化但明确 info 分段
+ *   - 封面图加内阴影 inset 0 1px 0 提供轻微纵深感 */
 .joe_related {
   margin: 20px 0;
-  padding: 16px 18px 20px;
+  padding: 18px 20px 22px;
   background: var(--background);
   border-radius: var(--radius-wrap);
+  border: 1px solid var(--classC);
 
   &__title {
     display: flex;
     align-items: center;
-    gap: 6px;
-    margin-bottom: 14px;
-    color: var(--main);
+    gap: 10px;
+    margin-bottom: 16px;
+    color: var(--title);
     font-weight: 600;
+    position: relative;
+    padding-left: 12px;
+
+    /* 左侧品牌蓝小竖线, section 层级视觉抓手 */
+    &::before {
+      content: '';
+      position: absolute;
+      left: 0;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 3px;
+      height: 16px;
+      background: var(--theme);
+      border-radius: 2px;
+    }
 
     .joe-font {
       color: var(--theme);
@@ -292,37 +310,44 @@ html[data-mode='dark'] .joe_advert__close {
 
     .text {
       font-size: 15px;
-      letter-spacing: 0.3px;
+      letter-spacing: 0.5px;
     }
   }
 
   &__grid {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
-    gap: 14px;
+    gap: 16px;
 
     @media (max-width: 768px) {
       grid-template-columns: 1fr;
-      gap: 10px;
+      gap: 12px;
     }
   }
 
   &__card {
     display: block;
-    border-radius: var(--radius-inner);
+    border-radius: 10px;
     overflow: hidden;
-    background: var(--classA);
+    background: var(--background);
+    border: 1px solid var(--classC);
     text-decoration: none;
     transition:
-      transform 0.22s ease,
-      box-shadow 0.22s ease;
+      transform 0.28s cubic-bezier(0.4, 0, 0.2, 1),
+      box-shadow 0.28s cubic-bezier(0.4, 0, 0.2, 1),
+      border-color 0.2s ease;
 
     &:hover {
       transform: translateY(-3px);
-      box-shadow: 0 6px 18px rgba(0, 0, 0, 0.1);
+      border-color: var(--theme);
+      box-shadow: 0 10px 24px -8px rgba(42, 100, 246, 0.22);
 
       .joe_related__card-title {
         color: var(--theme);
+      }
+
+      .joe_related__card-cover img {
+        transform: scale(1.05);
       }
     }
 
@@ -330,7 +355,8 @@ html[data-mode='dark'] .joe_advert__close {
       position: relative;
       padding-top: 56.25%; /* 16:9 */
       overflow: hidden;
-      background: var(--classB);
+      background: var(--classD);
+      box-shadow: inset 0 -1px 0 rgba(0, 0, 0, 0.04);
 
       img {
         position: absolute;
@@ -338,31 +364,28 @@ html[data-mode='dark'] .joe_advert__close {
         width: 100%;
         height: 100%;
         object-fit: cover;
-        transition: transform 0.3s ease;
+        transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
       }
     }
 
-    &:hover .joe_related__card-cover img {
-      transform: scale(1.04);
-    }
-
     &-info {
-      padding: 10px 12px 12px;
+      padding: 12px 14px 14px;
     }
 
     &-title {
-      margin: 0 0 8px;
+      margin: 0 0 10px;
       font-size: 14px;
       font-weight: 500;
-      line-height: 1.45;
-      color: var(--main);
+      line-height: 1.5;
+      color: var(--title);
       display: -webkit-box;
       -webkit-line-clamp: 2;
       line-clamp: 2;
       -webkit-box-orient: vertical;
       overflow: hidden;
-      min-height: 2.9em;
+      min-height: 3em;
       transition: color 0.2s ease;
+      letter-spacing: 0.1px;
     }
 
     &-meta {
@@ -371,15 +394,47 @@ html[data-mode='dark'] .joe_advert__close {
       align-items: center;
       font-size: 12px;
       color: var(--minor);
+      padding-top: 8px;
+      border-top: 1px dashed var(--classC);
 
       .joe-font {
         margin-right: 3px;
         font-size: 12px;
+        opacity: 0.85;
       }
 
       time {
-        letter-spacing: 0.2px;
+        letter-spacing: 0.3px;
+        font-variant-numeric: tabular-nums;
       }
+
+      .joe_related__card-visit {
+        display: inline-flex;
+        align-items: center;
+      }
+    }
+  }
+}
+
+/* 暗色模式微调: 边框更浅, hover 阴影更明显一点 */
+html[data-mode='dark'] .joe_related {
+  border-color: var(--classM, #2d2e37);
+
+  &__card {
+    border-color: var(--classM, #2d2e37);
+    background: var(--sub-background);
+
+    &:hover {
+      border-color: var(--theme);
+      box-shadow: 0 10px 28px -6px rgba(153, 153, 255, 0.25);
+    }
+
+    &-cover {
+      box-shadow: inset 0 -1px 0 rgba(255, 255, 255, 0.05);
+    }
+
+    &-meta {
+      border-top-color: var(--classM, #2d2e37);
     }
   }
 }
