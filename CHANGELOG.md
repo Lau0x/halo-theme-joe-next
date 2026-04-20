@@ -14,6 +14,35 @@
 
 ---
 
+## [1.6.8-rc.01] · 2026-04-20 · 🔍 JSON-LD structured data 注入（prerelease）
+
+Sprint: **SEO 富结果强化**。纯 `<head>` 追加，不动任何渲染逻辑，回归面接近 0。
+
+### Added · JSON-LD schema types
+- **WebSite** 所有页面 —— 含 `SearchAction` 潜在动作（Google Sitelinks Search Box 候选）
+- **BlogPosting** 文章页 —— `headline / description / image / datePublished / dateModified / author / publisher / mainEntityOfPage / url`
+- **BreadcrumbList** 文章页 —— `首页 → 分类 → 文章标题` 三级
+
+### 设计决策
+- **独立 fragment** `templates/modules/macro/json_ld.html` · 未来加 `FAQ / HowTo / Person` 等 schema type 只改这一个文件
+- **author 固定** "咕咕"（按用户 sprint 决策）
+- **datePublished** ISO 8601 带 JVM 时区 offset（`yyyy-MM-dd'T'HH:mm:ssXXX` pattern，Asia/Shanghai JVM 下输出 `+08:00`）
+- **URL 绝对化** · cover / logo / permalink 非 `http` 开头则 `siteUrlClean + path`
+- **转义策略** · `th:inline="javascript"` 让 Thymeleaf 自动双引号 + JS-safe 转义（JSON 是 JS 子集，application/ld+json 浏览器按纯数据读不执行）
+
+### 回归面控制
+- 追加到 `<head>` 末尾 OG tags 之后 / AdSense block 之前 —— 不影响任何现有渲染
+- 不引入新 CSS / JS / 依赖
+- Halo Thymeleaf 端仅评估 3 个 `<script>` block + 若干 `th:with`，渲染零开销
+
+### 验证清单
+- curl 文章页 → grep `application/ld+json` 应得 **3 块**（WebSite + BlogPosting + BreadcrumbList）
+- curl 首页 → grep `application/ld+json` 应得 **1 块**（仅 WebSite）
+- Google Rich Results Test: https://search.google.com/test/rich-results → 输入文章 URL 应识别出 BlogPosting + BreadcrumbList
+- 验证通过后 promote v1.6.8 stable · 同步发 B（README badge 升级）+ C（记忆回填）
+
+---
+
 ## [1.6.7] · 2026-04-20 · 🧹 主题瘦身 Pass 1 · 裁 288 KB 死代码
 
 **经 rc.01 生产 4 路 smoke test 验证通过**（首页 / 文章 / 友链 / 图库 全部 `</html>=1` + 0 删除 lib 残留引用）。

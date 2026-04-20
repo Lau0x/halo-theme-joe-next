@@ -138,6 +138,13 @@
     <!-- /OG -->
 
     <!--
+      JSON-LD structured data · v1.6.8
+      Schema.org 富结果(rich results)标记: WebSite(全页) / BlogPosting(文章) / BreadcrumbList(文章).
+      独立 fragment 便于未来加 schema type (如 Person / FAQ / HowTo).
+    -->
+    <th:block th:replace="~{modules/macro/json_ld :: json_ld_blocks}" />
+
+    <!--
       Google AdSense Auto Ads (refs Q3)
       仅在 enable_adsense 打开且 client_id 非空时注入主脚本 + preconnect。
       Auto Ads 下位置/lazy 由 Google 端控制，主题侧只负责早期加载主脚本。
