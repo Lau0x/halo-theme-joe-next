@@ -1,23 +1,21 @@
 <!doctype html>
 <html th:lang="${#locale.toLanguageTag}" xmlns:th="https://www.thymeleaf.org">
   <!--
-    相关推荐卡片 · v1.6.6-rc.09
-    rc.08 debug marker 抓到真相: data-debug-cat-size="1" —— post 只有 1 个 category!
-    之前以为 outer 迭代 10 次是错的. 30 张卡片来自 1 次 listByCategory 返回 31 条
-    帖子. 根因: ${theme.config.post.post_related_recommend_count ?: 3} + 1 是
-    字符串拼接 "3" + 1 = "31" (config 类型 String, Elvis 保留 String, + 做 string
-    concat). Spring 转换 "31" → int 31 作为 pageSize, fetch 31 条 - 1 self = 30.
-    v1.6.5 绑定 config 后就一直是 30 卡, 我从 rc.02 开始一直以为是迭代 bug 在改外层,
-    走了 6 版冤枉路.
-    rc.09 修复:
-      th:with 先把 config 值 toString 再 Integer.valueOf 强制转 int, 然后 + 1 是真
-      算术, pageSize 正确 = 4. 加 debug marker 暴露 config 实际 Java 类型供验证.
+    相关推荐卡片 · v1.6.6-rc.10
+    rc.09 验证 data-debug-count-class="java.lang.String" 确认假设: Halo config
+    是 String, rc.09 Integer.valueOf 强制转 int 修复字符串拼接 bug.
+    rc.09 实测卡片数 = 4 (期望 3). 原因: (count ?: 3) + 1 = 4 作为 pageSize,
+    Halo listByCategory 返回 4 条, self-filter 对当前 post 不在结果集时不生效,
+    4 条全部通过 → 4 张卡片.
+    rc.10 简化: 去掉 + 1, fetch 正好 count 张. vmrack-test 这种 self 不在结果集
+    的情况出 count 张 (完美对齐 config); self 偶尔在结果集的 edge case 出 count-1 张
+    (可接受).
   -->
   <th:block th:fragment="relate_cards">
     <th:block th:if="${not #lists.isEmpty(post.categories)} or ${not #lists.isEmpty(post.tags)}">
       <span
         style="display: none"
-        th:attr="data-debug-rc='rc.09',
+        th:attr="data-debug-rc='rc.10',
                  data-debug-cat-size=${#lists.size(post.categories)},
                  data-debug-tag-size=${#lists.size(post.tags)},
                  data-debug-count-raw=${theme.config.post.post_related_recommend_count},
@@ -35,7 +33,7 @@
               <th:block
                 th:with="recommendCountRaw = ${theme.config.post.post_related_recommend_count ?: 3},
                          recommendCountInt = ${T(java.lang.Integer).valueOf(recommendCountRaw.toString())},
-                         recommendPosts = ${postFinder.listByCategory(1, recommendCountInt + 1, category.metadata.name)}"
+                         recommendPosts = ${postFinder.listByCategory(1, recommendCountInt, category.metadata.name)}"
               >
                 <a
                   th:each="recommendPost : ${recommendPosts.items}"
@@ -80,7 +78,7 @@
               <th:block
                 th:with="recommendCountRaw = ${theme.config.post.post_related_recommend_count ?: 3},
                          recommendCountInt = ${T(java.lang.Integer).valueOf(recommendCountRaw.toString())},
-                         recommendPosts = ${postFinder.listByTag(1, recommendCountInt + 1, tag.metadata.name)}"
+                         recommendPosts = ${postFinder.listByTag(1, recommendCountInt, tag.metadata.name)}"
               >
                 <a
                   th:each="recommendPost : ${recommendPosts.items}"

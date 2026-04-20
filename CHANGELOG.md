@@ -14,6 +14,25 @@
 
 ---
 
+## [1.6.6-rc.10] · 2026-04-20 · 🎯 去掉 `+1` 兜底 · 卡片数严格对齐 config（prerelease）
+
+**rc.09 debug marker 确认** `data-debug-count-class="java.lang.String"` → 假设完全正确，Halo config 就是 String，rc.09 的 Integer.valueOf 修复彻底解决字符串拼接。
+
+**rc.09 实测卡片数 = 4**（期望 3），原因：`count + 1 = 4` 作为 pageSize，Halo `listByCategory` 返回 4 条，self-filter 对当前 post 不在结果集时不生效 → 4 张全显示。
+
+### Fixed · rc.10
+去掉 `+ 1` 兜底：
+```xml
+recommendPosts = ${postFinder.listByCategory(1, recommendCountInt, category.metadata.name)}
+```
+fetch 正好 `count` 张：
+- vmrack-test 这种 self 不在 Halo 返回结果集的情况 → 出 **count 张**（完美对齐 config）
+- self 偶尔在结果集（post 刚发布很新）→ 出 count-1 张（可接受 edge case）
+
+原本 `+ 1` 是防 self 在结果里被过滤变 count-1 的补偿，实测绝大多数 post 的 self 不会出现在自己分类的"相关推荐"结果里（Halo 或后端可能已内部去重），这个 `+1` 反而变过头了。
+
+---
+
 ## [1.6.6-rc.09] · 2026-04-20 · 🎯 真正的根因 · 字符串拼接 bug（prerelease）
 
 **rc.08 debug marker 抓到真相**：`data-debug-cat-size="1"` —— post 只有 **1 个 category**。30 张卡片来自 **1 次 listByCategory 返回 31 条帖子**，不是外层多次迭代。
