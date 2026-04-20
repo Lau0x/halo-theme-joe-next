@@ -14,6 +14,33 @@
 
 ---
 
+## [1.6.7-rc.01] · 2026-04-20 · 🧹 死代码清理 · 裁掉 288 KB 未引用 lib（prerelease）
+
+Sprint: **lib 瘦身 Pass 1** —— 高可信度 0 引用候选一次清完。
+
+### Removed（生产验证后 promote v1.6.7 stable）
+- `templates/assets/lib/jquery-ui/` (248 KB) —— 0 引用（grep 确认除自己外无 template 使用）
+- `templates/assets/lib/packery/` (16 KB) —— 0 引用（masonry + isotope 已覆盖相册/瞬间的 grid 需求）
+- `templates/assets/lib/jquery-pjax/` (12 KB) —— 0 引用（pjax 功能本身已被 Halo 原生路由替代）
+- `templates/assets/lib/jquery-toc/` (8 KB) —— 0 引用（toc 走 tocbot，见 post.js）
+- `templates/assets/js/pjax.js` (4 KB) —— **意外发现的死代码**：依赖 jquery-pjax 但自己从不被 tail.html/layout.html 加载
+
+### Kept（有依赖或潜在依赖）
+- `katex@0.13.18/` (2.3 MB) —— 数学公式支持
+- `pdfjs/` (6.9 MB) —— 文章 PDF 嵌入
+- `halo-comment/` (8.2 MB) —— fork 用户可能启用 Waline 需这个桥接
+
+### 验证清单（生产装完后必跑）
+- 首页 scroll + 分页
+- 文章页（含有长 toc 的）—— 确认 TOC 正常渲染，未报 `jquery.toc` 404
+- 留言板 / 友链页
+- 图库（相册 Isotope + Fancybox）—— 确认 masonry 布局未 404 到 packery
+
+### 总计节省
+**288 KB 主题 zip 体积 + 5 个 HTTP request（虽然都没 load，但 git 历史有）**。
+
+---
+
 ## [1.6.6] · 2026-04-20 · 🎨 相关推荐卡片视觉升级 + 数量严格对齐 config
 
 **经 10 个 prerelease 迭代（rc.01 → rc.10）完成。** 三联生产 smoke test 全绿：整页完整、pagination/comments 渲染、卡片数精确等于 config。
