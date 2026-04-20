@@ -265,8 +265,14 @@
                   >
                 </li>
               </ul>
-              <!-- 相关推荐卡片 · 评论区上方 (refs since v1.5.1-next.20) -->
-              <th:block th:if="${theme.config.post.enable_post_related_recommend}">
+              <!-- 相关推荐卡片 · 评论区上方 (refs since v1.5.1-next.20)
+                v1.6.1 修复: 显式 == true 比较兼容 ConfigMap 里字符串/boolean/null 三态
+                debug marker: 即使 switch=false 也会输出注释便于 curl 诊断 config 真实值 -->
+              <!--/* related_recommend: switch_raw=[[${theme.config.post.enable_post_related_recommend}]], count=[[${theme.config.post.post_related_recommend_count}]] */-->
+              <th:block
+                th:if="${theme.config.post.enable_post_related_recommend == true
+                                 or theme.config.post.enable_post_related_recommend == 'true'}"
+              >
                 <th:block th:replace="~{modules/macro/relate_cards :: relate_cards}" />
               </th:block>
               <th:block

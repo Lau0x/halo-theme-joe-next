@@ -14,6 +14,29 @@
 
 ---
 
+## [1.6.1] · 2026-04-20 · 相关推荐 switch 三态兼容 + debug marker
+
+### Fixed
+- **`enable_post_related_recommend` switch 开启后 `.joe_related` 不渲染** · `post.html`
+  - 用户反馈：v1.5.1-next.20 下勾选"评论区上方显示相关推荐"并点保存后，文章页无相关推荐卡片
+  - 诊断：curl 文章页 `joe_related` class 0 渲染。对照组同 `post` group 下的 `enable_passage_tips` 等 switch 正常，确认是该字段专有问题
+  - 根因：Halo ConfigMap 对新 settings schema 字段可能存为 null / boolean / 字符串三种状态；原 `th:if="${theme.config.post.enable_post_related_recommend}"` 对字符串 `"false"` 会判 true，对 `null` 判 false，行为跟其他 switch 字段不一致
+  - 修复：改成显式 `== true or == 'true'` **双态兼容比较**（跟上游 Joe3 已有 switch 字段风格对齐）
+- **加 debug marker** · 即使 switch 为 false / null，文章页 HTML 也会输出一行 comment：`<!--/* related_recommend: switch_raw=..., count=... */-->` 便于 curl 诊断 Halo 到底传了什么值
+
+### 升级后用户还是看不到怎么办
+如果从 v1.5.1-next.20 或更早版本升级到 v1.6.1 仍然没渲染：
+1. Halo Console → 主题 → **禁用** theme-Joe3 → 立刻 **启用** theme-Joe3（强制 Halo 重读 settings.yaml schema + 重建 ConfigMap）
+2. 主题设置页找到开关重新**打开 + 保存**
+3. 刷新文章页验证
+
+### 验证
+- YAML 语法 OK ✅
+- post.html 插入点不变 ✅
+- th:if 比较表达式兼容 Thymeleaf 3.x ✅
+
+---
+
 ## [1.6.0] · 2026-04-20 · 🎉 第一个正式稳定版
 
 从 fork 启动的 `v1.5.1-next.1`（2026-04-19）到 `v1.5.1-next.20`（2026-04-20）期间积累 20 个迭代版本的集大成者。本版本标志着 **社区接棒维护进入稳定期**——以后的小版本升级会走 `v1.6.x` / `v1.7.x` 常规节奏，不再连发 `-next.N`。
