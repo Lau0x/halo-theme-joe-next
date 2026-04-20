@@ -14,6 +14,21 @@
 
 ---
 
+## [1.5.1-next.7] · 2026-04-20 · Footer 署名 + 社交分享 OG 动态化
+
+### Added
+- **文章页 OG / Twitter Card 动态化**（refs Q5 Telegram 分享预览优化）：
+  - `og:image` / `twitter:image` · 文章页用 `post.spec.cover`（文章封面大图），其它页继续用 `site.favicon`
+  - `og:description` / `twitter:description` · 文章页用 `post.status.excerpt`（文章摘要），其它页用 `site.seo.description`
+  - `og:type` · 文章页为 `article`，其它页为 `website`
+  - **效果**：分享文章到 Telegram / X / Facebook / WeChat，现在显示文章封面大图 + 真实摘要，而不是站点小 favicon + 笼统介绍
+- **生产验证**：本地 theme-sync 至 Halo 2.24 dev 实例，curl 首页 + 真实文章页，确认 og:image / og:description 按预期区分，`post != null` 短路 null-safe
+
+### Changed
+- **Footer Theme by 署名** · 从硬编码 "M酷&Jiewen" 改为 "Jiewen & 咕咕"（接棒者身份 + 符合 CC BY-NC-SA attribution 要求）
+
+---
+
 ## [1.5.1-next.6] · 2026-04-20 · 🚨 Critical Hotfix
 
 ### Fixed (Critical)
