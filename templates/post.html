@@ -265,6 +265,10 @@
                   >
                 </li>
               </ul>
+              <!-- 相关推荐卡片 · 评论区上方 (refs since v1.5.1-next.20) -->
+              <th:block th:if="${theme.config.post.enable_post_related_recommend}">
+                <th:block th:replace="~{modules/macro/relate_cards :: relate_cards}" />
+              </th:block>
               <th:block
                 th:if="${theme.config.other.enable_clean_mode != true} and ${theme.config.post.enable_comment}"
               >

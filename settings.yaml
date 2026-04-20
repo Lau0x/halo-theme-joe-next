@@ -2161,6 +2161,24 @@ spec:
           label: 相关文章最大条数
           value: '5'
           help: '相关文章模块展示的最大文章数，默认5条'
+        # --- 评论区上方 · 相关推荐横向卡片 (since v1.5.1-next.20) ---
+        - $formkit: switch
+          name: enable_post_related_recommend
+          id: enable_post_related_recommend
+          key: enable_post_related_recommend
+          label: 评论区上方显示相关推荐
+          help: '在文章评论区之前插入一排相关推荐封面卡片（按分类/标签推算，和右侧边栏"相关文章"是独立功能，可并存）。目的：读完文章主动引导下一站，降低跳出率。'
+          value: false
+        - $formkit: number
+          if: '$get(enable_post_related_recommend).value === true'
+          name: post_related_recommend_count
+          id: post_related_recommend_count
+          key: post_related_recommend_count
+          label: 相关推荐卡片数量
+          value: 3
+          min: 2
+          max: 6
+          help: '评论上方推荐卡片的数量（2-6，默认 3 张一行）。超过 3 张在桌面端仍是 3 列换行展示。'
         - $formkit: switch
           name: enable_edit
           id: enable_edit

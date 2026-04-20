@@ -14,6 +14,46 @@
 
 ---
 
+## [1.5.1-next.20] · 2026-04-20 · 评论区上方相关推荐卡片
+
+### Added
+- **文章页评论区上方 · 横向相关推荐卡片** · 新功能 · 默认关闭
+  - 新模板 `templates/modules/macro/relate_cards.html`（横排封面卡片版本，跟侧边栏 list 版的 `relate.html` 独立）
+  - `post.html` 评论区之前加插入点，按 `theme.config.post.enable_post_related_recommend` 条件渲染
+  - 数据源跟侧边栏 `relate` 一致：优先 category，无则 tag，过滤掉当前文章本身
+  - 卡片样式：16:9 封面 · 2 行标题省略 · 日期 + 阅读数 meta · hover 上浮 + 封面微缩放
+  - 响应式：桌面 3 列、移动端 1 列
+  - 全部用 CSS 变量，**暗色模式自动适配**无需额外规则
+- **两个新 settings**（post group）
+  - `enable_post_related_recommend` switch · 默认 false，老用户升级视觉无变化
+  - `post_related_recommend_count` number · 默认 3 · 范围 2-6
+
+### Rationale
+用户反馈："评论区和正文的上方假如做一个相关文章推荐"。做之前对齐了三个顶层设计问题：
+1. **数据源**：沿用现有 `postFinder.listByCategory/Tag` 算法，不另造轮子
+2. **展示颗粒度**：默认 3 张卡片一行，视觉舒服又不喧宾夺主
+3. **降级**：无 category 也无 tag / 匹配结果全是当前文章自身 → **静默隐藏**，不显示空 section 打扰阅读
+
+**位置选择：只做"评论上方"不做"正文上方"**。正文上方会在读文章前就引导走人，影响本文阅读；评论上方是"读完后还有兴趣再看"的自然衔接。符合常识性阅读路径。
+
+### 升级安全
+- 默认 `enable_post_related_recommend: false`——升级后功能不自动出现，**不影响现有页面视觉**
+- 想开的用户：主题设置 → 文章页 → 勾选"评论区上方显示相关推荐"+ 调整卡片数
+- 跟侧边栏原 `relate` widget 完全独立，两个可以同时开（虽然略冗余，但不冲突）
+
+### 验证
+- 新 fragment `relate_cards.html` Thymeleaf 语法 ✅
+- settings.yaml 两个字段 YAML safe_load ✅
+- `.joe_related` / `.joe_related__card` CSS 编译 ✅
+- post.html 插入点位置正确（post__pagination 下方 + 评论区之前）✅
+
+### 同版本 README 截图更新
+- 替换 wmimg.com 野鸡图床原作者 2023-08 老截图
+- 用 playwright 截 blog.laoda.de 当前真实界面（首页亮/暗/文章页）
+- 存 `docs/screenshots/`，README 主封面 + `<details>` 折叠扩展图
+
+---
+
 ## [1.5.1-next.19] · 2026-04-20 · × 关闭按钮位置与风格优化
 
 ### Fixed
