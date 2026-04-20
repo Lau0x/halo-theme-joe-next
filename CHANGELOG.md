@@ -14,6 +14,38 @@
 
 ---
 
+## [1.5.1-next.18] · 2026-04-20 · 回退 next.14 扩展 widget 系统（冗余设计）
+
+### Removed
+- **`enable_post_aside_array_position` 位置选择器 + `enable_post_aside_array` 数组** · `settings.yaml` -367 行
+- **`post_aside_widgets` fragment + 4 处 th:if 插入点 (A/B/C/D)** · `aside_post.html` 恢复 pre-next.14 简洁结构（-80 行）
+- **13-case th:switch 派发逻辑**（博主/公告/打赏/图片/音乐/最新文章/热门文章/人生倒计时/最新评论/标签云/分类云/侧边栏广告/自定义 HTML）
+
+### 保留
+- **B1 CSS override** (`.joe_aside__item:last-child { position: static }`) · `joe-next-overrides.less`——这是 pre-next.14 就存在的 sidebar 布局 bug 修复，与扩展 widget 系统独立
+- `ads_aside` max: 5（next.16）、`joe_advert__close` × 按钮（next.11/13）、SW 清理（next.15）、× 按钮跨背景可见性（next.17）全部保留
+
+### Rationale · 3.25 级复盘
+next.14 把用户"文章侧边栏想多放 1-2 个广告"的简单需求，绕成了"新增 settings 字段 + 4 档 sticky 位置选择器 + 13 种 widget 类型派发"的过度设计。事实验证：
+- next.16 的一行 `max: 5` 就覆盖了 90% 真实场景
+- 实际使用中"文章页扩展侧边栏 widget"一直"没有条目"
+- 每个配置字段都是用户心智负担——零使用的字段只是污染 Console 界面
+
+承认做大了，端到端砍回去。YAGNI——未来如果真有用户需要 sticky 内广告布局，走 `ads_aside` + 单条 CSS override 也能实现，不必养整套 widget 系统。
+
+### 升级数据安全
+- next.14 仅发布 2 天，下游用户配置该字段的概率极低
+- 即使有用户已在 `enable_post_aside_array` 填过数据，升级后 **ConfigMap 里的值不会主动删除**——只是失去 UI 编辑入口和渲染逻辑
+- 要复用历史数据：回退到 v1.5.1-next.14 ~ v1.5.1-next.17 任一版本即可读回
+
+### 验证
+- `enable_post_aside_array` / `post_aside_widgets` / `postAsidePos` / `hasExtraWidgets` 在 `settings.yaml` + `templates/` 下 **grep 零命中** ✅
+- settings.yaml 行数 3725 → 3358（Δ -367）✅
+- YAML 语法 OK ✅
+- `asideWidget` fragments 被 `aside.html`（非文章页）仍在用，不删 ✅
+
+---
+
 ## [1.5.1-next.17] · 2026-04-20 · × 关闭按钮跨背景可见性修复
 
 ### Fixed
