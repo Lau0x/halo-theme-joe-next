@@ -14,6 +14,59 @@
 
 ---
 
+## [1.6.0] · 2026-04-20 · 🎉 第一个正式稳定版
+
+从 fork 启动的 `v1.5.1-next.1`（2026-04-19）到 `v1.5.1-next.20`（2026-04-20）期间积累 20 个迭代版本的集大成者。本版本标志着 **社区接棒维护进入稳定期**——以后的小版本升级会走 `v1.6.x` / `v1.7.x` 常规节奏，不再连发 `-next.N`。
+
+### 亮点（累计自 next.1 → next.20）
+
+#### 🔴 关键 bug 修复
+- **P0 · 反向升级地雷拆除**（next.3）· 移除 `store.halo.run/app-id` 注解，避免 Halo Console 显示升级提示时把用户一键拉回上游官方市场版
+- **P0 · jQuery defer 事故**（next.6）· 上版本的 defer 改动破坏 body 内所有 src script 执行时序，紧急回退 + 补 RCA 文档
+- **P1 · 图片顺序错乱防御加固**（upstream#353 / next.2）· photo gallery 加 `data-order` 属性 + 简化计算逻辑
+- **SEO canonical 错误**（next.10）· 文章页 `canonical` / `og:url` 从首页改为文章 permalink
+- **× 关闭按钮跨背景可见性**（next.17 → next.19 迭代 3 次）· 从 rgba 半透明深底踩坑深色广告融合，最终落在左上 + 低调半透明 + 双 shadow 跨底色方案
+- **Service Worker 迁移清理**（next.15）· 自动清 hexo 遗留 SW + CacheStorage，旧访客浏览器不再卡在老首页
+
+#### 🟢 新功能
+- **Google AdSense Auto Ads 集成**（next.8）
+- **文章页广告 max=5 · 侧边栏 / 顶部 / 底部**（next.16）· 解除上游硬编码 max=1 限制
+- **广告 × 关闭按钮 + sessionStorage 记忆**（next.11 / next.13）· session 级关闭体验，跨 tab 广告自然恢复
+- **评论区上方横排相关推荐卡片**（next.20）· 响应式 3 列 · 默认关闭 · 暗色适配
+- **动态文章 OG tags + footer 署名**（next.7）
+
+#### 📚 文档 · 工程基建
+- **CHANGELOG.md 从零建**（next.5+）· Keep-a-Changelog 格式
+- **README 全面重构**（next.20）· SVG hero banner（对齐博客 `#2A64F6` 主色）+ playwright 真实截图（亮/暗/文章页）替换野鸡图床
+- **deploy docs**（NPM 配置 + 安全头 A 评级）
+- **CONTRIBUTING / CODE_OF_CONDUCT / dependabot**（社区治理基建）
+- **release workflow**（tag push 自动 build zip + 发 GitHub Release + 生成 commit list）
+
+#### 🔄 重构
+- **扩展 widget 系统先加后砍**（next.14 → next.18）· YAGNI 复盘：一行 `max: 5` 解决的问题最初绕成 4 档 sticky 位置选择 + 13 种 widget 类型派发，实测零用户使用后砍回去 -447 行代码
+
+### 升级安全承诺
+- `metadata.name` / `settingName` / `configMapName` 全部跟上游 Joe3 一致 · Halo Console 直接"上传新 zip"覆盖即可 · **后台所有设置（博主信息 · Waline Token · 颜色等）不会丢**
+- 从任何 `v1.5.1-next.X` 升级到 `v1.6.0` · **零破坏性变更**（v1.6.0 的代码就是 next.20 代码，只是 version string + stable 标记）
+
+### Known Gaps（诚实交底）
+1. **1 周 soak test 未完成**：next.20 在维护者博客（blog.laoda.de）生产跑约 1 小时稳定无事，但没跑满 1 周观察期。欢迎遇到 bug 开 issue 反馈
+2. **Sprint 3 性能深度优化后续**：CSS 细粒度拆分 / JS 完整 defer / 更激进的 lazy load 放在 `v1.6.x` 小版本继续打磨
+3. **外部用户测试欢迎**：目前仅 maintainer 本人生产验证，欢迎 2 名以上 Halo 用户装上并 issue 反馈初体验
+
+### 往下怎么做
+- `v1.6.x` 节奏：关键 bug 立即发，非关键攒到周末合并发 1 版（每天最多 2 版的发版 SOP）
+- `v1.7.0`：下一个 milestone，计划目标 Sprint 3 性能基建 + a11y 系统性提升
+- Prerelease 命名若将来再用，会 zero-pad 成 `v1.7.0-rc.01` 这种格式避免 GitHub UI 字典序排序错乱
+
+### 致谢
+- 🙏 [Jiewenhuang](https://github.com/jiewenhuang) · 原作者，fork 的直接上游
+- 🙏 [qinhua](https://github.com/qinhua/halo-theme-joe2.0) · Halo 1.x 时代 Joe2.0
+- 🙏 [HaoOuBa](https://github.com/HaoOuBa/Joe) · 最早的 Typecho Joe
+- 🙏 [Halo](https://halo.run) 核心团队 + 社区所有反馈
+
+---
+
 ## [1.5.1-next.20] · 2026-04-20 · 评论区上方相关推荐卡片
 
 ### Added
