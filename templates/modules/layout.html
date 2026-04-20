@@ -5,6 +5,76 @@
   xmlns:th="http://www.thymeleaf.org"
 >
   <head>
+    <!--
+      🧹 遗留 Service Worker 迁移清理（refs v1.5.1-next.15）
+      面向"原来是 hexo/wordpress/其它框架、迁移到 Halo+本主题"的博主场景：
+      老访客浏览器里可能残留前主题注册的 ServiceWorker + CacheStorage，
+      会 intercept network 请求返回缓存的旧 HTML，访客永远看到旧站。
+      服务器端 Cache-Control 对已注册的 SW 完全无效（SW 在 network 之前）。
+      唯一解法：在浏览器里 unregister SW + 清 caches。
+
+      设计：
+      - 必须 inline（external script 会被老 SW 拦截返回 404 或失效）
+      - 必须在 <head> 最早位置（最早执行，尽快释放被 SW 劫持的资源）
+      - localStorage 标记一次性（已清过的用户再访问 0 开销 early-return）
+      - 不支持 SW 的浏览器直接 return（IE / 老 Safari）
+      - 清完后 setTimeout 100ms 自动 reload 让新内容立即可见
+    -->
+    <script>
+      (function () {
+        if (!('serviceWorker' in navigator)) return;
+        var KEY = 'joe3_legacy_sw_cleared_v1';
+        try {
+          if (localStorage.getItem(KEY)) return;
+        } catch (e) {
+          return;
+        }
+        var dirty = false;
+        var tasks = [
+          navigator.serviceWorker
+            .getRegistrations()
+            .then(function (regs) {
+              if (regs && regs.length) {
+                dirty = true;
+                return Promise.all(
+                  regs.map(function (r) {
+                    return r.unregister();
+                  })
+                );
+              }
+            })
+            .catch(function () {}),
+        ];
+        if ('caches' in window) {
+          tasks.push(
+            caches
+              .keys()
+              .then(function (names) {
+                if (names && names.length) {
+                  dirty = true;
+                  return Promise.all(
+                    names.map(function (n) {
+                      return caches.delete(n);
+                    })
+                  );
+                }
+              })
+              .catch(function () {})
+          );
+        }
+        Promise.all(tasks).then(function () {
+          try {
+            localStorage.setItem(KEY, String(Date.now()));
+          } catch (e) {}
+          if (dirty) {
+            setTimeout(function () {
+              location.reload();
+            }, 100);
+          }
+        });
+      })();
+    </script>
+
     <title th:text="${title}"></title>
 
     <meta charset="utf-8" />

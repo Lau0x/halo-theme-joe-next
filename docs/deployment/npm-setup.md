@@ -317,6 +317,32 @@ A+ 的硬门槛是 **Content-Security-Policy**。Halo 主题架构下配 CSP 非
 
 **但说实话**：github.com 自己都是 A 级。博客拿 A 完全够——CSP 对抗的是 XSS，而 Halo 本身有严格的内容过滤。**ROI 很低，不建议为了多一个加号折腾**。
 
+### Q · 老访客看到旧页（比如从 hexo / WordPress 迁移过来）
+
+典型场景：博主之前用 hexo/butterfly / wp-rocket 等方案跑博客，这些方案**注册了 Service Worker** 把整站缓存在浏览器。老访客打开 URL，**SW 在 network 之前**就拦截请求返回旧 HTML，即使你换到 Halo 新站也看不到。
+
+**主题层已做一件事**（next.15 起）：
+- 在 `<head>` 最早位置 inline 一段脚本，检测并 unregister 残留 SW + 清 CacheStorage → 自动 reload 一次让访客看到新页
+- `localStorage` 标记防重复，对新访客 0 开销
+- 详见 `templates/modules/layout.html`
+
+**NPM 层可选进一步加固**（防未来类似残留）：
+
+在 Custom Location `/` 的 Advanced 里追加：
+
+```nginx
+# HTML 响应不缓存（防浏览器 / 反代 / CDN 缓存旧版）
+# 只作用于 HTML 类型响应；静态资源走默认缓存（Halo 自己发了 1 年 Cache-Control）
+if ($sent_http_content_type ~* "^text/html") {
+    add_header Cache-Control "no-cache, must-revalidate" always;
+}
+```
+
+效果：
+- `/` `/archives/xxx` `/tags/xxx` 等 HTML 页面每次都带 `If-Modified-Since` 回源（拿到 304 就很便宜）
+- 静态 CSS/JS/图片保留原 Cache-Control（主题 `?v=<version>` query 控制 bust）
+- **对已经注册 SW 的访客无效**——SW 在 network 之前拦截；这种只能靠主题层的 unregister 脚本
+
 ### Q · HSTS preload 要不要去 hstspreload.org 提交？
 
 ⚠️ **提交前想清楚**：preload 是**单向不可逆**的。一旦提交生效，**你域名永远只能走 HTTPS**（Chrome/Firefox 内置 list 撤销周期 6+ 个月）。如果将来你不玩博客了 / 换域名，都得等回收。

@@ -14,6 +14,33 @@
 
 ---
 
+## [1.5.1-next.15] · 2026-04-20 · 旧 Service Worker 迁移清理
+
+### Added
+- **遗留 Service Worker / CacheStorage 自动清理**（`layout.html` 最早位置 inline script）
+  - 面向"原来用 hexo/butterfly / fluid / WordPress 等框架、迁移到 Halo + 本主题"的博主场景
+  - 老访客浏览器里可能残留前主题注册的 SW，会**拦截 network 请求返回缓存的旧 HTML**——服务器端 Cache-Control 对已注册的 SW 无效（SW 在 network 之前）
+  - 脚本自动 `unregister` 所有 SW + `caches.delete` 所有 CacheStorage + `location.reload()` 一次，让访客立即看到新站
+  - `localStorage.joe3_legacy_sw_cleared_v1` 一次性标记，对新访客和已清过的访客 0 开销
+  - **必须 inline + 必须在 `<head>` 最早位置**——因为外部脚本本身会被老 SW 拦截失效
+  - 不支持 SW 的浏览器（IE / 老 Safari）直接 early-return，零影响
+- **NPM 配置文档补充**：`docs/deployment/npm-setup.md` 加一个 FAQ 条目「老访客看到旧页（从 hexo / WordPress 迁移）」
+  - 给可选的 `if ($sent_http_content_type ~* "^text/html")` add_header Cache-Control 配置片段
+  - 明确说明：NPM Cache-Control **对已注册的 SW 无效**，主题层的 unregister 脚本才是核心解法
+
+### Rationale
+用户反馈："我另一个浏览器之前访问过我的博客（用的还是 hexo），现在需要强制刷新才能看到 Halo 新站"——这是 SW 缓存拦截的典型症状。主题层解决的好处：访客一访问页面就自动清干净 + reload，零人工。
+
+### 验证
+- curl 生产 HTML 实证 script 在 `<title>` 之前最早位置 ✅
+- 脚本字符匹配通过（括号 41/41、花括号 17/17 平衡）
+- 5 个关键行为齐：localStorage 标记防重复、key 固定、unregister SW、清 CacheStorage、清完 reload ✅
+
+### 未来移除条件
+如果将来本主题要做 PWA（注册自己的 SW），**必须先删除这段清理脚本**（否则会把自己的 SW 也清掉）。文件中有注释提醒。
+
+---
+
 ## [1.5.1-next.14] · 2026-04-20 · 扩展 widget 位置 4 档 + 空白修复
 
 ### Added
