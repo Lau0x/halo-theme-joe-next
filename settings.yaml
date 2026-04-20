@@ -3085,6 +3085,26 @@ spec:
               label: 自定义代码
               value:
               language: html
+        # --- Google AdSense 集成 (refs Q3) ---
+        # 采用 Google Auto Ads 模式：主题只负责注入主脚本 + preconnect + 基础样式；
+        # 广告位置、密度、lazy-load 全部由 Google AdSense 算法和用户在 AdSense 后台配置决定。
+        # 使用前提：① 你已有 AdSense 账号且审核通过；② 在 AdSense 后台打开 "Auto ads" 并关联本站点域名。
+        - $formkit: switch
+          name: enable_adsense
+          id: enable_adsense
+          key: enable_adsense
+          label: 开启 Google AdSense（Auto Ads）
+          value: false
+          help: '通过 Google Auto Ads 自动在合适位置展示广告。需在 AdSense 后台开启 Auto Ads + 关联域名。广告位置/密度/lazy-load 由 Google 端控制，主题侧只注入主脚本。'
+        - $formkit: text
+          if: '$get(enable_adsense).value == true'
+          name: adsense_client_id
+          id: adsense_client_id
+          key: adsense_client_id
+          label: AdSense Publisher ID
+          value: ''
+          placeholder: 'ca-pub-XXXXXXXXXXXXXXXX'
+          help: '形如 ca-pub-1234567890123456，AdSense 后台「账号 > 账号信息」可查。留空则不生效。'
     - group: footer
       label: 页脚
       formSchema:

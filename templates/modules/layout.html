@@ -64,6 +64,23 @@
     <meta property="twitter:partner" content="ogwp" />
     <!-- /OG -->
 
+    <!--
+      Google AdSense Auto Ads (refs Q3)
+      仅在 enable_adsense 打开且 client_id 非空时注入主脚本 + preconnect。
+      Auto Ads 下位置/lazy 由 Google 端控制，主题侧只负责早期加载主脚本。
+    -->
+    <th:block
+      th:if="${theme.config.ads.enable_adsense} and ${!#strings.isEmpty(theme.config.ads.adsense_client_id)}"
+    >
+      <link rel="preconnect" href="https://pagead2.googlesyndication.com" crossorigin="" />
+      <link rel="preconnect" href="https://googleads.g.doubleclick.net" crossorigin="" />
+      <script
+        async
+        th:src="'https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=' + ${theme.config.ads.adsense_client_id}"
+        crossorigin="anonymous"
+      ></script>
+    </th:block>
+
     <th:block th:replace="~{modules/config :: config}" />
     <th:block th:replace="~{modules/link :: links}" />
     <!--

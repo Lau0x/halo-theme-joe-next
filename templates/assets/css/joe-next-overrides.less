@@ -116,3 +116,42 @@ html[data-mode='dark'] {
   --halo-cw-text-2-color: #b0b8c4;
   --halo-cw-text-3-color: #8b949e;
 }
+
+/* ============================================
+ * Google AdSense · 视觉融合 + 阅读保护 (refs Q3)
+ * ============================================
+ * - 给所有 AdSense 渲染出来的 <ins class="adsbygoogle">
+ *   加上和卡片风格一致的圆角 / 边距 / 最大宽度
+ * - 暗色模式下淡化背景避免突兀
+ * - min-height 防止 SlotReserved 期间整页抖动（CLS 友好）
+ * - 文章正文中的广告加"广告"小标注（合规 + 防误触） */
+
+ins.adsbygoogle {
+  display: block;
+  margin: 24px auto;
+  max-width: 100%;
+  min-height: 90px; /* 防止加载前的 layout shift */
+  border-radius: 8px;
+  overflow: hidden;
+  background-color: #f6f8fa; /* 广告位加载中的背景色 */
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+}
+
+/* 文章正文内广告 · 加 margin 和读者视觉保护 */
+.joe_detail__article ins.adsbygoogle,
+#post-inner ins.adsbygoogle,
+#singlePage-inner ins.adsbygoogle {
+  margin: 32px auto;
+}
+
+/* 侧边栏广告 · 紧凑 + 适配 aside 宽度 */
+.joe_aside ins.adsbygoogle {
+  margin: 16px 0;
+  min-height: 200px;
+}
+
+/* 暗色模式 · 淡化广告位背景，减少视觉突兀 */
+html[data-mode='dark'] ins.adsbygoogle {
+  background-color: #161b22;
+  box-shadow: 0 1px 2px rgba(255, 255, 255, 0.04);
+}

@@ -14,6 +14,33 @@
 
 ---
 
+## [1.5.1-next.8] · 2026-04-20 · Google AdSense Auto Ads 集成
+
+### Added
+- **Google AdSense Auto Ads 原生支持**（refs Q3）：
+  - `ads` 配置组新增 **`enable_adsense`** 开关 + **`adsense_client_id`** 文本框（后台填 `ca-pub-XXXXXXXXXXXXXXXX`）
+  - `layout.html` 条件注入 **async 主脚本** + **preconnect / preconnect-doubleclick** 加速首次连接
+  - `joe-next-overrides.less` 加 `ins.adsbygoogle` 样式：圆角 + 边距 + `min-height: 90px` 防 CLS 抖动 + 暗色模式背景适配 + 文章正文内 32px 上下 margin 保护阅读
+  - **Auto Ads 模式**：位置 / 密度 / lazy-load 由 Google 算法决定（在 AdSense 后台 "Auto ads" 配置里可选"仅侧边栏/文章内"等类型）；主题侧不硬编码位置，保持灵活性
+
+### 使用方式
+
+1. 去 AdSense 后台拿你的 publisher ID（`ca-pub-XXXXXXXXXXXXXXXX`）
+2. Halo Console → 外观 → 主题 → 设置 → **广告** → 勾选「开启 Google AdSense」→ 填入 publisher ID → 保存
+3. 去 [AdSense → Ads → By site](https://www.google.com/adsense/new/u/0/pub-XXXX/myads/sites) 打开 **Auto ads** 并关联博客域名
+4. 前台刷新 → 等 Google 爬虫扫页面（几分钟到几小时）→ 自动开始展示广告
+
+### 加载行为
+
+- **零开销 · 未启用时**：`enable_adsense=false` 或 `client_id 为空` 都不输出任何 AdSense 相关 `<script>` / `<link>`（本地已验证）
+- **启用后**：`<script async>` 异步加载不阻塞渲染；DNS/TLS 提前 `preconnect`；Google 端自动 lazy-load（按视口加载广告单元）
+
+### Notes
+- **不硬编码 publisher ID**：每个使用本主题的博主自己填自己的 ID
+- **想严格控制位置 / 指定 slot**：Auto Ads 下位置由 Google 决定。若要手动指定 slot（文章顶 / 底 / 侧边栏具体 Ad Unit），走独立 PR 扩展（暂未实现）
+
+---
+
 ## [1.5.1-next.7] · 2026-04-20 · Footer 署名 + 社交分享 OG 动态化
 
 ### Added
