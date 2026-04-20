@@ -14,30 +14,47 @@
 
 ---
 
-## [1.6.6-rc.02] · 2026-04-20 · 🚨 相关推荐卡片数量爆炸 10× 的根因修复（prerelease）
+## [1.6.6-rc.03] · 2026-04-20 · 🚨🚨 rc.02 整个文章下半截被吞的紧急修复（prerelease）
 
-**rc.01 视觉升级 + rc.02 bug 修复** 的合并候选。rc.02 修完验证 OK 后 promote `v1.6.6` stable。
+**rc.02 引入了新事故**：fragment Thymeleaf 编译失败 → HTML 在相关推荐插入点硬截断 → pagination/comments/footer 全部不见。生产 curl 实测 **HTTP/2 INTERNAL_ERROR + 文件末尾定格在 `<!-- 相关推荐` 注释中**。这是 v1.6.4-rc.02 同类事故第二次发生。
 
 ### Fixed
-- **相关推荐卡片数量失控 · settings `count=3` 生产实测渲染 30 张（10×）**
-  - curl smoke test：`grep -c 'class="joe_related__card"' → 30`，debug marker 证明 switch/count config 读取都对
-  - 根因：外层 `th:each="recommendPosts : ${post.categories[0]}"` + `th:with` override 的"抄上游 proved 诡异 hack"**在我们 Halo 版本/数据形态下不是单次迭代**，而是迭代了 10 次（可能 `[0]` 对 CategoryVo 的 Thymeleaf iteration 语义不确定）
-  - 修复：**外层不用 `th:each`**，直接 `th:with="recommendPosts = ${postFinder.listByCategory(1, count+1, post.categories[0].metadata.name)}"` 单次 fetch；内层 `th:each` 带 `iterStat.index < recommendCount` 硬上限防御 self-filter 漏位溢出
-  - tag 分支同理重写
-  - `post.categories[0].metadata.name` 是**纯属性链**（非方法调用），区别于 rc.02 事故里的 `.listByCategory(...).items` 方法后跟字段，Thymeleaf OGNL 安全
+- **rc.02 的 3 个 fragment 写法 bug 全数修掉**：
+  1. `th:with="recommendCount = ..."` 原本放在 `<th:block th:fragment="relate_cards">` 根上 → Thymeleaf 对 fragment 根元素属性求值时序不稳 → 内层 `th:with` 使用 `recommendCount` 的地方可能看不到这个变量 → 编译失败
+  2. `th:if="... and iterStat.index &lt; recommendCount"` 用 HTML 实体 `&lt;` 写比较符 → 实体解码与 Thymeleaf 表达式解析交叉区有歧义 → **即使语义上正确也会触发编译错误**
+  3. 跨层变量引用加深了编译器追踪路径
+- **修复策略**（3 个本质不同的改动）：
+  1. `th:with` 从 fragment 根**挪到真正需要的内层 `<th:block th:if="...">`** 上
+  2. 用 **OGNL 关键字 `lt`** 代替 `&lt;`（Thymeleaf 标准支持 `lt` `gt` `le` `ge` `eq` `neq`）
+  3. **不跨层引用 recommendCount**，直接在每个表达式里内联 `theme.config.post.post_related_recommend_count ?: 3`
 
-### Added · v1.6.6-rc.01 保留
-- **相关推荐卡片视觉升级**
-  - 卡片背景 `--classA` 灰 → `--background` 白（或 dark mode 深色）+ 1px `--classC` 细边框
-  - 标题加 3×16px 品牌蓝 `::before` 竖条 accent
-  - hover 效果：translateY(-3px) + 品牌蓝阴影 `rgba(42,100,246,0.22)` + 边框变蓝
-  - border-radius 4px → 10px · 过渡曲线改 cubic-bezier(0.4, 0, 0.2, 1)
-  - meta 行日期/阅读数加 dashed 分隔线 + `tabular-nums` 数字等宽
-  - Dark mode 独立配色（更深的基础 + 更精细的 hover 阴影）
+### 教训（红线级别·写大 blacklist 里）
+- **Thymeleaf fragment 根 `th:with` 不可靠** —— 跨作用域引用容易出问题，永远在需要的最近内层 block 上声明 th:with
+- **th:if / th:with 表达式里永远用 OGNL 关键字 `lt gt le ge eq neq`，不用 HTML 实体 `&lt; &gt;`** —— 实体编码是 XML 语法层，Thymeleaf 表达式是应用层，两层交叉区有陷阱
+- **任何 fragment 级 Thymeleaf 改动 → 立即 curl 验证 "文件完整到 `</html>` + 文章 pagination/comments 元素存在"**，不是只验证新功能是否出现；rc.02 我只查了 `count=3` 是否修好，没查整页是否炸 → 红线二"未验证就甩锅"的变形
+- **从今天起写进 `docs/release-sop.md` 的强制 smoke test**：每次发版 curl 后必跑：
+  ```bash
+  grep -c '</html>' /tmp/page.html   # 期望 1, 0 = HTML 被截断
+  grep -c 'joe_post__pagination-item' /tmp/page.html   # 期望 2 (上/下篇)
+  ```
 
-### 教训（再次写进 CHANGELOG 提醒未来）
-- **"抄上游 proved code" 不等于"100% 保真"**：上游用 `post.categories[0]` 的外层 th:each 可能是**上游 post 数据形态固定（单 category）所以侥幸单次**。我们的博客 post 多 category 或数据形态不同 → 10 倍爆炸
-- **模板 bug 只靠"curl grep class 计数"一眼可定位**，比 playwright 更直接。以后涉及循环逻辑先 curl grep 计数 baseline
+---
+
+## [1.6.6-rc.02] · 2026-04-20 · 相关推荐卡片数量爆炸修复（prerelease · 🚨 已被 rc.03 紧急修复）
+
+**⚠️ 已知不稳定 · 请勿使用**：fragment 根 `th:with` + HTML 实体 `&lt;` 的组合导致 Thymeleaf 编译失败，整页下半截被吞。修复见 rc.03。
+
+### Fixed（方向对但写法踩雷）
+- 相关推荐卡片数量失控：settings `count=3` 生产渲染 30 张（10×）
+- 根因：外层 `th:each` 对 `post.categories[0]` 不可控迭代（10 次）
+- 修复方向（rc.03 沿用并真正 ship）：外层 `th:with` 单次 fetch + 内层 th:each 硬上限
+
+### Added（从 rc.01 继承 · 视觉升级）
+- 卡片背景 `--classA` 灰 → `--background` 白 + 1px `--classC` 边框，radius 10px
+- 标题 3×16px 品牌蓝 `::before` 竖条 accent
+- hover: translateY(-3px) + 品牌蓝阴影 `rgba(42,100,246,0.22)`
+- meta 行 dashed 分隔线 + `tabular-nums`
+- Dark mode 独立配色
 
 ---
 

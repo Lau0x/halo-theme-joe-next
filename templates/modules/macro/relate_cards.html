@@ -1,17 +1,16 @@
 <!doctype html>
 <html th:lang="${#locale.toLanguageTag}" xmlns:th="https://www.thymeleaf.org">
   <!--
-    相关推荐卡片 · v1.6.6-rc.02
-    v1.6.4-rc.03 抄上游 `th:each : post.categories[0]` + th:with override 的"诡异但 proved"
-    pattern —— 在我们 Halo 版本下实测外层迭代 10 次, count=3 出了 30 张卡片(curl DOM grep 验证)。
-    重写策略: 外层不用 th:each —— 直接 th:with 单次 fetch listByCategory 结果, 内层 th:each
-    迭代 items, 配 iterStat.index 硬上限防御 self-filter 漏位引起的溢出。
-    `post.categories[0].metadata.name` 是纯属性链(非方法调用), 已知 Thymeleaf OGNL 安全。
+    相关推荐卡片 · v1.6.6-rc.03
+    rc.02 教训: th:with 放 th:fragment 根上 + th:if 用 HTML 实体 (lt, gt 的 ampersand 编码)
+    导致 Thymeleaf 编译失败, 整个文章下半截被吞 (生产 curl 实测 INTERNAL_ERROR + HTML 在
+    fragment 插入点硬截断). 这是 v1.6.4-rc.02 同类事故第二次重现.
+    rc.03 修复:
+      1. th:with 从 fragment 根挪到内层 th:if block, 避免 fragment 根作用域的不确定性.
+      2. 用 OGNL 关键字 lt 代替 HTML 实体 ampersand-lt-semicolon, 避免实体解码歧义.
+      3. 不跨层引用 recommendCount, 直接在表达式里内联 (count+1) 算术和 count 比较.
   -->
-  <th:block
-    th:fragment="relate_cards"
-    th:with="recommendCount = ${theme.config.post.post_related_recommend_count ?: 3}"
-  >
+  <th:block th:fragment="relate_cards">
     <th:block th:if="${not #lists.isEmpty(post.categories)} or ${not #lists.isEmpty(post.tags)}">
       <section class="joe_related">
         <div class="joe_related__title">
@@ -22,11 +21,11 @@
           <!-- 有 category: 按第一个 category 推 -->
           <th:block
             th:if="${not #lists.isEmpty(post.categories)}"
-            th:with="recommendPosts = ${postFinder.listByCategory(1, recommendCount + 1, post.categories[0].metadata.name)}"
+            th:with="recommendPosts = ${postFinder.listByCategory(1, (theme.config.post.post_related_recommend_count ?: 3) + 1, post.categories[0].metadata.name)}"
           >
             <a
               th:each="recommendPost, iterStat : ${recommendPosts.items}"
-              th:if="${post.metadata.name != recommendPost.metadata.name and iterStat.index &lt; recommendCount}"
+              th:if="${post.metadata.name != recommendPost.metadata.name and iterStat.index lt (theme.config.post.post_related_recommend_count ?: 3)}"
               th:with="postCover=${#lists.isEmpty(theme.config.home.post_thumbnail) ? theme.config.basic.random_img_api_url+'?pageid='+recommendPost.metadata.name : theme.config.home.post_thumbnail},
                        cardCover=${recommendPost.spec.cover ?: postCover}"
               class="joe_related__card"
@@ -61,11 +60,11 @@
           <!-- 无 category 但有 tag: 按第一个 tag 推 -->
           <th:block
             th:if="${#lists.isEmpty(post.categories)} and ${not #lists.isEmpty(post.tags)}"
-            th:with="recommendPosts = ${postFinder.listByTag(1, recommendCount + 1, post.tags[0].metadata.name)}"
+            th:with="recommendPosts = ${postFinder.listByTag(1, (theme.config.post.post_related_recommend_count ?: 3) + 1, post.tags[0].metadata.name)}"
           >
             <a
               th:each="recommendPost, iterStat : ${recommendPosts.items}"
-              th:if="${post.metadata.name != recommendPost.metadata.name and iterStat.index &lt; recommendCount}"
+              th:if="${post.metadata.name != recommendPost.metadata.name and iterStat.index lt (theme.config.post.post_related_recommend_count ?: 3)}"
               th:with="postCover=${#lists.isEmpty(theme.config.home.post_thumbnail) ? theme.config.basic.random_img_api_url+'?pageid='+recommendPost.metadata.name : theme.config.home.post_thumbnail},
                        cardCover=${recommendPost.spec.cover ?: postCover}"
               class="joe_related__card"
