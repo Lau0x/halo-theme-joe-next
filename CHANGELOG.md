@@ -14,6 +14,40 @@
 
 ---
 
+## [1.6.6-rc.04] · 2026-04-20 · 🚨🚨🚨 rc.03 仍在 fragment 插入点硬截断 · 真正根因修复（prerelease）
+
+**rc.03 没修好。** 生产 curl 实测 `grep -c '</html>' = 0`, `grep -c 'joe_related__card' = 0`, 文件仍在 `<!-- 相关推荐` 处截断。rc.02 的"lt vs `&lt;`" / "fragment 根 th:with" 3 个改动都是**擦边猜测**，不是根因。
+
+### 真正根因（抓到了）
+`postFinder.listByCategory(1, count+1, post.categories[0].metadata.name)` 里把 **`post.categories[0].metadata.name` 作为方法调用参数内联** → Thymeleaf 编译/求值失败。
+
+与 `v1.6.4-rc.02` 事故（`.listByCategory(...).items` 链式字段访问）同宗同源——**Thymeleaf 在方法调用 + 链式属性访问交叉区有兼容陷阱**。
+
+### v1.6.5 为什么没事？
+v1.6.5 的 `.metadata.name` 是访问 `th:each` 绑定的**循环变量**（纯属性链 `recommendPosts.metadata.name`），而 rc.02/rc.03 我把它挂到 `post.categories[0]` 后面又塞进方法参数里 → **链式 + 方法参数的双重触发**。
+
+### Fixed · rc.04 唯一改动
+回到 v1.6.5 proven 的 `th:each + th:with override` 外层模式，**只加** `outerStat.first` 硬限外层单次迭代：
+
+```xml
+<th:block
+  th:each="recommendPosts, outerStat : ${post.categories[0]}"
+  th:if="${outerStat.first}"
+  th:with="recommendPosts = ${postFinder.listByCategory(1, count+1, recommendPosts.metadata.name)}">
+```
+
+- 外层 `th:each` 保留（已知不崩）
+- `recommendPosts.metadata.name` 访问**循环变量**（纯属性链，v1.6.5 proven）
+- `outerStat.first` 把外层迭代压到 1 次 → 不再 10 倍爆炸
+- 内层保留 `iterStat.index lt (count)` 硬上限防御 self-filter 漏位
+
+### 教训 · 这次必须刻进 SOP
+- **任何 Thymeleaf 方法调用参数里出现 `a.b[0].c.d` 这种"索引 + 链式"表达式 → 高危 · 必须先 `th:with` 拆成单级变量**
+- **"照镜子"提前**：连错 2 版的时候别急着发 rc.03，先对比稳定版（v1.6.5）和崩溃版（rc.02）的字符级 diff，找唯一的本质差异——我在 rc.02/03 两版都绕着"lt/实体/作用域"猜，就是没打开镜子
+- **发 fragment 级改动的 rc 之前，必须本地或预发 curl 验证 `</html>` + pagination 元素** —— rc.02/rc.03 没验证整页完整性就发 tag，两次都炸给真实用户
+
+---
+
 ## [1.6.6-rc.03] · 2026-04-20 · 🚨🚨 rc.02 整个文章下半截被吞的紧急修复（prerelease）
 
 **rc.02 引入了新事故**：fragment Thymeleaf 编译失败 → HTML 在相关推荐插入点硬截断 → pagination/comments/footer 全部不见。生产 curl 实测 **HTTP/2 INTERNAL_ERROR + 文件末尾定格在 `<!-- 相关推荐` 注释中**。这是 v1.6.4-rc.02 同类事故第二次发生。
