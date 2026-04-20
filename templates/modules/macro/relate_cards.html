@@ -24,6 +24,8 @@
               <a
                 th:each="recommendPost : ${recommendPosts.items}"
                 th:if="${post.metadata.name != recommendPost.metadata.name}"
+                th:with="postCover=${#lists.isEmpty(theme.config.home.post_thumbnail) ? theme.config.basic.random_img_api_url+'?pageid='+recommendPost.metadata.name : theme.config.home.post_thumbnail},
+                         cardCover=${recommendPost.spec.cover ?: postCover}"
                 class="joe_related__card"
                 th:href="@{${recommendPost.status.permalink}}"
                 th:title="${recommendPost.spec.title}"
@@ -33,7 +35,7 @@
                 <div class="joe_related__card-cover">
                   <img
                     class="lazyload"
-                    th:data-src="${recommendPost.spec.cover ?: theme.config.home.lazyload_thumbnail}"
+                    th:data-src="${cardCover}"
                     th:src="${theme.config.home.lazyload_thumbnail}"
                     th:alt="${recommendPost.spec.title}"
                     onerror="Joe.errorImg(this, 'HomeErrImg')"
@@ -64,6 +66,8 @@
               <a
                 th:each="recommendPost : ${recommendPosts.items}"
                 th:if="${post.metadata.name != recommendPost.metadata.name}"
+                th:with="postCover=${#lists.isEmpty(theme.config.home.post_thumbnail) ? theme.config.basic.random_img_api_url+'?pageid='+recommendPost.metadata.name : theme.config.home.post_thumbnail},
+                         cardCover=${recommendPost.spec.cover ?: postCover}"
                 class="joe_related__card"
                 th:href="@{${recommendPost.status.permalink}}"
                 th:title="${recommendPost.spec.title}"
@@ -73,7 +77,7 @@
                 <div class="joe_related__card-cover">
                   <img
                     class="lazyload"
-                    th:data-src="${recommendPost.spec.cover ?: theme.config.home.lazyload_thumbnail}"
+                    th:data-src="${cardCover}"
                     th:src="${theme.config.home.lazyload_thumbnail}"
                     th:alt="${recommendPost.spec.title}"
                     onerror="Joe.errorImg(this, 'HomeErrImg')"
