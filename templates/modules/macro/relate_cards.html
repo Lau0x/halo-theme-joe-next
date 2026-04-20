@@ -1,16 +1,12 @@
 <!doctype html>
 <html th:lang="${#locale.toLanguageTag}" xmlns:th="https://www.thymeleaf.org">
   <!--
-    相关推荐卡片 · v1.6.6-rc.06
-    rc.05 实测: 整页不崩了 (198KB 完整 </html>=1, pagination=2, comments 都在),
-    但卡片数仍 30 张. 根因: outerStat.first 在迭代 post.categories[0] (单个
-    CategoryVo 对象) 时不可靠 — Thymeleaf 对非 List 对象的 th:each 会按 getter
-    字段伪迭代 (10 次), 这种"伪迭代"的 outerStat.first 不一致.
-    rc.06 修复 (唯一改动):
-      把 th:each 源从 ${post.categories[0]} 改成 ${post.categories} (真 List),
-      outerStat.first 在真 List 上行为确定 → 外层迭代 N 次 (N = categories 数量) 但
-      只第一次渲染 → 3 cards 对齐 config.
-      tag 分支同理 ($post.tags[0] → $post.tags).
+    相关推荐卡片 · v1.6.6-rc.07
+    rc.06 实测 post.categories (真 List) + outerStat.first 过滤仍然 30 卡, 说明
+    th:each + th:if 在同一 th:block 元素上的处理顺序不可靠. rc.07 策略:
+      把 th:each / th:if / th:with / th:each(inner) 四个职责拆到四个独立嵌套
+      th:block 上, 每个 block 只做一件事. 这是 Thymeleaf 最保守的写法.
+      外层循环变量改名 category (避免与 th:with 的 recommendPosts 命名冲突).
   -->
   <th:block th:fragment="relate_cards">
     <th:block th:if="${not #lists.isEmpty(post.categories)} or ${not #lists.isEmpty(post.tags)}">
@@ -22,87 +18,91 @@
         <div class="joe_related__grid">
           <!-- 有 category: 按第一个 category 推 -->
           <th:block th:if="${not #lists.isEmpty(post.categories)}">
-            <th:block
-              th:each="recommendPosts, outerStat : ${post.categories}"
-              th:if="${outerStat.first}"
-              th:with="recommendPosts = ${postFinder.listByCategory(1, (theme.config.post.post_related_recommend_count ?: 3) + 1, recommendPosts.metadata.name)}"
-            >
-              <a
-                th:each="recommendPost : ${recommendPosts.items}"
-                th:if="${post.metadata.name != recommendPost.metadata.name}"
-                th:with="postCover=${#lists.isEmpty(theme.config.home.post_thumbnail) ? theme.config.basic.random_img_api_url+'?pageid='+recommendPost.metadata.name : theme.config.home.post_thumbnail},
-                         cardCover=${recommendPost.spec.cover ?: postCover}"
-                class="joe_related__card"
-                th:href="@{${recommendPost.status.permalink}}"
-                th:title="${recommendPost.spec.title}"
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                <div class="joe_related__card-cover">
-                  <img
-                    class="lazyload"
-                    th:data-src="${cardCover}"
-                    th:src="${theme.config.home.lazyload_thumbnail}"
-                    th:alt="${recommendPost.spec.title}"
-                    onerror="Joe.errorImg(this, 'HomeErrImg')"
-                  />
-                </div>
-                <div class="joe_related__card-info">
-                  <h4 class="joe_related__card-title">[[${recommendPost.spec.title}]]</h4>
-                  <div class="joe_related__card-meta">
-                    <time
-                      th:datetime="${#dates.format(recommendPost.spec.publishTime,'yyyy-MM-dd')}"
-                      >[[${#dates.format(recommendPost.spec.publishTime,'yyyy-MM-dd')}]]</time
-                    >
-                    <span class="joe_related__card-visit">
-                      <i class="joe-font joe-icon-eye"></i>[[${recommendPost.stats.visit}]]
-                    </span>
-                  </div>
-                </div>
-              </a>
+            <th:block th:each="category, outerStat : ${post.categories}">
+              <th:block th:if="${outerStat.first}">
+                <th:block
+                  th:with="recommendPosts = ${postFinder.listByCategory(1, (theme.config.post.post_related_recommend_count ?: 3) + 1, category.metadata.name)}"
+                >
+                  <a
+                    th:each="recommendPost : ${recommendPosts.items}"
+                    th:if="${post.metadata.name != recommendPost.metadata.name}"
+                    th:with="postCover=${#lists.isEmpty(theme.config.home.post_thumbnail) ? theme.config.basic.random_img_api_url+'?pageid='+recommendPost.metadata.name : theme.config.home.post_thumbnail},
+                             cardCover=${recommendPost.spec.cover ?: postCover}"
+                    class="joe_related__card"
+                    th:href="@{${recommendPost.status.permalink}}"
+                    th:title="${recommendPost.spec.title}"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    <div class="joe_related__card-cover">
+                      <img
+                        class="lazyload"
+                        th:data-src="${cardCover}"
+                        th:src="${theme.config.home.lazyload_thumbnail}"
+                        th:alt="${recommendPost.spec.title}"
+                        onerror="Joe.errorImg(this, 'HomeErrImg')"
+                      />
+                    </div>
+                    <div class="joe_related__card-info">
+                      <h4 class="joe_related__card-title">[[${recommendPost.spec.title}]]</h4>
+                      <div class="joe_related__card-meta">
+                        <time
+                          th:datetime="${#dates.format(recommendPost.spec.publishTime,'yyyy-MM-dd')}"
+                          >[[${#dates.format(recommendPost.spec.publishTime,'yyyy-MM-dd')}]]</time
+                        >
+                        <span class="joe_related__card-visit">
+                          <i class="joe-font joe-icon-eye"></i>[[${recommendPost.stats.visit}]]
+                        </span>
+                      </div>
+                    </div>
+                  </a>
+                </th:block>
+              </th:block>
             </th:block>
           </th:block>
 
           <!-- 无 category 但有 tag: 按第一个 tag 推 -->
           <th:block th:if="${#lists.isEmpty(post.categories)} and ${not #lists.isEmpty(post.tags)}">
-            <th:block
-              th:each="recommendPosts, outerStat : ${post.tags}"
-              th:if="${outerStat.first}"
-              th:with="recommendPosts = ${postFinder.listByTag(1, (theme.config.post.post_related_recommend_count ?: 3) + 1, recommendPosts.metadata.name)}"
-            >
-              <a
-                th:each="recommendPost : ${recommendPosts.items}"
-                th:if="${post.metadata.name != recommendPost.metadata.name}"
-                th:with="postCover=${#lists.isEmpty(theme.config.home.post_thumbnail) ? theme.config.basic.random_img_api_url+'?pageid='+recommendPost.metadata.name : theme.config.home.post_thumbnail},
-                         cardCover=${recommendPost.spec.cover ?: postCover}"
-                class="joe_related__card"
-                th:href="@{${recommendPost.status.permalink}}"
-                th:title="${recommendPost.spec.title}"
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                <div class="joe_related__card-cover">
-                  <img
-                    class="lazyload"
-                    th:data-src="${cardCover}"
-                    th:src="${theme.config.home.lazyload_thumbnail}"
-                    th:alt="${recommendPost.spec.title}"
-                    onerror="Joe.errorImg(this, 'HomeErrImg')"
-                  />
-                </div>
-                <div class="joe_related__card-info">
-                  <h4 class="joe_related__card-title">[[${recommendPost.spec.title}]]</h4>
-                  <div class="joe_related__card-meta">
-                    <time
-                      th:datetime="${#dates.format(recommendPost.spec.publishTime,'yyyy-MM-dd')}"
-                      >[[${#dates.format(recommendPost.spec.publishTime,'yyyy-MM-dd')}]]</time
-                    >
-                    <span class="joe_related__card-visit">
-                      <i class="joe-font joe-icon-eye"></i>[[${recommendPost.stats.visit}]]
-                    </span>
-                  </div>
-                </div>
-              </a>
+            <th:block th:each="tag, outerStat : ${post.tags}">
+              <th:block th:if="${outerStat.first}">
+                <th:block
+                  th:with="recommendPosts = ${postFinder.listByTag(1, (theme.config.post.post_related_recommend_count ?: 3) + 1, tag.metadata.name)}"
+                >
+                  <a
+                    th:each="recommendPost : ${recommendPosts.items}"
+                    th:if="${post.metadata.name != recommendPost.metadata.name}"
+                    th:with="postCover=${#lists.isEmpty(theme.config.home.post_thumbnail) ? theme.config.basic.random_img_api_url+'?pageid='+recommendPost.metadata.name : theme.config.home.post_thumbnail},
+                             cardCover=${recommendPost.spec.cover ?: postCover}"
+                    class="joe_related__card"
+                    th:href="@{${recommendPost.status.permalink}}"
+                    th:title="${recommendPost.spec.title}"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    <div class="joe_related__card-cover">
+                      <img
+                        class="lazyload"
+                        th:data-src="${cardCover}"
+                        th:src="${theme.config.home.lazyload_thumbnail}"
+                        th:alt="${recommendPost.spec.title}"
+                        onerror="Joe.errorImg(this, 'HomeErrImg')"
+                      />
+                    </div>
+                    <div class="joe_related__card-info">
+                      <h4 class="joe_related__card-title">[[${recommendPost.spec.title}]]</h4>
+                      <div class="joe_related__card-meta">
+                        <time
+                          th:datetime="${#dates.format(recommendPost.spec.publishTime,'yyyy-MM-dd')}"
+                          >[[${#dates.format(recommendPost.spec.publishTime,'yyyy-MM-dd')}]]</time
+                        >
+                        <span class="joe_related__card-visit">
+                          <i class="joe-font joe-icon-eye"></i>[[${recommendPost.stats.visit}]]
+                        </span>
+                      </div>
+                    </div>
+                  </a>
+                </th:block>
+              </th:block>
             </th:block>
           </th:block>
         </div>

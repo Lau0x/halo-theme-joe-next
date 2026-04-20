@@ -14,6 +14,30 @@
 
 ---
 
+## [1.6.6-rc.07] · 2026-04-20 · 🎯 把 th:each/th:if/th:with 拆四层嵌套（prerelease）
+
+**rc.06 仍 30 卡**：真 List 迭代 + 同元素 `outerStat.first` th:if **没起过滤作用**。根因：`<th:block>` 上 `th:each` + `th:if` 在同一元素的处理顺序不可靠。
+
+### Fixed · rc.07
+把 4 个职责拆到 4 个独立嵌套 `<th:block>` 上：
+```xml
+<th:block th:each="category, outerStat : ${post.categories}">  <!-- 职责 1: 迭代 -->
+  <th:block th:if="${outerStat.first}">                        <!-- 职责 2: 过滤 -->
+    <th:block th:with="recommendPosts = ${postFinder.listByCategory(..., category.metadata.name)}">  <!-- 职责 3: fetch -->
+      <a th:each="recommendPost : ${recommendPosts.items}"     <!-- 职责 4: 渲染 -->
+         th:if="${post.metadata.name != recommendPost.metadata.name}">
+```
+
+每个 block 单职责 → Thymeleaf 处理器顺序清晰 → `outerStat.first` 在外层 block 绑定后，独立的内层 block 才做 th:if → filter 生效。
+
+外层变量改名 `category`（避免与 `recommendPosts` 命名冲突）。Tag 分支同理 `tag, outerStat : post.tags`。
+
+### 教训
+- **Thymeleaf `<th:block>` 上多个 th:* 属性同存在（each/if/with）不可靠**，一律拆到嵌套 block 每个单职责
+- 这次 rc.06 我以为"真 List + first"就行，没拆同元素多属性 → 1 版本就能看出的问题拖到 rc.07
+
+---
+
 ## [1.6.6-rc.06] · 2026-04-20 · 🎯 卡片数量对齐 config 最终修复（prerelease）
 
 **rc.05 部分胜利**：整页不崩（198KB 完整，`</html>=1`, pagination=2, comments 渲染正常），但卡片数仍 30 张（期望 3）。
