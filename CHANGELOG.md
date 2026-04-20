@@ -14,6 +14,45 @@
 
 ---
 
+## [1.6.6-rc.05] · 2026-04-20 · 🚨🚨🚨🚨 rc.04 仍崩 · 内层写法才是罪犯 · 最保守 revert（prerelease）
+
+**rc.04 仍崩**。curl 实测 `</html>=0, cards=0`，页面仍在 fragment 插入点截断。
+
+### 真相（rc.02/03/04 三连失败的共同罪犯）
+我在 rc.02/rc.03/rc.04 三个版本**内层 th:each 和 th:if 都加了 `iterStat + lt + Elvis 比较`** 这套组合：
+```
+th:each="recommendPost, iterStat : ${recommendPosts.items}"
+th:if="${post.metadata.name != recommendPost.metadata.name and iterStat.index lt (theme.config.post.post_related_recommend_count ?: 3)}"
+```
+v1.6.5 内层**根本没有**这些。我一直在改外层、讨论 HTML 实体 / 作用域 / 链式访问，**忽略了内层三个新增就是共同罪犯**。
+
+### Fixed · rc.05 最保守改动
+- **内层完全 revert 到 v1.6.5 写法**：
+  ```
+  th:each="recommendPost : ${recommendPosts.items}"
+  th:if="${post.metadata.name != recommendPost.metadata.name}"
+  ```
+  无 iterStat，无 lt，无 Elvis 在 th:if 里
+- **外层只加 `outerStat.first` th:if** 把 outer 迭代压到 1 次
+- 外层 1 次 × 内层 4 fetched - 1 self = **3 cards 自然对齐 config，不需要内层任何上限**
+
+### 失败对比表（给未来维护者）
+| 版本 | 外层 | 内层 iterStat | 内层 lt 比较 | Elvis `?: 3` 在 th:if | 结果 |
+|---|---|---|---|---|---|
+| v1.6.5 | th:each over `[0]` | ❌ | ❌ | ❌ | ✅ 整页 OK (过度迭代 30 卡) |
+| rc.02 | th:if + with | ✅ | ✅ | ✅ | ❌ 整页崩 |
+| rc.03 | th:if + with (lt 不实体) | ✅ | ✅ | ✅ | ❌ 整页崩 |
+| rc.04 | th:each + outerStat.first | ✅ | ✅ | ✅ | ❌ 整页崩 |
+| rc.05 | th:each + outerStat.first | ❌ | ❌ | ❌ | 待验证 |
+
+### 教训刻进 SOP（再也不能忘）
+- **debug 期间严禁引入新表达式复杂度** —— 我在 rc.02 同时改外层 + 内层加防御性 cap，两个方向同时动 → 无法隔离变量
+- **7 项检查清单的"试过完全相反的假设"不能跳** —— rc.02/03/04 一直假设"罪犯在外层"，第 4 版才打开反向假设"罪犯在内层"
+- **任何 Thymeleaf `th:if` 里不要嵌 Elvis `?:` + 算术/比较** —— 即使语法上支持，和其他运算符交叉可能踩编译器的坑
+- **fragment 级改动必须本地 Halo 实例预跑 curl smoke test 后再 push tag**，rc.02/03/04 三次都让用户当试错小白鼠，红线二"未验证就交付"的重大违反
+
+---
+
 ## [1.6.6-rc.04] · 2026-04-20 · 🚨🚨🚨 rc.03 仍在 fragment 插入点硬截断 · 真正根因修复（prerelease）
 
 **rc.03 没修好。** 生产 curl 实测 `grep -c '</html>' = 0`, `grep -c 'joe_related__card' = 0`, 文件仍在 `<!-- 相关推荐` 处截断。rc.02 的"lt vs `&lt;`" / "fragment 根 th:with" 3 个改动都是**擦边猜测**，不是根因。

@@ -1,18 +1,13 @@
 <!doctype html>
 <html th:lang="${#locale.toLanguageTag}" xmlns:th="https://www.thymeleaf.org">
   <!--
-    相关推荐卡片 · v1.6.6-rc.04
-    rc.02/rc.03 事故复盘:
-    表达式 postFinder.listByCategory(1, count+1, post.categories[0].metadata.name) 里把
-    post.categories[0].metadata.name 作为方法参数内联 → Thymeleaf 编译/求值失败 → 整页
-    fragment 插入点以下被吞 (两次 curl 实测 INTERNAL_ERROR + HTML 在相关推荐注释处截断).
-    本质: v1.6.5 稳定时 .metadata.name 访问的是 th:each 的循环变量 (纯属性链),
-    我在 rc.02/rc.03 把 .metadata.name 挂到 post.categories[0] 后面做方法参数, 引入了
-    v1.6.4-rc.02 同类的链式陷阱.
-    rc.04 修复策略 (唯一改动):
-      回到 v1.6.5 proven 的 th:each + th:with override 外层模式, 只加 outerStat.first 硬限
-      外层单次迭代. 不引入 post.categories[0].metadata.name 任何新形式.
-      内层保留 iterStat.index lt (count) 硬上限 (防御 self-filter 漏位).
+    相关推荐卡片 · v1.6.6-rc.05
+    rc.02-rc.04 三连崩复盘: 三个 rc 都加了内层 "iterStat + lt + Elvis" 组合作为新特性,
+    v1.6.5 根本没有这些. 我一直改外层, 忽略了内层三个新增部分才是共同罪犯.
+    rc.05 最保守策略:
+      内层完全 revert 到 v1.6.5 原始写法 (无 iterStat, 无 lt, 无 Elvis 在 th:if 里),
+      外层只加 outerStat.first th:if 把迭代次数压到 1. 外层 1 次 → 4 fetched - 1 self
+      = 3 cards 自然对齐 config, 不需要任何内层上限.
   -->
   <th:block th:fragment="relate_cards">
     <th:block th:if="${not #lists.isEmpty(post.categories)} or ${not #lists.isEmpty(post.tags)}">
@@ -30,8 +25,8 @@
               th:with="recommendPosts = ${postFinder.listByCategory(1, (theme.config.post.post_related_recommend_count ?: 3) + 1, recommendPosts.metadata.name)}"
             >
               <a
-                th:each="recommendPost, iterStat : ${recommendPosts.items}"
-                th:if="${post.metadata.name != recommendPost.metadata.name and iterStat.index lt (theme.config.post.post_related_recommend_count ?: 3)}"
+                th:each="recommendPost : ${recommendPosts.items}"
+                th:if="${post.metadata.name != recommendPost.metadata.name}"
                 th:with="postCover=${#lists.isEmpty(theme.config.home.post_thumbnail) ? theme.config.basic.random_img_api_url+'?pageid='+recommendPost.metadata.name : theme.config.home.post_thumbnail},
                          cardCover=${recommendPost.spec.cover ?: postCover}"
                 class="joe_related__card"
@@ -73,8 +68,8 @@
               th:with="recommendPosts = ${postFinder.listByTag(1, (theme.config.post.post_related_recommend_count ?: 3) + 1, recommendPosts.metadata.name)}"
             >
               <a
-                th:each="recommendPost, iterStat : ${recommendPosts.items}"
-                th:if="${post.metadata.name != recommendPost.metadata.name and iterStat.index lt (theme.config.post.post_related_recommend_count ?: 3)}"
+                th:each="recommendPost : ${recommendPosts.items}"
+                th:if="${post.metadata.name != recommendPost.metadata.name}"
                 th:with="postCover=${#lists.isEmpty(theme.config.home.post_thumbnail) ? theme.config.basic.random_img_api_url+'?pageid='+recommendPost.metadata.name : theme.config.home.post_thumbnail},
                          cardCover=${recommendPost.spec.cover ?: postCover}"
                 class="joe_related__card"
