@@ -1,65 +1,87 @@
 <!doctype html>
 <html th:lang="${#locale.toLanguageTag}" xmlns:th="https://www.thymeleaf.org">
   <!--
-    相关推荐卡片 · 文章页评论区上方使用
-    (refs feature: enable_post_related_recommend since v1.5.1-next.20)
-
-    跟 relate.html（侧边栏 list 样式）独立——这里是横向 N 列封面卡片，
-    目的：文章读完时主动引导下一篇，降低跳出率。
-    数据源同 relate.html：优先 category，无则 tag。
-    多拉 1 条（count+1）以便过滤掉当前文章后仍能凑足 N 张卡片。
+    相关推荐卡片 · fragment v1.6.4-rc.02
+    嵌套三元表达式 + th:with 可能在 Halo/Thymeleaf 环境下不稳定
+    改成: 线性展开 + 每步 debug marker + 避免 count+1 的类型加法
   -->
   <th:block th:fragment="relate_cards">
-    <th:block
-      th:with="recCount = ${theme.config.post.post_related_recommend_count ?: 3},
-               rawList = ${not #lists.isEmpty(post.categories)
-                 ? postFinder.listByCategory(1, (theme.config.post.post_related_recommend_count ?: 3) + 1, post.categories[0].metadata.name).items
-                 : (not #lists.isEmpty(post.tags)
-                   ? postFinder.listByTag(1, (theme.config.post.post_related_recommend_count ?: 3) + 1, post.tags[0].metadata.name).items
-                   : null)}"
-      th:if="${not #lists.isEmpty(rawList)}"
-    >
-      <th:block th:with="filteredList = ${rawList.?[metadata.name != post.metadata.name]}">
-        <section class="joe_related" th:if="${not #lists.isEmpty(filteredList)}">
-          <div class="joe_related__title">
-            <i class="joe-font joe-icon-huo"></i>
-            <span class="text">相关推荐</span>
-          </div>
-          <div class="joe_related__grid">
-            <a
-              th:each="item, iterStat : ${filteredList}"
-              th:if="${iterStat.index < recCount}"
-              class="joe_related__card"
-              th:href="@{${item.status.permalink}}"
-              th:title="${item.spec.title}"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              <div class="joe_related__card-cover">
-                <img
-                  class="lazyload"
-                  th:with="cover = ${item.spec.cover ?: (not #lists.isEmpty(theme.config.home.post_thumbnail) ? theme.config.home.post_thumbnail : theme.config.basic.random_img_api_url+'?pageid='+item.metadata.name)}"
-                  th:data-src="${cover}"
-                  th:src="${theme.config.home.lazyload_thumbnail}"
-                  th:alt="${item.spec.title}"
-                  onerror="Joe.errorImg(this, 'HomeErrImg')"
-                />
+    <!-- 入口 debug marker 证明 fragment 被 replace 进来 -->
+    <span style="display: none" data-debug-fragment-entered="yes"></span>
+
+    <!-- 第一步: 是否有 category / tag -->
+    <span
+      style="display: none"
+      th:attr="data-debug-has-cat=${not #lists.isEmpty(post.categories)},
+               data-debug-has-tag=${not #lists.isEmpty(post.tags)},
+               data-debug-post-name=${post.metadata.name}"
+    ></span>
+
+    <!-- 分支 A: 有 category 时按 category 推 -->
+    <th:block th:if="${not #lists.isEmpty(post.categories)}">
+      <th:block th:with="firstCatName=${post.categories[0].metadata.name}">
+        <span style="display: none" th:attr="data-debug-first-cat=${firstCatName}"></span>
+
+        <!-- 拉数据 (固定 4 条避免 ?:+1 类型不确定加法) -->
+        <th:block th:with="rawList=${postFinder.listByCategory(1, 4, firstCatName).items}">
+          <span
+            style="display: none"
+            th:attr="data-debug-rawlist-size=${rawList == null ? 'null' : rawList.size()},
+                     data-debug-rawlist-class=${rawList == null ? 'null' : rawList.getClass().getName()}"
+          ></span>
+
+          <!-- 过滤当前文章 -->
+          <th:block th:with="filteredList=${rawList.?[metadata.name != post.metadata.name]}">
+            <span
+              style="display: none"
+              th:attr="data-debug-filtered-size=${filteredList == null ? 'null' : filteredList.size()}"
+            ></span>
+
+            <!-- 渲染卡片 -->
+            <section class="joe_related" th:if="${not #lists.isEmpty(filteredList)}">
+              <div class="joe_related__title">
+                <i class="joe-font joe-icon-huo"></i>
+                <span class="text">相关推荐</span>
               </div>
-              <div class="joe_related__card-info">
-                <h4 class="joe_related__card-title">[[${item.spec.title}]]</h4>
-                <div class="joe_related__card-meta">
-                  <time th:datetime="${#dates.format(item.spec.publishTime,'yyyy-MM-dd')}"
-                    >[[${#dates.format(item.spec.publishTime,'yyyy-MM-dd')}]]</time
-                  >
-                  <span class="joe_related__card-visit">
-                    <i class="joe-font joe-icon-eye"></i>[[${item.stats.visit}]]
-                  </span>
-                </div>
+              <div class="joe_related__grid">
+                <a
+                  th:each="item, iterStat : ${filteredList}"
+                  th:if="${iterStat.index < 3}"
+                  class="joe_related__card"
+                  th:href="@{${item.status.permalink}}"
+                  th:title="${item.spec.title}"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  <div class="joe_related__card-cover">
+                    <img
+                      class="lazyload"
+                      th:with="cover=${item.spec.cover ?: (not #lists.isEmpty(theme.config.home.post_thumbnail) ? theme.config.home.post_thumbnail : theme.config.basic.random_img_api_url+'?pageid='+item.metadata.name)}"
+                      th:data-src="${cover}"
+                      th:src="${theme.config.home.lazyload_thumbnail}"
+                      th:alt="${item.spec.title}"
+                      onerror="Joe.errorImg(this, 'HomeErrImg')"
+                    />
+                  </div>
+                  <div class="joe_related__card-info">
+                    <h4 class="joe_related__card-title">[[${item.spec.title}]]</h4>
+                    <div class="joe_related__card-meta">
+                      <time th:datetime="${#dates.format(item.spec.publishTime,'yyyy-MM-dd')}"
+                        >[[${#dates.format(item.spec.publishTime,'yyyy-MM-dd')}]]</time
+                      >
+                      <span class="joe_related__card-visit">
+                        <i class="joe-font joe-icon-eye"></i>[[${item.stats.visit}]]
+                      </span>
+                    </div>
+                  </div>
+                </a>
               </div>
-            </a>
-          </div>
-        </section>
+            </section>
+          </th:block>
+        </th:block>
       </th:block>
     </th:block>
+
+    <!-- 分支 B: 无 category 但有 tag 时按 tag 推 (简化先不做, v1.6.4 stable 里再加) -->
   </th:block>
 </html>
