@@ -36,20 +36,12 @@
       as="style"
       th:href="${source_link+'/assets/lib/font-awesome/css/font-awesome.min.css'}"
     />
+    <!-- v1.6.9: iconfont 本地化 · 3 个 alicdn CSS 合并为单一本地 woff2-only + font-display:swap -->
+    <!-- 原始 3 个 CSS ID: 2788564 / 4198339 / 4012291 · 文件: joe-font.woff2 + jiewen.woff2 + third-font.woff2 -->
     <link
       rel="preload stylesheet"
       as="style"
-      href="//at.alicdn.com/t/font_2788564_crkap1ed9j5.css"
-    />
-    <link
-      rel="preload stylesheet"
-      as="style"
-      href="//at.alicdn.com/t/c/font_4198339_jcoci5bgy7.css"
-    />
-    <link
-      rel="preload stylesheet"
-      as="style"
-      href="//at.alicdn.com/t/c/font_4012291_6am8fj7tgaw.css"
+      th:href="${source_link+'/assets/lib/iconfont-local/iconfont.min.css'}"
     />
     <th:block
       th:if="${theme.config.custom.iconfont != '' and theme.config.custom.iconfont != null}"

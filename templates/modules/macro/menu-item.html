@@ -5,6 +5,7 @@
       class="item"
       th:href="@{${menuItem.status.href}}"
       th:target="${menuItem.spec.target?.value}"
+      th:attr="rel=${menuItem.spec.target?.value == '_blank' ? 'noopener noreferrer' : null}"
       th:title="${menuItem.status.displayName}"
     >
       <th:block th:if="${theme.config.navbar.enable_navbar_icon}">

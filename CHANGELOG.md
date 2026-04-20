@@ -14,6 +14,34 @@
 
 ---
 
+## [1.6.9-rc.01] · 2026-04-20 · ⚡ v1.6.9 性能+安全打包（选项 A · prerelease）
+
+Sprint v1.6.9 · audit 报告里的选项 A 打包：5 件改动并发 rc.01。
+
+### Added · 性能
+- **LHF-5 · `<img>` 补 16:9 numeric dimensions** · 3 个卡片模板：`post_item.html` / `banner_item.html` / `relate_cards.html` · 把原 `width="100%" height="100%"`（Lighthouse 不认）改为 `width="1600" height="900"` · 浏览器可预计算 aspect-ratio 提前占位 → **Core Web Vitals CLS 直接收益**
+- **LHF-6 · jQuery 3.5.1 → 3.7.1** · 修 2020-era CVE + 微性能优化（`jQuery.htmlPrefilter` 等）· API 100% 向后兼容 · **严禁碰 jQuery defer**（踩过雷见 `feedback_jquery_defer_dom_guard.md`）
+- **MED-5 · alicdn iconfont 本地化** · 3 个 CSS 合并为单一 `assets/lib/iconfont-local/iconfont.min.css` + 3 个 woff2 本地（joe-font / jiewen / third-font，合计 ~55 KB）· 加 `font-display: swap` 防 FOIT · **去第三方依赖** + **3 HTTP 请求 → 1 请求**
+
+### Added · SEO 富化
+- **MED-1 · OG image meta 补齐** · `og:image:alt`（文章标题 / 站点标题）+ `og:image:type`（按后缀推断 jpeg/png/webp/gif）+ `twitter:image:alt` · 提升社交分享卡辅助文本和平台识别度
+
+### Added · 安全补齐
+- **LHF-3 继续补**：Halo 动态菜单（`menu-item.html` + `navbar.html` 的 10 个 `th:target`）当 target=_blank 时自动 `rel="noopener noreferrer"` · 修 v1.6.8.1 当时只扫静态 `target="_blank"` 漏掉动态菜单渲染的 28 个菜单项
+
+### 验证清单（rc.01 → stable 前必跑）
+- 文章页 jQuery 功能：留言板便利贴 / 复制按钮 / fancybox lightbox / TOC / 瞬时照片 / 字数统计
+- iconfont 渲染：左侧图标（首页/menu/文章/友链/图库 页脚）无"□"或空框
+- menu 跳外链：确认新页面 `window.opener` 为 null（noopener 生效）
+- OG meta：curl 文章页 grep `og:image:alt`, `og:image:type`, `twitter:image:alt` 各 1
+- 四路：首页/文章/友链/图库 `</html>=1` 完整，debug-marker=0，删 lib 残留=0
+
+### 保留决策（下一 sprint 候选）
+- **MED-6** · `tail.html` jQuery 全量 defer（next.5 踩雷方案重启）· v1.6.10 独立 sprint
+- **MED-2 / MED-3 / MED-4 / MED-7** · 字体策略 / 按页面条件加载 / 关键 CSS inline / aside fragment 抽取
+
+---
+
 ## [1.6.8.1] · 2026-04-20 · 🐛 v1.6.8 发布后 audit 发现 4 个 bug 的 patch
 
 发完 v1.6.8 立刻做了一次全面审计（SEO / Lighthouse / 代码质量），揪出 2 个严重 bug 和 2 个 hygiene 问题，一把合并进 patch。

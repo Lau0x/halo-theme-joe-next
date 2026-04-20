@@ -303,6 +303,7 @@
                             class="link"
                             th:href="@{${menuItem.status.href}}"
                             th:target="${menuItem.spec.target?.value}"
+                            th:attr="rel=${menuItem.spec.target?.value == '_blank' ? 'noopener noreferrer' : null}"
                             th:title="${menuItem.status.displayName}"
                             >[[${menuItem.status.displayName}]]</a
                           >
@@ -314,6 +315,7 @@
                             <a
                               th:href="@{${menuItem.status.href}}"
                               th:target="${menuItem.spec.target?.value}"
+                              th:attr="rel=${menuItem.spec.target?.value == '_blank' ? 'noopener noreferrer' : null}"
                               th:title="${menuItem.status.displayName}"
                               >[[${menuItem.status.displayName}]]</a
                             >
@@ -327,6 +329,7 @@
                                     class="link"
                                     th:href="@{${childMenu.status.href}}"
                                     th:target="${childMenu.spec.target?.value}"
+                                    th:attr="rel=${childMenu.spec.target?.value == '_blank' ? 'noopener noreferrer' : null}"
                                     th:title="${childMenu.status.displayName}"
                                     >[[${childMenu.status.displayName}]]
                                   </a>
@@ -338,6 +341,7 @@
                                     <a
                                       th:href="@{${childMenu.status.href}}"
                                       th:target="${childMenu.spec.target?.value}"
+                                      th:attr="rel=${childMenu.spec.target?.value == '_blank' ? 'noopener noreferrer' : null}"
                                       th:title="${childMenu.status.displayName}"
                                       >[[${childMenu.status.displayName}]]</a
                                     >
@@ -351,6 +355,7 @@
                                           class="link"
                                           th:href="@{${subChildMenu.status.href}}"
                                           th:target="${subChildMenu.spec.target?.value}"
+                                          th:attr="rel=${subChildMenu.spec.target?.value == '_blank' ? 'noopener noreferrer' : null}"
                                           th:title="${subChildMenu.status.displayName}"
                                           >[[${subChildMenu.status.displayName}]]</a
                                         >
@@ -376,6 +381,7 @@
                               class="link"
                               th:href="@{${menuItem.status.href}}"
                               th:target="${menuItem.spec.target?.value}"
+                              th:attr="rel=${menuItem.spec.target?.value == '_blank' ? 'noopener noreferrer' : null}"
                               th:title="${menuItem.status.displayName}"
                               >[[${menuItem.status.displayName}]]</a
                             >
@@ -387,6 +393,7 @@
                               <a
                                 th:href="@{${menuItem.status.href}}"
                                 th:target="${menuItem.spec.target?.value}"
+                                th:attr="rel=${menuItem.spec.target?.value == '_blank' ? 'noopener noreferrer' : null}"
                                 th:title="${menuItem.status.displayName}"
                                 >[[${menuItem.status.displayName}]]</a
                               >
@@ -400,6 +407,7 @@
                                       class="link"
                                       th:href="@{${childMenu.status.href}}"
                                       th:target="${childMenu.spec.target?.value}"
+                                      th:attr="rel=${childMenu.spec.target?.value == '_blank' ? 'noopener noreferrer' : null}"
                                       th:title="${childMenu.status.displayName}"
                                       >[[${childMenu.status.displayName}]]
                                     </a>
@@ -411,6 +419,7 @@
                                       <a
                                         th:href="@{${childMenu.status.href}}"
                                         th:target="${childMenu.spec.target?.value}"
+                                        th:attr="rel=${childMenu.spec.target?.value == '_blank' ? 'noopener noreferrer' : null}"
                                         th:title="${childMenu.status.displayName}"
                                         >[[${childMenu.status.displayName}]]</a
                                       >
@@ -424,6 +433,7 @@
                                             class="link"
                                             th:href="@{${subChildMenu.status.href}}"
                                             th:target="${subChildMenu.spec.target?.value}"
+                                            th:attr="rel=${subChildMenu.spec.target?.value == '_blank' ? 'noopener noreferrer' : null}"
                                             th:title="${subChildMenu.status.displayName}"
                                             >[[${subChildMenu.status.displayName}]]</a
                                           >
