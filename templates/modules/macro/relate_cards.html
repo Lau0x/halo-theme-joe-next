@@ -1,13 +1,16 @@
 <!doctype html>
 <html th:lang="${#locale.toLanguageTag}" xmlns:th="https://www.thymeleaf.org">
   <!--
-    相关推荐卡片 · v1.6.6-rc.05
-    rc.02-rc.04 三连崩复盘: 三个 rc 都加了内层 "iterStat + lt + Elvis" 组合作为新特性,
-    v1.6.5 根本没有这些. 我一直改外层, 忽略了内层三个新增部分才是共同罪犯.
-    rc.05 最保守策略:
-      内层完全 revert 到 v1.6.5 原始写法 (无 iterStat, 无 lt, 无 Elvis 在 th:if 里),
-      外层只加 outerStat.first th:if 把迭代次数压到 1. 外层 1 次 → 4 fetched - 1 self
-      = 3 cards 自然对齐 config, 不需要任何内层上限.
+    相关推荐卡片 · v1.6.6-rc.06
+    rc.05 实测: 整页不崩了 (198KB 完整 </html>=1, pagination=2, comments 都在),
+    但卡片数仍 30 张. 根因: outerStat.first 在迭代 post.categories[0] (单个
+    CategoryVo 对象) 时不可靠 — Thymeleaf 对非 List 对象的 th:each 会按 getter
+    字段伪迭代 (10 次), 这种"伪迭代"的 outerStat.first 不一致.
+    rc.06 修复 (唯一改动):
+      把 th:each 源从 ${post.categories[0]} 改成 ${post.categories} (真 List),
+      outerStat.first 在真 List 上行为确定 → 外层迭代 N 次 (N = categories 数量) 但
+      只第一次渲染 → 3 cards 对齐 config.
+      tag 分支同理 ($post.tags[0] → $post.tags).
   -->
   <th:block th:fragment="relate_cards">
     <th:block th:if="${not #lists.isEmpty(post.categories)} or ${not #lists.isEmpty(post.tags)}">
@@ -20,7 +23,7 @@
           <!-- 有 category: 按第一个 category 推 -->
           <th:block th:if="${not #lists.isEmpty(post.categories)}">
             <th:block
-              th:each="recommendPosts, outerStat : ${post.categories[0]}"
+              th:each="recommendPosts, outerStat : ${post.categories}"
               th:if="${outerStat.first}"
               th:with="recommendPosts = ${postFinder.listByCategory(1, (theme.config.post.post_related_recommend_count ?: 3) + 1, recommendPosts.metadata.name)}"
             >
@@ -63,7 +66,7 @@
           <!-- 无 category 但有 tag: 按第一个 tag 推 -->
           <th:block th:if="${#lists.isEmpty(post.categories)} and ${not #lists.isEmpty(post.tags)}">
             <th:block
-              th:each="recommendPosts, outerStat : ${post.tags[0]}"
+              th:each="recommendPosts, outerStat : ${post.tags}"
               th:if="${outerStat.first}"
               th:with="recommendPosts = ${postFinder.listByTag(1, (theme.config.post.post_related_recommend_count ?: 3) + 1, recommendPosts.metadata.name)}"
             >

@@ -14,6 +14,32 @@
 
 ---
 
+## [1.6.6-rc.06] · 2026-04-20 · 🎯 卡片数量对齐 config 最终修复（prerelease）
+
+**rc.05 部分胜利**：整页不崩（198KB 完整，`</html>=1`, pagination=2, comments 渲染正常），但卡片数仍 30 张（期望 3）。
+
+### 根因
+`th:each="... : ${post.categories[0]}"` 迭代的是**单个 CategoryVo 对象**（非 List）。Thymeleaf 对非 List 对象的 `th:each` 会按 POJO getter 字段做"伪迭代"（我们环境下 10 次），`outerStat.first` 在这种伪迭代下行为不一致 → 10 次全部通过 `first` 判断 → 30 卡片。
+
+### Fixed · rc.06 唯一改动
+`${post.categories[0]}` → `${post.categories}`（真 List）：
+
+```xml
+th:each="recommendPosts, outerStat : ${post.categories}"
+th:if="${outerStat.first}"
+th:with="recommendPosts = ${postFinder.listByCategory(..., recommendPosts.metadata.name)}"
+```
+
+真 List 上 `outerStat.first` 行为确定（只第 0 次为 true）→ 无论 post 有多少 category，只第一个 category 被 listByCategory → 4 fetched - 1 self = 3 卡片对齐 config。
+
+Tag 分支同理（`${post.tags[0]}` → `${post.tags}`）。
+
+### 教训
+- **Thymeleaf th:each 严禁直接迭代非 List 对象** —— 伪迭代行为未文档化且因环境/版本而异
+- 改完后 **`grep -c 'class="joe_related__card"'` 必须精准等于 config 值**，不能只看"渲染出来了"就收工
+
+---
+
 ## [1.6.6-rc.05] · 2026-04-20 · 🚨🚨🚨🚨 rc.04 仍崩 · 内层写法才是罪犯 · 最保守 revert（prerelease）
 
 **rc.04 仍崩**。curl 实测 `</html>=0, cards=0`，页面仍在 fragment 插入点截断。
