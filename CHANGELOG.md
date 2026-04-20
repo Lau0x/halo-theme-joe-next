@@ -14,6 +14,20 @@
 
 ---
 
+## [1.6.2] · 2026-04-20 · debug marker 语法修复（可 curl 可见）
+
+### Fixed
+- **v1.6.1 的 debug marker 用了 Thymeleaf `<!--/* ... */-->` 语法 → 完全不出现在输出 HTML**
+  - Thymeleaf 的 `<!--/* ... */-->` 是 **parser-level comment**（仅模板开发时可见），渲染时被完全移除，curl 后 HTML 里找不到
+  - 改用 **隐藏 span + `data-*` 属性**（`th:attr` 把表达式 evaluate 后写到 data 属性里）
+  - 现在 curl 文章页能看到：`<span style="display:none" data-debug-related-switch="..." data-debug-related-count="..."></span>`
+  - 真实 switch 值一目了然，便于排查 Halo ConfigMap 实际传什么值
+
+### 仍然保留 v1.6.1 的 th:if `== true or == 'true'` 双态比较
+这是核心修复，不动。
+
+---
+
 ## [1.6.1] · 2026-04-20 · 相关推荐 switch 三态兼容 + debug marker
 
 ### Fixed
