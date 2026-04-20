@@ -247,7 +247,11 @@ html[data-mode='dark'] .joe_advert__close {
  * Override：恢复正常流。用户若需要广告 sticky 跟随，用主题配置里
  * 的 "扩展 widget 位置 = sticky-top / sticky-bottom" 显式选择。 */
 
-.joe_aside__item:last-child {
+/* ⚠️ 关键: 不能覆盖 .advert / .aside_custom / .joe_advert-large 这些需要
+ * position: relative 让子元素 × 按钮正确绝对定位的 widget。
+ * v1.6.5 bug 修复: 之前漏了 :not() 过滤, 导致 last-child 是广告时 ×
+ * 按钮飞到页面左上角 (rectX=6, rectY=6)。playwright 实测确认根因。 */
+.joe_aside__item:last-child:not(.advert):not(.aside_custom) {
   position: static;
   top: auto;
   margin-bottom: 15px;

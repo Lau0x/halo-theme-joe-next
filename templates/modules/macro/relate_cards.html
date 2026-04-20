@@ -19,7 +19,7 @@
           <th:block th:if="${not #lists.isEmpty(post.categories)}">
             <th:block
               th:each="recommendPosts : ${post.categories[0]}"
-              th:with="recommendPosts = ${postFinder.listByCategory(1, 4, recommendPosts.metadata.name)}"
+              th:with="recommendPosts = ${postFinder.listByCategory(1, (theme.config.post.post_related_recommend_count ?: 3) + 1, recommendPosts.metadata.name)}"
             >
               <a
                 th:each="recommendPost : ${recommendPosts.items}"
@@ -61,7 +61,7 @@
           <th:block th:if="${#lists.isEmpty(post.categories)} and ${not #lists.isEmpty(post.tags)}">
             <th:block
               th:each="recommendPosts : ${post.tags[0]}"
-              th:with="recommendPosts = ${postFinder.listByTag(1, 4, recommendPosts.metadata.name)}"
+              th:with="recommendPosts = ${postFinder.listByTag(1, (theme.config.post.post_related_recommend_count ?: 3) + 1, recommendPosts.metadata.name)}"
             >
               <a
                 th:each="recommendPost : ${recommendPosts.items}"
