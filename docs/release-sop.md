@@ -131,7 +131,7 @@ git push origin v1.6.5
 | 6 | tag 名不 zero-pad（next.9 vs next.20）| GitHub UI 字典序排序 `"9" > "20"`（ASCII）导致排序混乱，未来 `rc.NN` 固定 2 位 |
 | 7 | 新 switch config 用 `${field}` 隐式 th:if 判断 | 对包装对象不稳定。用 Thymeleaf 官方 `#bools.isTrue(...)` |
 | 8 | 一天内连发 20+ tag | 订阅者骚扰 + 决策疲劳。同主题合并发 1 版 |
-| 9 | Halo 远程下载用 Release **页面 URL** (`/releases/tag/vX.Y.Z`) | Halo 会 fetch HTML 页面当 zip 解 → 报 "缺少 theme.yaml"。必须用**资产直链 URL** `/releases/download/vX.Y.Z/theme-Joe3-X.Y.Z.zip` |
+| 9 | Halo 远程下载 URL 必须是 **`.zip` 结尾**的完整资产直链。三种错法：(a) `/releases/tag/vX.Y.Z` 是 HTML 页面 → "缺少 theme.yaml"；(b) `/releases/download/vX.Y.Z/` 少 zip 文件名 → "Failed to unzip theme"（GitHub 返回 404 HTML）；(c) `/releases/download/vX.Y.Z/theme-Joe3-X.Y.Z` 少 `.zip` 后缀 → 同 (b) | 正确形式只有一种：`/releases/download/vX.Y.Z/theme-Joe3-X.Y.Z.zip`。Halo Console 输入框可能视觉截断长 URL, paste 后往右拖确认结尾是 `.zip` |
 | 10 | rc.02/rc.03 fragment 改动炸整页没本地预跑 curl | fragment 级改动必须本地 Halo 跑 curl 验证 `</html>` + pagination 后再 push tag |
 | 11 | Thymeleaf `+` 混类型默认字符串拼接 | config 参与算术永远 `T(java.lang.Integer).valueOf(raw.toString())` 强制转 int, 不能图省事 |
 | 12 | 连续 3 版同方向失败继续猜 | 立即加 `data-debug-*` marker span + `.getClass().getName()`, 把变量真实值和类型打到 curl 能抓到的地方 |
