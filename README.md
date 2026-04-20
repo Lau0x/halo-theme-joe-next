@@ -47,10 +47,29 @@
 
 要求 **Halo ≥ 2.22.2**。
 
-1. 下载最新 [release](https://github.com/Lau0x/halo-theme-joe-next/releases) 的 `halo-theme-joe3-next.zip`
-2. Halo Console → 外观 → 主题 → 安装 → 上传 zip
-3. 启用主题
-4. 外观 → 主题 → 设置 中完成所有配置（首次使用建议每一项保存一遍）
+### 方式 A · 远程下载（推荐，快）
+
+Halo Console → 外观 → 主题 → 安装 → **远程下载** Tab，粘贴最新 release 的 zip **直链**：
+
+```
+https://github.com/Lau0x/halo-theme-joe-next/releases/download/vX.Y.Z/theme-Joe3-X.Y.Z.zip
+```
+
+> ⚠️ **URL 必须以 `.zip` 结尾**，注意 Halo Console 输入框可能视觉截断长 URL，paste 后按 End 键或拖到最右确认结尾是 `.zip` 再点下载。常见错误：粘贴 release 页面 URL (`/releases/tag/...`) 或截断到 `/releases/download/vX.Y.Z/` 都会失败。
+
+最新直链自动对应最近 release，在 [releases 页面](https://github.com/Lau0x/halo-theme-joe-next/releases/latest)点 Assets 里的 `.zip` 右键 "复制链接地址"。
+
+### 方式 B · 上传 zip
+
+1. 在 [releases 页面](https://github.com/Lau0x/halo-theme-joe-next/releases/latest)下载 `theme-Joe3-X.Y.Z.zip`
+2. Halo Console → 外观 → 主题 → 安装 → **上传安装/升级** Tab → 选择 zip
+
+> 22 MB zip 在浏览器 upload 偶尔卡死 timeout，首选方式 A。
+
+### 启用与配置
+
+1. 启用主题
+2. 外观 → 主题 → 设置 中完成所有配置（首次使用建议每一项保存一遍）
 
 > 📬 **获取更新通知**：本主题暂未登陆 Halo 官方应用市场，Halo 后台不会推送升级提示。
 > 请点本仓库右上角 **Watch → Custom → Releases**，新版本发布时 GitHub 会邮件通知你，

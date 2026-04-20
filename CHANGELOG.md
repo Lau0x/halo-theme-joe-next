@@ -14,6 +14,53 @@
 
 ---
 
+## [1.6.8] · 2026-04-20 · 🔍 JSON-LD 富结果支持 + README 安装指引升级
+
+**经 rc.01 生产 4 路 smoke test + 3 块 JSON-LD 内容验证通过**一把过 stable。
+
+### Added · SEO 富结果
+- **WebSite** JSON-LD（所有页面 · 含 SearchAction，Google Sitelinks Search Box 候选）
+- **BlogPosting** JSON-LD（文章页 · `headline / description / image / datePublished(+08:00) / dateModified / author:咕咕 / publisher / mainEntityOfPage / url`）
+- **BreadcrumbList** JSON-LD（文章页 · 首页 → 分类 → 文章标题 三级）
+
+独立 fragment `templates/modules/macro/json_ld.html`，未来加 FAQ / HowTo / Person 等 schema type 只改这一个文件。
+
+### 设计决策（可查）
+- author 固定 "咕咕"（用户 sprint 决策）
+- datePublished ISO 8601 + JVM 时区 offset（`yyyy-MM-dd'T'HH:mm:ssXXX` pattern · Asia/Shanghai 输出 `+08:00`）
+- URL 绝对化：cover / logo / permalink 非 `http` 开头则 `siteUrlClean + path`
+- 转义：`th:inline="javascript"` Thymeleaf 自动双引号 + JS-safe 转义（JSON 是 JS 子集，`application/ld+json` 浏览器按数据读不执行）
+
+### 生产验证
+| 页面 | `application/ld+json` 块数 | 期望 | 结果 |
+|---|---|---|---|
+| 首页 | 1 (WebSite) | 1 | ✅ |
+| 文章页 | 3 (WebSite + BlogPosting + BreadcrumbList) | 3 | ✅ |
+| 友链 | 1 (WebSite) | 1 | ✅ |
+| 图库 | 1 (WebSite) | 1 | ✅ |
+
+文章页 curl 抓 BlogPosting 实体内容：title / author "咕咕" / datePublished `2026-04-13T13:40:00+08:00` / image 绝对 URL 全对。BreadcrumbList 3 级 position 1/2/3 正确。
+
+### Changed · README 安装指引升级
+- 修正 zip 文件名 `halo-theme-joe3-next.zip` → `theme-Joe3-X.Y.Z.zip`（与 release 实际产物一致）
+- 新增"方式 A 远程下载（推荐）" + "方式 B 上传 zip" 双模式
+- **加粗警示**：URL 必须以 `.zip` 结尾；Halo Console 输入框可能视觉截断，paste 后按 End 键确认
+- 回应本 sprint rc.01 阶段踩的 URL 截断坑
+
+### 回归面
+- 相关推荐卡片（v1.6.6）：仍 3 张精确对齐 config ✅
+- 瘦身 lib 残留（v1.6.7）：全站 0 引用 ✅
+- 整页完整：4 路 `</html>=1` + 文章 `pagination-item=2` ✅
+
+### 升级
+```
+https://github.com/Lau0x/halo-theme-joe-next/releases/download/v1.6.8/theme-Joe3-1.6.8.zip
+```
+
+⚠️ URL 必须完整以 `.zip` 结尾，paste 后验证最后 4 字符。
+
+---
+
 ## [1.6.8-rc.01] · 2026-04-20 · 🔍 JSON-LD structured data 注入（prerelease）
 
 Sprint: **SEO 富结果强化**。纯 `<head>` 追加，不动任何渲染逻辑，回归面接近 0。
