@@ -163,11 +163,18 @@ html[data-mode='dark'] ins.adsbygoogle {
  * 用户点击后通过 ad-close.js 持久关闭该广告（localStorage）
  * 不干扰 AdSense 自己管的广告（那些是 Google iframe 主题控不到） */
 
-/* 广告容器需 relative 定位才能 × 按钮绝对定位 */
+/* 广告容器需 relative 定位才能让 × 按钮绝对定位
+ * v1.6.5-rc.02 重要修复:
+ *   上游 `.joe_aside__item:last-child { position: sticky; top: 75px; }` 规则
+ *   被我 rc.01 的 .advert {position:relative} 只盖了 position, 但 top:75px 保留,
+ *   导致 advert 是 last-child 时 relative + top:75px = 向下偏移 75px 的空白!
+ *   现统一给这 3 类 widget 加 top:auto 清除上游残留 + margin-bottom 避免紧贴 */
 .joe_advert-large,
 .joe_aside__item.advert,
 .joe_aside__item.aside_custom {
   position: relative;
+  top: auto;
+  margin-bottom: 15px;
 }
 
 /* × 按钮 · 定位与风格
