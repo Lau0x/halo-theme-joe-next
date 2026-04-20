@@ -27,9 +27,13 @@ spec:
   logo: 'https://wmimg.com/i/70/2023/08/64d3c41d5bde2.webp'
   homepage: 'https://blog.laoda.de'
   repo: 'https://github.com/Lau0x/halo-theme-joe-next'
+  issues: 'https://github.com/Lau0x/halo-theme-joe-next/issues'
+  license:
+    - name: CC BY-NC-SA 4.0
+      url: 'https://creativecommons.org/licenses/by-nc-sa/4.0/'
   settingName: 'theme-Joe-setting'
   configMapName: 'theme-Joe-configMap'
-  version: '1.5.1-next.11'
+  version: '1.5.1-next.12'
   requires: '>=2.22.2'
   customTemplates:
     page:

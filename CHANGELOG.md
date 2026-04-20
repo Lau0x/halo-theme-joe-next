@@ -14,6 +14,22 @@
 
 ---
 
+## [1.5.1-next.12] · 2026-04-20 · 主题元数据补齐 · license + issues
+
+### Added
+- **`license`** · `theme.yaml` 补上 CC BY-NC-SA 4.0 协议声明（name + 官方 URL）
+  - Halo Console 「主题详情」页「协议」字段不再是"无"
+  - 符合开源协议合规展示要求（原上游遗漏）
+- **`issues`** · GitHub issues 入口 URL
+  - Halo Console 「主题详情」页「问题反馈」字段不再是"无"
+  - 用户点击可直接跳到 fork 仓库 issues 页
+
+### Notes
+- 纯元数据补齐 · 零功能变更 · 零样式影响
+- 升级风险极低 · 可直接覆盖安装
+
+---
+
 ## [1.5.1-next.11] · 2026-04-20 · 扩展 widget 位置控制 + 广告关闭按钮
 
 ### Added
