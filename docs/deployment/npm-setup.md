@@ -326,22 +326,28 @@ A+ 的硬门槛是 **Content-Security-Policy**。Halo 主题架构下配 CSP 非
 - `localStorage` 标记防重复，对新访客 0 开销
 - 详见 `templates/modules/layout.html`
 
-**NPM 层可选进一步加固**（防未来类似残留）：
+**NPM 层一般不需要额外加固**（Halo 默认已发出理想 header）：
 
-在 Custom Location `/` 的 Advanced 里追加：
+`curl -s -o /dev/null -D - https://你的域名/` 看 HTML 响应默认就有：
+```
+cache-control: no-cache, no-store, max-age=0, must-revalidate
+```
+
+静态资源（CSS/JS/图片）默认：`max-age=31536000` (1 年)，配合主题 `?v=<version>` query bust。**开箱即用，无需额外配置**。
+
+**唯一需要自己在 NPM 加 Cache-Control 的场景**（绝对少数）：
+- 你前面套了某个 CDN / 反代 / 缓存层，明确发现它**没遵守 Halo 发的 no-cache**
+- 或你怀疑某些老代理不识别 `no-store`，想强制再声明一次
+
+那种情况下可以在 Custom Location `/` 的 Advanced 里追加：
 
 ```nginx
-# HTML 响应不缓存（防浏览器 / 反代 / CDN 缓存旧版）
-# 只作用于 HTML 类型响应；静态资源走默认缓存（Halo 自己发了 1 年 Cache-Control）
 if ($sent_http_content_type ~* "^text/html") {
     add_header Cache-Control "no-cache, must-revalidate" always;
 }
 ```
 
-效果：
-- `/` `/archives/xxx` `/tags/xxx` 等 HTML 页面每次都带 `If-Modified-Since` 回源（拿到 304 就很便宜）
-- 静态 CSS/JS/图片保留原 Cache-Control（主题 `?v=<version>` query 控制 bust）
-- **对已经注册 SW 的访客无效**——SW 在 network 之前拦截；这种只能靠主题层的 unregister 脚本
+**但再强调**：对已经注册 SW 的访客这个配置**也没用**——SW 在 network 之前拦截；老访客问题必须靠主题层的 unregister 脚本（next.15 起已内置）。
 
 ### Q · HSTS preload 要不要去 hstspreload.org 提交？
 
