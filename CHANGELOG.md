@@ -14,6 +14,39 @@
 
 ---
 
+## [1.6.5] · 2026-04-20 · 广告位 CSS 三连修复 + 相关推荐数量生效 + SOP 文档
+
+经 2 个 prerelease（`rc.01 → rc.02`）+ playwright computed style 实测定位根因最终落地。**生产 3 个广告 CSS 属性完全一致**：`position=relative, top=0, marginBottom=15px, gap=15px`。
+
+### Fixed
+- **侧边栏第 3 个广告 × 按钮飞到页面左上角**
+  - playwright 实测：3 号广告 `ad_position=static`、按钮 `rectX=6 rectY=6`（整个页面左上角）
+  - 根因：上游 `.joe_aside__item:last-child { position: sticky; top: 75px }` 跟我的 `.advert { position: relative }` CSS specificity 都是 (0,2,0)，B1 override `:last-child { position: static }` 在后 cascade 胜出，广告是 last-child 时被拖成 static，× 按钮绝对定位时找不到 relative 祖先一路冒到 body
+  - 修复：B1 override 加 `:not(.advert):not(.aside_custom)` 精确排除
+- **rc.01 遗留：3 号广告向下偏移 75px 空白**
+  - rc.01 只盖了 `position`，上游的 `top: 75px` 残留 → `position: relative + top: 75px` = 向下偏 75px
+  - 同时 `:last-child` 原生 `margin: 0`（避免贴底）也还在
+  - rc.02 修复：给 advert/aside_custom/joe_advert-large 统一加 `top: auto + margin-bottom: 15px`，彻底清除上游 sticky 残留属性
+
+### Changed
+- **相关推荐 fragment pageSize 绑 config**
+  - 之前硬编码 `postFinder.listByCategory(1, 4, ...)` 忽略用户 settings
+  - 现在 `postFinder.listByCategory(1, (count ?: 3) + 1, ...)`
+  - settings `post_related_recommend_count` 字段真正生效（+1 保证过滤当前文章后仍凑足 N 张）
+
+### Added
+- **`docs/release-sop.md` · 7 KB 发版 SOP 文档**
+  - 3 大核心原则：debug 走 prerelease / 抄上游 proved code / 诊断不重构
+  - 0-5 步标准流程 + 语法校验 + curl / playwright smoke test
+  - 8 条今天踩过的坑 blacklist（Thymeleaf 注释/链式调用/CSS specificity 等）
+  - 7 步"功能不渲染"诊断方法论
+  - Tag 命名规范（zero-pad）+ commit/tag message style
+
+### 血泪教训沉淀
+从 `v1.5.1-next.11` 最早引入 × 按钮开始，**历经 4 个月 + 今天 3 个 prerelease iteration** 才把广告位的 3 个叠加 bug（按钮飞走 + 75px 偏移 + margin 缺失）全部修对。根因最终靠 **playwright computed style + getBoundingClientRect** 破案——这是视觉 debug 的**决定性工具**，以后看不到但 DOM 在的问题第一步就上它。
+
+---
+
 ## [1.6.4] · 2026-04-20 · 相关推荐卡片功能终极修复（evening 版）
 
 经 4 个 prerelease 迭代（`rc.01 → rc.04`）最终完全可用。**生产 curl 验证**：3 张卡片全部渲染，封面图 HTTP 200 真实加载，pagination/comment 区域不受影响。
