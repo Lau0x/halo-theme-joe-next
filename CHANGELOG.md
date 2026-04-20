@@ -14,6 +14,24 @@
 
 ---
 
+## [1.6.3] · 2026-04-20 · 相关推荐 th:if 用 `#strings.toString` 彻底解决类型兼容
+
+### Fixed
+- **`enable_post_related_recommend` 已开但仍不渲染的终极修复** · `post.html`
+  - v1.6.2 的 debug marker 证实 Halo 传给模板的值实际是 **`"true"`**（字符串或 boolean 包装对象，curl attr 看不出区别）
+  - 但 v1.6.1 写的 `th:if="${... == true or ... == 'true'}"` **仍然判 false**——说明 Thymeleaf 在当前 Halo 环境下 `==` 对 config value 的包装对象做 identity/class 比较而非值比较
+  - 改用 `#strings.toString(...)` 把任意类型**统一成字符串**再比较：
+    ```
+    th:if="${#strings.toString(theme.config.post.enable_post_related_recommend) == 'true'}"
+    ```
+  - 这种写法不依赖底层数据类型（Boolean / String / null 全部能处理）
+- 同类模式下游开发者注意：Halo theme config 新 schema 字段（尤其 switch）用 Thymeleaf `==` 比较可能不可靠，推荐 `#strings.toString() == 'true'` 作为 SOP
+
+### 保留
+- v1.6.2 的 debug marker（隐藏 span + data-*）继续保留——如果还是不 render，curl 依然能查到实际值，便于后续 debug
+
+---
+
 ## [1.6.2] · 2026-04-20 · debug marker 语法修复（可 curl 可见）
 
 ### Fixed

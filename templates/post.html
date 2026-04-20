@@ -275,8 +275,7 @@
                          data-debug-related-count=${theme.config.post.post_related_recommend_count}"
               ></span>
               <th:block
-                th:if="${theme.config.post.enable_post_related_recommend == true
-                                 or theme.config.post.enable_post_related_recommend == 'true'}"
+                th:if="${#strings.toString(theme.config.post.enable_post_related_recommend) == 'true'}"
               >
                 <th:block th:replace="~{modules/macro/relate_cards :: relate_cards}" />
               </th:block>
