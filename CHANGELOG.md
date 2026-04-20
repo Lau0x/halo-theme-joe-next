@@ -14,6 +14,42 @@
 
 ---
 
+## [1.5.1-next.11] · 2026-04-20 · 扩展 widget 位置控制 + 广告关闭按钮
+
+### Added
+- **扩展 widget 位置可配**（解决"sticky 广告被挤出视口"问题）
+  - 新 setting `enable_post_aside_array_position`（`aside` group 下，enum top/bottom）
+  - **默认 `top`**：widget 紧贴博主信息下方，首屏显眼（推荐，广告/公告/打赏展示率高）
+  - `bottom`：保留老位置（相关文章之后），兼容升级前行为
+  - 模板 `aside_post.html` 按 position 二选一渲染，widget 渲染块抽成 `post_aside_widgets` fragment 复用
+- **广告关闭按钮 × **（`joe_advert__close`，localStorage 持久化）
+  - 所有主题控制的广告位（文章顶部 / 底部 / 侧边栏 + 扩展 widget 里 `enable_ads_aside`）右上角加小 × 按钮
+  - 用户点击 → 记录 `data-ad-slot` 到 `localStorage.joe_ads_closed` → 持久关闭
+  - 下次访问自动应用：匹配 slot 的广告容器 `display: none`
+  - slot 策略：图片广告用 `ads_url`，代码广告用 `"code:" + hash(ads_code)` 前 80 字符
+  - 恢复被关广告：清 localStorage.joe_ads_closed（无 UI 入口，保持简洁）
+- 新脚本 `templates/assets/js/ad-close.js`：原生 DOM + IIFE，不依赖 jQuery
+- 样式 `joe_advert__close`：右上角 22×22 圆形 × · 半透明 hover 加深 · 暗色模式反色
+
+### 作用边界
+- **主题内广告**（ads_top/bottom/aside + widget `enable_ads_aside`）：**全部支持 × 关闭** ✅
+- **AdSense Auto Ads**：Google 以 cross-origin iframe 渲染，主题无法加 × 按钮（限制来自 Google 侧）
+- **自定义 HTML widget (`enable_custom`)**：不强制加 × 按钮，用户若需要自己在 HTML 里写
+- **文章顶部/底部广告**：老体系沿用（array `max: 1`），暂不做 array 化，需要多个的到侧边栏用扩展 widget
+
+### 验证
+本地 Halo 2.24 dev theme-sync + curl 实测：
+- 3 个 `data-ad-slot` 在文章顶/底/侧边栏广告 DOM 上 ✅
+- 3 个 `joe_advert__close` × 按钮渲染 ✅
+- `ad-close.min.js` HTTP 200 OK · 在 tail.html 尾部引入 ✅
+- CSS `joe_advert__close` 样式完整（light/dark mode）✅
+- widget 渲染逻辑：数组为空时正确跳过（不输出 widget section）✅
+
+### Known caveat
+- **aside_custom widget 不自带 ×**（因为它可能是公告/打赏，不一定是广告）—— 需要的话用户在 HTML 里自己加 `<button class="joe_advert__close">×</button>` 就能被 ad-close.js 接管
+
+---
+
 ## [1.5.1-next.10] · 2026-04-20 · canonical / og:url 文章级 URL 修正
 
 ### Fixed

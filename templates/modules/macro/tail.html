@@ -101,6 +101,9 @@
       <script th:src="${source_link+'/assets/lib/busuanzi/busuanzi.min.js'}"></script>
     </th:block>
 
+    <!-- 广告关闭按钮 · × 持久化（localStorage） · 不依赖 jQuery -->
+    <script th:src="${source_link+'/assets/js/min/ad-close.min.js?v='+theme.spec.version}"></script>
+
     <!-- ===== 引入脚本 end =====-->
     <th:block th:if="${theme.config.other.enable_debug}">
       <!-- vconsole -->

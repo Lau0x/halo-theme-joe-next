@@ -2031,6 +2031,19 @@ spec:
         # --- Q4 · 文章页扩展侧边栏 widget (refs upstream#360) ---
         # 不替换 aside_post.html 的硬编码模块（博主/TOC/相关文章/原广告），
         # 只在它们之后追加这里用户配置的 widget 列表。默认 value 为 [] 保证老用户升级后视觉无变化。
+        - $formkit: select
+          if: '$get(enable_post_aside).value == true'
+          name: enable_post_aside_array_position
+          id: enable_post_aside_array_position
+          key: enable_post_aside_array_position
+          label: 扩展 widget 位置
+          value: 'top'
+          options:
+            - value: 'top'
+              label: 博主信息下方（推荐 · 首屏显眼）
+            - value: 'bottom'
+              label: 相关文章下方（原默认 · sticky 底部，可能被挤出视口）
+          help: '决定上面这些扩展 widget 在侧边栏的位置。top = 紧贴博主信息，广告/公告等最显眼；bottom = 所有内容最底部，sticky 滚动时容易被挤出视口。'
         - $formkit: array
           if: '$get(enable_post_aside).value == true'
           name: enable_post_aside_array

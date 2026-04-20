@@ -1,7 +1,22 @@
 <!doctype html>
 <html th:lang="${#locale.toLanguageTag}" xmlns:th="https://www.thymeleaf.org">
+  <!--
+    文章页广告渲染 · 文章顶部 / 文章底部 / 文章侧边栏 三处共用此 fragment。
+
+    关闭按钮（× · ad-close.js 接管）：
+    - data-ad-slot：广告唯一 ID · 用 ads_url 或 hash(ads_code)
+    - localStorage.joe_ads_closed 存被关闭的 slot 列表 · 持久关闭
+    - 图片/代码 两种类型都有 × 按钮
+  -->
   <th:block th:fragment="ads_post(kind, data)">
-    <section class="joe_advert-large">
+    <section
+      class="joe_advert-large"
+      th:with="adSlot = ${kind == 'img' ? data.ads_url : ('code:' + #strings.abbreviate(data.ads_code ?: '', 80))}"
+      th:data-ad-slot="${adSlot}"
+    >
+      <button type="button" class="joe_advert__close" aria-label="关闭此广告" title="关闭此广告">
+        &times;
+      </button>
       <th:block th:if="${kind == 'img'}">
         <a
           target="_blank"

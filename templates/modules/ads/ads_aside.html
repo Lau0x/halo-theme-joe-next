@@ -1,7 +1,14 @@
 <!doctype html>
 <html th:lang="${#locale.toLanguageTag}" xmlns:th="https://www.thymeleaf.org">
+  <!--
+    侧边栏广告 · 扩展 widget enable_ads_aside 类型走这里
+    × 关闭按钮由 ad-close.js 接管（data-ad-slot + localStorage 持久化）
+  -->
   <th:block th:fragment="ads_aside_img(ads_url, ads_img)">
-    <section class="joe_aside__item advert">
+    <section class="joe_aside__item advert" th:data-ad-slot="${ads_url}">
+      <button type="button" class="joe_advert__close" aria-label="关闭此广告" title="关闭此广告">
+        &times;
+      </button>
       <a
         class="joe_advert"
         target="_blank"
@@ -22,6 +29,14 @@
     </section>
   </th:block>
   <th:block th:fragment="ads_aside_code(ads_code)">
-    <section class="joe_aside__item advert" th:utext="${ads_code}"></section>
+    <section
+      class="joe_aside__item advert"
+      th:data-ad-slot="${'code:' + #strings.abbreviate(ads_code ?: '', 80)}"
+    >
+      <button type="button" class="joe_advert__close" aria-label="关闭此广告" title="关闭此广告">
+        &times;
+      </button>
+      <th:block th:utext="${ads_code}"></th:block>
+    </section>
   </th:block>
 </html>

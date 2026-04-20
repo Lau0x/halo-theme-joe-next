@@ -1,10 +1,20 @@
 <!doctype html>
 <html th:lang="${#locale.toLanguageTag}" xmlns:th="https://www.thymeleaf.org">
   <th:block th:fragment="aside_post">
-    <aside class="joe_aside">
+    <aside
+      class="joe_aside"
+      th:with="postAsidePos = ${theme.config.aside.enable_post_aside_array_position ?: 'top'},
+               hasExtraWidgets = ${not #lists.isEmpty(theme.config.aside.enable_post_aside_array)}"
+    >
       <th:block th:if="${theme.config.blogger.show_blogger}">
         <th:block th:replace="~{modules/common/blogger :: blogger}" />
       </th:block>
+
+      <!-- 扩展 widget 渲染位置 · top（博主信息下方，首屏显眼） -->
+      <th:block th:if="${hasExtraWidgets and postAsidePos == 'top'}">
+        <th:block th:replace="~{modules/common/aside_post :: post_aside_widgets}" />
+      </th:block>
+
       <div class="joe_aside_post">
         <th:block
           th:if="${theme.config.post.enable_toc} and ${#annotations.getOrDefault(post, 'enable_toc', 'true') == 'true'}"
@@ -29,76 +39,80 @@
         </th:block>
       </div>
 
-      <!--
-        Q4 · 文章页扩展侧边栏 widget (refs upstream#360)
-        追加用户在设置里配置的任意多个 widget（支持广告 / 公告 / 打赏 / 最新文章 / 热门 / 自定义 HTML 等 10 种类型）。
-        默认 value: []（空）保证老用户升级后视觉无变化。
-        widget 渲染逻辑与非文章页 aside.html 保持一致（future: 抽成 fragment 复用）。
-      -->
-      <th:block
-        th:if="${not #lists.isEmpty(theme.config.aside.enable_post_aside_array)}"
-        th:each="aside : ${theme.config.aside.enable_post_aside_array}"
-      >
-        <th:block th:switch="${aside.template_aside}">
-          <th:block th:case="'enable_blogger'">
-            <th:block th:insert="~{modules/widgets/asideWidget :: enable_blogger}" />
-          </th:block>
-          <th:block th:case="'enable_notice'">
-            <th:block
-              th:insert="~{modules/widgets/asideWidget :: enable_notice(notice_data = ${aside.aside_notice})}"
-            />
-          </th:block>
-          <th:block th:case="'enable_reward'">
-            <th:block
-              th:insert="~{modules/widgets/asideWidget :: enable_reward(reward_data = ${aside.aside_reward})}"
-            />
-          </th:block>
-          <th:block th:case="'enable_picture'">
-            <th:block
-              th:insert="~{modules/widgets/asideWidget :: enable_picture(pic_data = ${aside.aside_picture})}"
-            />
-          </th:block>
-          <th:block th:case="'enable_music_player'">
-            <th:block
-              th:insert="~{modules/widgets/asideWidget :: enable_music_player(music_data = ${aside.aside_music_player})}"
-            />
-          </th:block>
-          <th:block th:case="'enable_newest_post'">
-            <th:block th:insert="~{modules/widgets/asideWidget :: enable_newest_post}" />
-          </th:block>
-          <th:block th:case="'enable_hot_post'">
-            <th:block th:insert="~{modules/widgets/asideWidget :: enable_hot_post}" />
-          </th:block>
-          <th:block th:case="'enable_lifetime'">
-            <th:block th:insert="~{modules/widgets/asideWidget :: enable_lifetime}" />
-          </th:block>
-          <th:block th:case="'show_newreply'">
-            <th:block
-              th:insert="~{modules/widgets/asideWidget :: show_newreply(new_reply_data = ${aside.aside_newreply})}"
-            />
-          </th:block>
-          <th:block th:case="'enable_tag_cloud'">
-            <th:block
-              th:insert="~{modules/widgets/asideWidget :: enable_tag_cloud(tag_cloud_data = ${aside.aside_tag_cloud})}"
-            />
-          </th:block>
-          <th:block th:case="'enable_category_cloud'">
-            <th:block
-              th:insert="~{modules/widgets/asideWidget :: enable_category_cloud(category_cloud_data = ${aside.aside_category_cloud})}"
-            />
-          </th:block>
-          <th:block th:case="'enable_ads_aside'">
-            <th:block
-              th:insert="~{modules/widgets/asideWidget :: enable_ads_aside(ads_data = ${aside.aside_ads})}"
-            />
-          </th:block>
-          <th:block th:case="'enable_custom'">
-            <th:block
-              th:insert="~{modules/widgets/asideWidget :: enable_custom(custom_data = ${aside.aside_custom})}"
-            />
-          </th:block>
-        </th:block>
+      <!-- 扩展 widget 渲染位置 · bottom（相关文章下方，保守默认） -->
+      <th:block th:if="${hasExtraWidgets and postAsidePos == 'bottom'}">
+        <th:block th:replace="~{modules/common/aside_post :: post_aside_widgets}" />
       </th:block>
     </aside>
+  </th:block>
+
+  <!--
+    Q4 · 文章页扩展侧边栏 widget fragment (refs upstream#360)
+    抽出成 fragment，以支持 position = top / bottom 两个插入点复用同一套 switch 逻辑。
+    支持 13 种类型：博主信息 / 公告 / 打赏 / 图片 / 音乐 / 最新文章 / 热门文章 /
+    人生倒计时 / 最新评论 / 标签云 / 分类云 / 侧边栏广告 / 自定义 HTML。
+  -->
+  <th:block th:fragment="post_aside_widgets">
+    <th:block th:each="aside : ${theme.config.aside.enable_post_aside_array}">
+      <th:block th:switch="${aside.template_aside}">
+        <th:block th:case="'enable_blogger'">
+          <th:block th:insert="~{modules/widgets/asideWidget :: enable_blogger}" />
+        </th:block>
+        <th:block th:case="'enable_notice'">
+          <th:block
+            th:insert="~{modules/widgets/asideWidget :: enable_notice(notice_data = ${aside.aside_notice})}"
+          />
+        </th:block>
+        <th:block th:case="'enable_reward'">
+          <th:block
+            th:insert="~{modules/widgets/asideWidget :: enable_reward(reward_data = ${aside.aside_reward})}"
+          />
+        </th:block>
+        <th:block th:case="'enable_picture'">
+          <th:block
+            th:insert="~{modules/widgets/asideWidget :: enable_picture(pic_data = ${aside.aside_picture})}"
+          />
+        </th:block>
+        <th:block th:case="'enable_music_player'">
+          <th:block
+            th:insert="~{modules/widgets/asideWidget :: enable_music_player(music_data = ${aside.aside_music_player})}"
+          />
+        </th:block>
+        <th:block th:case="'enable_newest_post'">
+          <th:block th:insert="~{modules/widgets/asideWidget :: enable_newest_post}" />
+        </th:block>
+        <th:block th:case="'enable_hot_post'">
+          <th:block th:insert="~{modules/widgets/asideWidget :: enable_hot_post}" />
+        </th:block>
+        <th:block th:case="'enable_lifetime'">
+          <th:block th:insert="~{modules/widgets/asideWidget :: enable_lifetime}" />
+        </th:block>
+        <th:block th:case="'show_newreply'">
+          <th:block
+            th:insert="~{modules/widgets/asideWidget :: show_newreply(new_reply_data = ${aside.aside_newreply})}"
+          />
+        </th:block>
+        <th:block th:case="'enable_tag_cloud'">
+          <th:block
+            th:insert="~{modules/widgets/asideWidget :: enable_tag_cloud(tag_cloud_data = ${aside.aside_tag_cloud})}"
+          />
+        </th:block>
+        <th:block th:case="'enable_category_cloud'">
+          <th:block
+            th:insert="~{modules/widgets/asideWidget :: enable_category_cloud(category_cloud_data = ${aside.aside_category_cloud})}"
+          />
+        </th:block>
+        <th:block th:case="'enable_ads_aside'">
+          <th:block
+            th:insert="~{modules/widgets/asideWidget :: enable_ads_aside(ads_data = ${aside.aside_ads})}"
+          />
+        </th:block>
+        <th:block th:case="'enable_custom'">
+          <th:block
+            th:insert="~{modules/widgets/asideWidget :: enable_custom(custom_data = ${aside.aside_custom})}"
+          />
+        </th:block>
+      </th:block>
+    </th:block>
   </th:block>
 </html>
