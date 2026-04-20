@@ -14,6 +14,37 @@
 
 ---
 
+## [1.6.7] · 2026-04-20 · 🧹 主题瘦身 Pass 1 · 裁 288 KB 死代码
+
+**经 rc.01 生产 4 路 smoke test 验证通过**（首页 / 文章 / 友链 / 图库 全部 `</html>=1` + 0 删除 lib 残留引用）。
+
+### Removed（288 KB）
+| 路径 | 大小 | 验证方式 |
+|---|---|---|
+| `templates/assets/lib/jquery-ui/` | 248 KB | grep 全仓 0 引用 |
+| `templates/assets/lib/packery/` | 16 KB | 图库实际加载 masonry/isotope，未加载 packery |
+| `templates/assets/lib/jquery-pjax/` | 12 KB | 无 loader 引用；pjax 被 Halo 原生路由替代 |
+| `templates/assets/lib/jquery-toc/` | 8 KB | 文章页实际加载 tocbot，未加载 jquery-toc |
+| `templates/assets/js/pjax.js` | 4 KB | 死代码，从不被任何 template 加载 |
+
+### 保留决策
+- `katex@0.13.18/` (2.3 MB) —— 数学公式场景（用户确认保留）
+- `pdfjs/` (6.9 MB) —— PDF 嵌入场景（用户确认保留）
+- `halo-comment/` (8.2 MB) —— fork 其他用户可能启用 Waline 需这个桥接
+
+### 升级
+Halo Console → 主题 → 远程下载：
+```
+https://github.com/Lau0x/halo-theme-joe-next/releases/download/v1.6.7/theme-Joe3-1.6.7.zip
+```
+
+### 下一步（v1.6.8 候选）
+- lib 裁剪 Pass 2：中风险核查（需更多真实用户反馈决策是否有 PDF / 数学公式 / Waline 依赖者）
+- README badge 切 v1.6.7（如果你有维护 badge 的话）
+- 收集社区反馈补齐 v1.6.0 milestone "≥2 名外部用户装过并报告" 这个硬门槛
+
+---
+
 ## [1.6.7-rc.01] · 2026-04-20 · 🧹 死代码清理 · 裁掉 288 KB 未引用 lib（prerelease）
 
 Sprint: **lib 瘦身 Pass 1** —— 高可信度 0 引用候选一次清完。
