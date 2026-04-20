@@ -14,6 +14,29 @@
 
 ---
 
+## [1.6.6-rc.08] · 2026-04-20 · 🔧 改用 Java subList 硬砍单元素（prerelease）
+
+**rc.07 实测 30 张全是不同内容** —— outer 真跑了 10 次（post 有 10 个 category），`outerStat.first` 在任何嵌套层级都没过滤。rc.04-07 连 4 版 stat 过滤无效。
+
+### Fixed · rc.08 不再依赖 Thymeleaf stat
+直接 Java 层砍 List：
+```xml
+<th:block th:each="category : ${post.categories.subList(0, 1)}">
+  <th:block th:with="recommendPosts = ${postFinder.listByCategory(..., category.metadata.name)}">
+    <a th:each="recommendPost : ${recommendPosts.items}" ...>
+```
+
+`List.subList(0, 1)` 返回保证 1 元素的 List，th:each 最多跑 1 次。不依赖任何 `outerStat.first` 语义。
+
+### 诊断抓手
+加了 debug marker span：
+```html
+<span data-debug-rc="rc.08" data-debug-cat-size="N" data-debug-tag-size="M">
+```
+curl 可直接看 post 的实际 category/tag 数量，未来 debug 无须猜。
+
+---
+
 ## [1.6.6-rc.07] · 2026-04-20 · 🎯 把 th:each/th:if/th:with 拆四层嵌套（prerelease）
 
 **rc.06 仍 30 卡**：真 List 迭代 + 同元素 `outerStat.first` th:if **没起过滤作用**。根因：`<th:block>` 上 `th:each` + `th:if` 在同一元素的处理顺序不可靠。
