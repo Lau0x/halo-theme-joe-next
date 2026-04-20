@@ -1,26 +1,18 @@
 <!doctype html>
 <html th:lang="${#locale.toLanguageTag}" xmlns:th="https://www.thymeleaf.org">
   <!--
-    相关推荐卡片 · v1.6.6-rc.10
-    rc.09 验证 data-debug-count-class="java.lang.String" 确认假设: Halo config
-    是 String, rc.09 Integer.valueOf 强制转 int 修复字符串拼接 bug.
-    rc.09 实测卡片数 = 4 (期望 3). 原因: (count ?: 3) + 1 = 4 作为 pageSize,
-    Halo listByCategory 返回 4 条, self-filter 对当前 post 不在结果集时不生效,
-    4 条全部通过 → 4 张卡片.
-    rc.10 简化: 去掉 + 1, fetch 正好 count 张. vmrack-test 这种 self 不在结果集
-    的情况出 count 张 (完美对齐 config); self 偶尔在结果集的 edge case 出 count-1 张
-    (可接受).
+    相关推荐卡片 · v1.6.6 stable
+    关键设计 (10 版 rc 的血泪教训):
+    1. Halo config 读出是 String, count + 1 默认字符串拼接 ("3" + 1 = "31") →
+       必须用 T(java.lang.Integer).valueOf(raw.toString()) 强制转 int 再算术.
+    2. listByCategory 的 pageSize 直接用 count (不加 +1 兜底), 默认情况 Halo 返回
+       结果集不含 self, count 张准确对齐 config.
+    3. 外层只迭代 1 次: 用 post.categories.subList(0, 1) 在 Java 层硬砍,
+       不依赖 Thymeleaf outerStat.first 语义 (实测不可靠).
+    4. 内层 th:each 保持简洁: 只 self-filter, 不加 iterStat 或类型敏感比较.
   -->
   <th:block th:fragment="relate_cards">
     <th:block th:if="${not #lists.isEmpty(post.categories)} or ${not #lists.isEmpty(post.tags)}">
-      <span
-        style="display: none"
-        th:attr="data-debug-rc='rc.10',
-                 data-debug-cat-size=${#lists.size(post.categories)},
-                 data-debug-tag-size=${#lists.size(post.tags)},
-                 data-debug-count-raw=${theme.config.post.post_related_recommend_count},
-                 data-debug-count-class=${theme.config.post.post_related_recommend_count != null ? theme.config.post.post_related_recommend_count.getClass().getName() : 'null'}"
-      ></span>
       <section class="joe_related">
         <div class="joe_related__title">
           <i class="joe-font joe-icon-huo"></i>

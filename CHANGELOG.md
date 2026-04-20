@@ -14,6 +14,63 @@
 
 ---
 
+## [1.6.6] · 2026-04-20 · 🎨 相关推荐卡片视觉升级 + 数量严格对齐 config
+
+**经 10 个 prerelease 迭代（rc.01 → rc.10）完成。** 三联生产 smoke test 全绿：整页完整、pagination/comments 渲染、卡片数精确等于 config。
+
+### Added · 相关推荐卡片视觉升级
+- 卡片背景 `--classA` 灰 → `--background` 白（dark mode 独立深色）+ 1px `--classC` 边框
+- 标题加 3×16px 品牌蓝 `::before` 竖条 accent
+- hover 效果：`translateY(-3px)` + 品牌蓝阴影 `rgba(42,100,246,0.22)` + 边框变蓝
+- `border-radius` 4px → 10px，过渡曲线 `cubic-bezier(0.4, 0, 0.2, 1)`
+- meta 行日期/阅读数加 dashed 分隔线 + `tabular-nums` 数字等宽
+- Dark mode 独立配色
+
+### Fixed · 卡片数量严格对齐 config
+**之前**：settings `count=3` 实际渲染 30 张卡片（10×）。
+
+**真根因**（10 版 rc 的调试才抓到，归纳为**三重 bug 叠加**）：
+1. **Halo config 读出是 String 类型** —— `data-debug-count-class` 实测 `java.lang.String`
+2. **Thymeleaf `+` 混类型默认字符串拼接** —— `(config ?: 3) + 1 = "3" + 1 = "31"`（不是 4）
+3. **Spring 隐式转换 "31" → int 31** 作为 pageSize，fetch 31 条 - self-filter = 30 卡
+
+**修复策略**（4 个设计决策）：
+1. `T(java.lang.Integer).valueOf(count.toString()) + 1` 强制算术，不走字符串拼接
+2. pageSize 用 `count`（不加 +1 兜底），默认情况 Halo 返回不含 self，count 张精确对齐 config
+3. 外层单次迭代用 `post.categories.subList(0, 1)` Java 层硬砍，不依赖 Thymeleaf `outerStat.first`（实测不可靠）
+4. 内层 `th:each` 保持简洁：只 self-filter，不加 `iterStat` 或 Elvis 比较（实测触发同类陷阱）
+
+### 血泪教训（写进 `docs/release-sop.md`）
+| # | 教训 | 来源 |
+|---|---|---|
+| 1 | Thymeleaf `+` 混类型 → 字符串拼接，config 参与算术必须先 `Integer.valueOf` 强制转 int | rc.02-07 六连错方向，根因全在这 |
+| 2 | Halo config 读出类型不是直觉的 Integer，用 debug marker `.getClass().getName()` 验证 | rc.08 才加 debug |
+| 3 | 连续 3 版同方向失败 → 立即加 debug marker，不许再猜 | rc.02-07 六连失败后 rc.08 才加 |
+| 4 | Thymeleaf `<th:block>` 上多 `th:*` 同元素（each/if/with）不可靠，拆嵌套 single concern | rc.07 拆 4 层无效 |
+| 5 | Java `List.subList(0, 1)` 比 Thymeleaf `outerStat.first` 更可靠 | rc.04-07 stat 过滤全失效 |
+| 6 | fragment 级改动必须 curl 验证 `</html>` + pagination 元素完整（不只验证新功能） | rc.02/03 炸整页让用户当小白鼠 |
+| 7 | "抄上游 proved code" ≠ 100% 保真（上游数据形态可能不同）| v1.6.5 外层 pattern 在我们数据下表现不同 |
+
+### 10 版 rc 发布记录（透明追责）
+- rc.01：视觉升级（CSS 重做）✅ 视觉部分一直稳定
+- rc.02：想修卡片数但引入 Elvis+字符串拼接旧 bug + 新 iterStat 陷阱 → 炸整页 ❌
+- rc.03-04：继续猜外层迭代，拆嵌套 → 仍炸整页 ❌❌
+- rc.05：内层 revert 到 v1.6.5 → 整页不炸但 30 卡 ⚠️
+- rc.06-07：继续改外层 `post.categories` + 拆嵌套 → 仍 30 卡 ⚠️⚠️
+- rc.08：**加 debug marker 转折点** → 抓到 `cat-size=1` 和 `count-class=String` 🎯
+- rc.09：Integer.valueOf 修字符串拼接 → 4 张卡（+1 兜底过头）
+- rc.10：去掉 +1 → **3 张卡精确对齐 config** ✅
+
+### 升级后
+- 主题设置 → 文章页 → 勾选"评论区上方显示相关推荐"
+- "相关推荐卡片数量"按需调整（2-6，默认 3）
+- 如首次启用该功能字段灰色，切换主题后再切回刷新 schema
+
+### 致谢
+感谢用户在 10 版 prerelease 迭代中反复升级测试 + 提供精准 bug 复现信息。这个功能的稳定是**用户耐心 + 维护者脸皮**双重产物。
+
+---
+
 ## [1.6.6-rc.10] · 2026-04-20 · 🎯 去掉 `+1` 兜底 · 卡片数严格对齐 config（prerelease）
 
 **rc.09 debug marker 确认** `data-debug-count-class="java.lang.String"` → 假设完全正确，Halo config 就是 String，rc.09 的 Integer.valueOf 修复彻底解决字符串拼接。
