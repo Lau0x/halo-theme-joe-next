@@ -14,6 +14,39 @@
 
 ---
 
+## [1.6.6-rc.02] · 2026-04-20 · 🚨 相关推荐卡片数量爆炸 10× 的根因修复（prerelease）
+
+**rc.01 视觉升级 + rc.02 bug 修复** 的合并候选。rc.02 修完验证 OK 后 promote `v1.6.6` stable。
+
+### Fixed
+- **相关推荐卡片数量失控 · settings `count=3` 生产实测渲染 30 张（10×）**
+  - curl smoke test：`grep -c 'class="joe_related__card"' → 30`，debug marker 证明 switch/count config 读取都对
+  - 根因：外层 `th:each="recommendPosts : ${post.categories[0]}"` + `th:with` override 的"抄上游 proved 诡异 hack"**在我们 Halo 版本/数据形态下不是单次迭代**，而是迭代了 10 次（可能 `[0]` 对 CategoryVo 的 Thymeleaf iteration 语义不确定）
+  - 修复：**外层不用 `th:each`**，直接 `th:with="recommendPosts = ${postFinder.listByCategory(1, count+1, post.categories[0].metadata.name)}"` 单次 fetch；内层 `th:each` 带 `iterStat.index < recommendCount` 硬上限防御 self-filter 漏位溢出
+  - tag 分支同理重写
+  - `post.categories[0].metadata.name` 是**纯属性链**（非方法调用），区别于 rc.02 事故里的 `.listByCategory(...).items` 方法后跟字段，Thymeleaf OGNL 安全
+
+### Added · v1.6.6-rc.01 保留
+- **相关推荐卡片视觉升级**
+  - 卡片背景 `--classA` 灰 → `--background` 白（或 dark mode 深色）+ 1px `--classC` 细边框
+  - 标题加 3×16px 品牌蓝 `::before` 竖条 accent
+  - hover 效果：translateY(-3px) + 品牌蓝阴影 `rgba(42,100,246,0.22)` + 边框变蓝
+  - border-radius 4px → 10px · 过渡曲线改 cubic-bezier(0.4, 0, 0.2, 1)
+  - meta 行日期/阅读数加 dashed 分隔线 + `tabular-nums` 数字等宽
+  - Dark mode 独立配色（更深的基础 + 更精细的 hover 阴影）
+
+### 教训（再次写进 CHANGELOG 提醒未来）
+- **"抄上游 proved code" 不等于"100% 保真"**：上游用 `post.categories[0]` 的外层 th:each 可能是**上游 post 数据形态固定（单 category）所以侥幸单次**。我们的博客 post 多 category 或数据形态不同 → 10 倍爆炸
+- **模板 bug 只靠"curl grep class 计数"一眼可定位**，比 playwright 更直接。以后涉及循环逻辑先 curl grep 计数 baseline
+
+---
+
+## [1.6.6-rc.01] · 2026-04-20 · 相关推荐卡片视觉升级（prerelease · 后被 rc.02 覆盖）
+
+**已知遗留**：外层 th:each 对 `post.categories[0]` 不可控迭代，导致卡片数量爆炸（见 rc.02）。视觉代码本身无问题，rc.02 继承。
+
+---
+
 ## [1.6.5] · 2026-04-20 · 广告位 CSS 三连修复 + 相关推荐数量生效 + SOP 文档
 
 经 2 个 prerelease（`rc.01 → rc.02`）+ playwright computed style 实测定位根因最终落地。**生产 3 个广告 CSS 属性完全一致**：`position=relative, top=0, marginBottom=15px, gap=15px`。
