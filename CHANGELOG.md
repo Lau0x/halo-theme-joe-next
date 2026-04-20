@@ -14,6 +14,35 @@
 
 ---
 
+## [1.6.4] · 2026-04-20 · 相关推荐卡片功能终极修复（evening 版）
+
+经 4 个 prerelease 迭代（`rc.01 → rc.04`）最终完全可用。**生产 curl 验证**：3 张卡片全部渲染，封面图 HTTP 200 真实加载，pagination/comment 区域不受影响。
+
+### Fixed
+- **fragment 链式调用 `postFinder.listByCategory(...).items` Thymeleaf 不支持 · 直接吞掉整个文章下半截**（rc.02 事故，rc.03 修复）
+  - 改成**抄上游 `relate.html`** 的 `th:each + th:with override` pattern：先 `th:with=${postFinder.listByCategory(...)}` 赋值整个结果对象，再 `th:each="recPost : ${recPosts.items}"` 访问 `.items`
+  - **不发明新写法，优先 copy 上游 proven code**
+- **cover 封面 fallback 用了占位图自己作 fallback · 导致无 cover 文章永远显示粉圆占位**（rc.03 bug，rc.04 修复）
+  - 改成**抄上游 `post_item.html`** 的 cover 多级 fallback：`spec.cover → home.post_thumbnail → random_img_api?pageid=...`
+  - `th:with` 分步赋值避免嵌套三元再次触发 Thymeleaf parse fail
+
+### 保留
+- v1.6.1+ 的 `th:if="${#bools.isTrue(theme.config.post.enable_post_related_recommend)}"` 用 Thymeleaf 官方 Boolean utility
+- v1.6.2 的 debug marker span + `data-debug-*` 属性（生产用不影响，开发 curl 诊断神器）
+
+### 升级后别忘
+- 主题设置 → 文章页 → 勾选"评论区上方显示相关推荐" → 保存
+- 如从 next.X 升级发现字段灰色：主题先切到任意其他主题 → 切回 Joe3（强制 Halo 重读 settings schema + 重建 ConfigMap）
+
+### 4 天 20+ 版本迭代的复盘
+见本 CHANGELOG 下面 `[1.6.3]` / `[1.6.2]` / `[1.6.1]` 等 entries。
+
+### Known limitations（下版修）
+- fragment 里 page size 目前**硬编码 4**，不用 `post_related_recommend_count` config
+- 想真正用 config 里的数量，`v1.6.5` 继续打磨
+
+---
+
 ## [1.6.3] · 2026-04-20 · 相关推荐 th:if 用 `#strings.toString` 彻底解决类型兼容
 
 ### Fixed
