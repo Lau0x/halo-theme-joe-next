@@ -4,50 +4,46 @@
   width="1600"
   height="480"
   role="img"
-  aria-label="Halo Theme Joe3 Next — Community-maintained Halo blog theme"
+  aria-label="Halo Theme Joe3 · Next — A community-maintained Halo blog theme"
 >
   <!--
     Hero banner · halo-theme-joe-next
-    Design decisions (decisions > decoration):
-      · Dark slate gradient bg · 稳重、技术感，避免"甜腻"配色
-      · Halo 品牌绿 #71c347 作 accent · 跟项目身份对齐
-      · 品牌蓝 #3b82f6 作第二层 radial · 降低单色疲劳
-      · 低透明度斜网格 · subtle 几何感，别喧宾夺主
-      · 大标主字 + 中文副标 + 徽章三层信息密度
-      · 右侧抽象化 window mockup · 暗示"主题" / "UI" 语境，不具象
-      · 全部矢量 · 任意缩放零失真 · 无外部字体依赖 (system-ui fallback)
+    色调对齐 blog.laoda.de 主色 #2A64F6 (品牌蓝, CSS var theme)
+    辅色 #8b5cf6 (紫), #9999ff (浅蓝紫, 暗色模式 theme)
+    状态色保留绿 #22c55e (healthy 状态通用语义, 不冲突)
+    修复 Community Fork 徽章 rect 加宽到 228 · text-anchor middle 防止多语言字符宽度漂移导致溢出
   -->
   <defs>
-    <!-- 主背景渐变：深 slate，左上亮一点点 -->
+    <!-- 主背景: 深 slate 偏蓝, 稳重 -->
     <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
       <stop offset="0%" stop-color="#0f172a" />
       <stop offset="100%" stop-color="#020617" />
     </linearGradient>
 
-    <!-- Halo 绿 radial 光晕（左下 accent） -->
-    <radialGradient id="accentGreen" cx="15%" cy="85%" r="50%">
-      <stop offset="0%" stop-color="#71c347" stop-opacity="0.35" />
-      <stop offset="70%" stop-color="#71c347" stop-opacity="0.03" />
-      <stop offset="100%" stop-color="#71c347" stop-opacity="0" />
+    <!-- 品牌蓝 radial 光晕 (左下) -->
+    <radialGradient id="accentBlue" cx="15%" cy="85%" r="55%">
+      <stop offset="0%" stop-color="#2A64F6" stop-opacity="0.4" />
+      <stop offset="70%" stop-color="#2A64F6" stop-opacity="0.04" />
+      <stop offset="100%" stop-color="#2A64F6" stop-opacity="0" />
     </radialGradient>
 
-    <!-- 品牌蓝 radial 光晕（右上 accent） -->
-    <radialGradient id="accentBlue" cx="82%" cy="15%" r="45%">
-      <stop offset="0%" stop-color="#3b82f6" stop-opacity="0.3" />
-      <stop offset="70%" stop-color="#3b82f6" stop-opacity="0.03" />
-      <stop offset="100%" stop-color="#3b82f6" stop-opacity="0" />
+    <!-- 辅色紫 radial 光晕 (右上) 避免单色疲劳 -->
+    <radialGradient id="accentViolet" cx="82%" cy="15%" r="50%">
+      <stop offset="0%" stop-color="#8b5cf6" stop-opacity="0.32" />
+      <stop offset="70%" stop-color="#8b5cf6" stop-opacity="0.03" />
+      <stop offset="100%" stop-color="#8b5cf6" stop-opacity="0" />
     </radialGradient>
 
-    <!-- 斜网格 pattern · subtle 技术感 -->
+    <!-- 斜网格 pattern -->
     <pattern id="grid" x="0" y="0" width="48" height="48" patternUnits="userSpaceOnUse">
       <path d="M 48 0 L 0 0 0 48" fill="none" stroke="#ffffff" stroke-opacity="0.04" stroke-width="1" />
     </pattern>
 
-    <!-- 标题渐变文字（绿→白） -->
+    <!-- 标题渐变: 白 → 品牌蓝 (呼应博客 CSS var theme) -->
     <linearGradient id="titleGrad" x1="0" y1="0" x2="1" y2="0">
       <stop offset="0%" stop-color="#ffffff" />
-      <stop offset="60%" stop-color="#ffffff" />
-      <stop offset="100%" stop-color="#71c347" />
+      <stop offset="55%" stop-color="#ffffff" />
+      <stop offset="100%" stop-color="#60a5fa" />
     </linearGradient>
 
     <!-- Window mockup glow -->
@@ -63,28 +59,28 @@
   <!-- 背景层叠 -->
   <rect width="1600" height="480" fill="url(#bg)" />
   <rect width="1600" height="480" fill="url(#grid)" />
-  <rect width="1600" height="480" fill="url(#accentGreen)" />
   <rect width="1600" height="480" fill="url(#accentBlue)" />
+  <rect width="1600" height="480" fill="url(#accentViolet)" />
 
   <!-- ========== 左侧文字区 ========== -->
-  <!-- 顶部小徽章：社区接棒 -->
+  <!-- 顶部小徽章: Community Fork · 社区接棒 (已加宽到 228 防溢出) -->
   <g transform="translate(100, 80)">
     <rect
-      x="0" y="0" width="168" height="32"
+      x="0" y="0" width="228" height="32"
       rx="16" ry="16"
-      fill="#71c347" fill-opacity="0.12"
-      stroke="#71c347" stroke-opacity="0.35" stroke-width="1"
+      fill="#2A64F6" fill-opacity="0.13"
+      stroke="#2A64F6" stroke-opacity="0.42" stroke-width="1"
     />
-    <circle cx="16" cy="16" r="3.5" fill="#71c347" />
+    <circle cx="18" cy="16" r="3.5" fill="#60a5fa" />
     <text
-      x="28" y="21"
-      font-family="ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif"
-      font-size="13" font-weight="500" fill="#71c347"
-      letter-spacing="0.3"
+      x="122" y="21"
+      font-family="ui-sans-serif, system-ui, -apple-system, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif"
+      font-size="13" font-weight="500" fill="#93c5fd"
+      letter-spacing="0.3" text-anchor="middle"
     >Community Fork · 社区接棒</text>
   </g>
 
-  <!-- 主标题 · Joe3 · Next -->
+  <!-- 主标题 -->
   <text
     x="100" y="210"
     font-family="ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif"
@@ -92,7 +88,7 @@
     letter-spacing="-2"
   >Theme Joe3 · Next</text>
 
-  <!-- 副标（英文） -->
+  <!-- 副标 (英文) -->
   <text
     x="100" y="255"
     font-family="ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif"
@@ -100,7 +96,7 @@
     letter-spacing="0.2"
   >A community-maintained Halo blog theme, continued with care.</text>
 
-  <!-- 副标（中文） -->
+  <!-- 副标 (中文) -->
   <text
     x="100" y="290"
     font-family="ui-sans-serif, system-ui, -apple-system, 'PingFang SC', 'Microsoft YaHei', sans-serif"
@@ -120,19 +116,19 @@
       <rect x="0" y="0" width="130" height="30" rx="15" fill="#1e293b" stroke="#334155" stroke-width="1" />
       <text x="65" y="20" fill="#e2e8f0" text-anchor="middle">Halo ≥ 2.22.2</text>
     </g>
-    <!-- 积极维护 -->
+    <!-- 积极维护 · 绿色保留 (healthy 状态通用语义, 不跟主色撞) -->
     <g transform="translate(294, 0)">
       <rect x="0" y="0" width="120" height="30" rx="15"
-        fill="#71c347" fill-opacity="0.12"
-        stroke="#71c347" stroke-opacity="0.4" stroke-width="1" />
-      <circle cx="14" cy="15" r="3" fill="#71c347">
+        fill="#22c55e" fill-opacity="0.13"
+        stroke="#22c55e" stroke-opacity="0.42" stroke-width="1" />
+      <circle cx="14" cy="15" r="3" fill="#22c55e">
         <animate attributeName="opacity" values="1;0.35;1" dur="2s" repeatCount="indefinite" />
       </circle>
-      <text x="68" y="20" fill="#71c347" text-anchor="middle">积极维护中</text>
+      <text x="68" y="20" fill="#86efac" text-anchor="middle">积极维护中</text>
     </g>
   </g>
 
-  <!-- ========== 右侧 window mockup（抽象简化）========== -->
+  <!-- ========== 右侧 window mockup ========== -->
   <g transform="translate(1010, 110)" filter="url(#glow)">
     <!-- 主 window card -->
     <rect
@@ -154,12 +150,12 @@
       font-size="10" fill="#64748b" text-anchor="middle"
     >blog.example.com</text>
 
-    <!-- 内容区: 卡片网格示意 -->
+    <!-- 内容区: 卡片网格示意 (accent bar 改品牌蓝) -->
     <g transform="translate(24, 56)">
       <!-- Hero 大卡 -->
       <rect x="0" y="0" width="452" height="80" rx="8"
         fill="#1e293b" stroke="#334155" stroke-width="0.5" />
-      <rect x="14" y="18" width="90" height="8" rx="4" fill="#71c347" fill-opacity="0.7" />
+      <rect x="14" y="18" width="90" height="8" rx="4" fill="#2A64F6" fill-opacity="0.8" />
       <rect x="14" y="36" width="240" height="6" rx="3" fill="#475569" />
       <rect x="14" y="50" width="180" height="6" rx="3" fill="#334155" />
 
