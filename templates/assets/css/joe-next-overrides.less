@@ -170,53 +170,63 @@ html[data-mode='dark'] ins.adsbygoogle {
   position: relative;
 }
 
-/* × 按钮：实色白底 + 深字 + 阴影描边
- * 设计原则：跨任意广告底色都可见。
- * 之前用 rgba(0,0,0,0.4) + opacity 0.55 在深色广告背景（RackNerd 纯黑 /
- * 双ISP 深蓝）上会整个隐身——半透明黑圆 + 半透明白字都融进黑底里了。 */
+/* × 按钮 · 定位与风格
+ * 迭代历史：
+ *   v1 (next.11-16): rgba(0,0,0,0.4) + opacity 0.55 → 深色广告底融合消失
+ *   v2 (next.17):    白底深字 + shadow 强可见 → 太抢眼 + 跟 .icon 广告标签同位重叠
+ *   v3 (next.19):    ↓ 挪左上 + 跟 .icon 同风格半透明 + 双 shadow 保轮廓
+ *
+ * 关键决策：
+ *  - 位置 top-LEFT：".icon" 广告标签在 top:6px/right:6px，× 挪到左上彻底分家
+ *  - 风格向 .icon 对齐：rgba(0,0,0,0.35) + #ebebeb 白字，跟标签成套
+ *  - 双 shadow：outer 白轮廓 + 底阴影，保证深色底（RackNerd 黑、双ISP 蓝）可见
+ *  - hover 才完全显现，不打扰正常阅读 */
 .joe_advert__close {
   position: absolute;
   top: 6px;
-  right: 6px;
+  left: 6px;
   z-index: 2;
-  width: 22px;
-  height: 22px;
+  width: 18px;
+  height: 18px;
   padding: 0;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  background: rgba(255, 255, 255, 0.92);
-  color: #333;
+  background: rgba(0, 0, 0, 0.35);
+  color: #ebebeb;
   border: none;
   border-radius: 50%;
   cursor: pointer;
-  opacity: 0.9;
-  font-size: 15px;
+  opacity: 0.7;
+  font-size: 13px;
   line-height: 1;
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.35);
+  box-shadow:
+    0 0 0 1px rgba(255, 255, 255, 0.25),
+    0 1px 2px rgba(0, 0, 0, 0.3);
   transition:
     opacity 0.2s ease,
-    background 0.2s ease,
-    transform 0.2s ease;
+    background 0.2s ease;
 
   &:hover,
   &:focus {
     opacity: 1;
-    background: #fff;
-    color: #000;
-    transform: scale(1.08);
+    background: rgba(0, 0, 0, 0.7);
+    color: #fff;
     outline: none;
   }
 }
 
-/* 暗色模式 · × 按钮反色（深底 + 白字） */
+/* 暗色模式：反相——浅底深字，保持跟文章卡面风格一致 */
 html[data-mode='dark'] .joe_advert__close {
-  background: rgba(40, 40, 40, 0.9);
+  background: rgba(255, 255, 255, 0.25);
   color: #fff;
-  box-shadow: 0 1px 4px rgba(255, 255, 255, 0.25);
+  box-shadow:
+    0 0 0 1px rgba(255, 255, 255, 0.3),
+    0 1px 2px rgba(0, 0, 0, 0.4);
+
   &:hover,
   &:focus {
-    background: #222;
+    background: rgba(255, 255, 255, 0.55);
     color: #fff;
   }
 }

@@ -14,6 +14,28 @@
 
 ---
 
+## [1.5.1-next.19] · 2026-04-20 · × 关闭按钮位置与风格优化
+
+### Fixed
+- **× 按钮跟"广告"label 重叠** · `joe-next-overrides.less`
+  - 用户反馈：按钮稍微太明显了，而且跟广告标签重叠
+  - 根因：`.joe_advert .icon` 和 `.joe_advert__close` 都是 `top:6px; right:6px`——完全同位，z-index 2>1 理论上 × 盖上但视觉打架
+  - 修复：× 移到 **top-left（左上角）**，跟右上角的"广告"label 彻底分家
+- **× 按钮风格过于抢眼**（next.17 矫枉过正）
+  - next.17 的白圆黑字为了解决"深色广告底隐身"的 bug 改得太突出
+  - 现回归低调：`rgba(0,0,0,0.35)` 背景 + `#ebebeb` 白字 + opacity 0.7，跟"广告"label 同一套视觉风格
+  - 保留**双 shadow**（`0 0 0 1px rgba(255,255,255,.25)` 外白轮廓 + `0 1px 2px rgba(0,0,0,.3)` 底阴影），保证黑底 / 白底 / 蓝底等任意广告底色都能看见按钮轮廓
+  - 尺寸 22×22px → **18×18px**，更小不喧宾夺主
+  - hover 时 opacity 1 + 深化背景才完全显现，不打扰正常阅读
+- **暗色模式反相适配**：浅底白字（`rgba(255,255,255,0.25)`）+ 白轮廓 shadow
+
+### 验证
+- DOM 层 3 个广告早已有 `.joe_advert__close` 按钮（curl `grep -c` = 3）✅
+- CSS 编译后 `left:6px` ✅、`background:rgba(0,0,0,.35)` ✅、双 shadow ✅
+- 模板未动，仅 CSS 改 4 个属性（top→top, right→left, size, bg/color/shadow 风格）
+
+---
+
 ## [1.5.1-next.18] · 2026-04-20 · 回退 next.14 扩展 widget 系统（冗余设计）
 
 ### Removed
