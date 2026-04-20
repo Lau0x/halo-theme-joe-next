@@ -265,20 +265,7 @@
                   >
                 </li>
               </ul>
-              <!-- 相关推荐卡片 · 评论区上方 (refs since v1.5.1-next.20)
-                v1.6.4-rc: 扩展 debug span 跑 5 种 th:if 策略对照实验
-                th:if 用 #bools.isTrue() (Thymeleaf 官方 Boolean utility) -->
-              <span
-                style="display: none"
-                th:attr="data-debug-switch-raw=${theme.config.post.enable_post_related_recommend},
-                         data-debug-switch-class=${theme.config.post.enable_post_related_recommend != null ? theme.config.post.enable_post_related_recommend.getClass().getName() : 'null'},
-                         data-debug-count=${theme.config.post.post_related_recommend_count},
-                         data-debug-if-implicit=${theme.config.post.enable_post_related_recommend ? 'YES' : 'NO'},
-                         data-debug-if-eq-true=${theme.config.post.enable_post_related_recommend == true ? 'YES' : 'NO'},
-                         data-debug-if-eq-str=${theme.config.post.enable_post_related_recommend == 'true' ? 'YES' : 'NO'},
-                         data-debug-if-strtostr=${#strings.toString(theme.config.post.enable_post_related_recommend) == 'true' ? 'YES' : 'NO'},
-                         data-debug-if-bools=${#bools.isTrue(theme.config.post.enable_post_related_recommend) ? 'YES' : 'NO'}"
-              ></span>
+              <!-- 相关推荐卡片 · 评论区上方 (refs since v1.5.1-next.20) -->
               <th:block th:if="${#bools.isTrue(theme.config.post.enable_post_related_recommend)}">
                 <th:block th:replace="~{modules/macro/relate_cards :: relate_cards}" />
               </th:block>

@@ -61,7 +61,12 @@
                     <div class="joe_friend_block">
                       <div class="joe_friend_body">
                         <h2 class="joe_friend_content_title">
-                          <a target="_blank" th:href="${spec.postLink}" th:text="${spec.title}"></a>
+                          <a
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            th:href="${spec.postLink}"
+                            th:text="${spec.title}"
+                          ></a>
                         </h2>
                         <div class="joe_friend_content_description">
                           <th:block th:text="${spec.description}"></th:block>

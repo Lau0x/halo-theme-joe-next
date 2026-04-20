@@ -14,6 +14,51 @@
 
 ---
 
+## [1.6.8.1] · 2026-04-20 · 🐛 v1.6.8 发布后 audit 发现 4 个 bug 的 patch
+
+发完 v1.6.8 立刻做了一次全面审计（SEO / Lighthouse / 代码质量），揪出 2 个严重 bug 和 2 个 hygiene 问题，一把合并进 patch。
+
+### Fixed · 严重 bug
+- **🚨 重复 canonical · 让文章 canonical 自 v1.6.x 首次引入以来从未真正生效**
+  - `templates/modules/link.html:12` 有 `<link rel="canonical" th:href="${site.url}" />`（**每个页面** 都输出站点根 URL 作 canonical）
+  - `templates/modules/layout.html:114` v1.6.x 新加的 `<link rel="canonical" th:href="${pageUrl}" />`（文章页正确指 permalink）
+  - 浏览器/爬虫遇到重复 canonical **保留第一条** → link.html 的 `site.url` 在每页赢 → 文章 canonical 全部被降权到首页
+  - **修复**：删 `link.html:12` 保留 layout.html 的 permalink-aware 版本。**从此文章页 canonical 真正指 article permalink**
+- **🐛 `ttheme` typo · cursor_skin 在 clean_mode 下仍加载**
+  - `templates/modules/link.html:173` 条件写错为 `ttheme.config.other.enable_clean_mode`（多一个 `t`）
+  - Thymeleaf 未定义变量静默降级 → 条件永远被当未定义处理 → clean_mode 开关对 cursor_skin 无效
+  - **修复**：`ttheme` → `theme`
+
+### Added · 安全加固
+- **7 处 `target="_blank"` 补 `rel="noopener noreferrer"`**：
+  - `modules/common/actions.html:87`（console 编辑链接）
+  - `modules/macro/navbar.html:168`（/console 登录后头像）
+  - `modules/macro/relate.html:23,47`（相关推荐列表 category + tag 分支）
+  - `modules/macro/hot_category.html:25,48`（热门分类 + 自定义）
+  - `friends.html:64`（友链文章 postLink）
+  - 防 reverse tabnabbing（打开的新页面用 `window.opener` 篡改原页），顺带给外部链接传递 SEO nofollow 信号（实际本次只加 noopener noreferrer，nofollow 留给后续按 per-link 判断）
+
+### Removed · 代码卫生
+- **删 `templates/post.html` 的 8 属性历史 debug span**（v1.6.4-rc 期调试 `enable_post_related_recommend` switch 的 5 种 th:if 对照实验遗留）
+- 每篇文章页 HTML 减 ~500 字节，去除内部实现细节暴露（不再输出 `java.lang.Boolean` 类名等）
+
+### 审计报告下一步（v1.6.9+ 候选）
+全面审计还找出：
+- **LHF-5 img width/height 补全** · CLS 直接收益 · S 规模（半天）
+- **LHF-6 jQuery 3.5.1 → 3.7.1** · 安全+微性能 · S 规模（半天含 smoke）
+- **MED-1 OG image dimensions** · 社交卡正确率 · M 规模（3-4h）
+- **MED-5 iconfont 合并自托管** · 去第三方 + FCP 提升 · M 规模（3h）
+- **MED-6 tail jQuery 统一 defer** · FCP/LCP 最大杠杆 · **重启 next.5 踩雷方案** · M 规模（1.5-2 天全页面验证）
+
+详见 audit 报告 + `TODO.md` 后续更新。
+
+### 升级
+```
+https://github.com/Lau0x/halo-theme-joe-next/releases/download/v1.6.8.1/theme-Joe3-1.6.8.1.zip
+```
+
+---
+
 ## [1.6.8] · 2026-04-20 · 🔍 JSON-LD 富结果支持 + README 安装指引升级
 
 **经 rc.01 生产 4 路 smoke test + 3 块 JSON-LD 内容验证通过**一把过 stable。

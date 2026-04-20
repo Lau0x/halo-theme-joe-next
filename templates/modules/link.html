@@ -9,7 +9,7 @@
     <!--    <th:block th:replace="~{modules/postMetaVariable :: postSetting}" />-->
     <!--    </th:block>-->
     <link rel="shortcut icon" size="32x32" th:href="${site.favicon}" />
-    <link rel="canonical" th:href="${site.url}" />
+    <!-- canonical 由 layout.html:114 输出 permalink-aware 版本 (文章页指向文章 URL, 非站点根). 原这里的 ${site.url} 在每页输出等于站点根, 会被 Google 优先选用导致文章 canonical 降权. v1.6.8.1 删掉. -->
     <link rel="apple-touch-icon" sizes="180x180" th:href="${site.favicon}" />
     <th:block th:replace="~{modules/key_css :: key_css}" />
     <th:block th:if="${theme.config.theme.enable_loading_bar}">
@@ -170,7 +170,7 @@
       th:href="${theme.config.basic.waline.waline_css}"
     />
     <th:block
-      th:if="${ttheme.config.other.enable_clean_mode != true} and ${theme.config.theme.cursor_skin != 'off'}"
+      th:if="${theme.config.other.enable_clean_mode != true} and ${theme.config.theme.cursor_skin != 'off'}"
     >
       <link
         rel="stylesheet"
