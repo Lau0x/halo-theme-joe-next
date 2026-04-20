@@ -14,6 +14,25 @@
 
 ---
 
+## [1.5.1-next.9] · 2026-04-20 · 文章页扩展侧边栏 widget
+
+### Added
+- **文章页侧边栏支持扩展 widget 数组**（closes [upstream#360](https://github.com/jiewenhuang/halo-theme-joe3.0/issues/360) P1.3 / Q4）
+  - 「**主题 → 侧边栏**」配置下新增 **文章页扩展侧边栏 widget** array repeater
+  - 支持和非文章页完全相同的 10 种 widget 类型：博主信息 / 公告 / 打赏 / 图片 / 音乐播放器 / 最新文章 / 热门文章 / 人生倒计时 / 最新评论 / 标签云 / 分类云 / **侧边栏广告** / 自定义 HTML
+  - **不替换现有硬编码**：博主信息卡 / TOC / 相关文章 / 原有广告位全保留，新 widget **追加在它们下方**
+  - **默认 `value: []`（空）**：老用户升级后视觉完全一致；想扩展再去后台加
+  - 典型用法：在现有硬编码后再插 2-3 个广告位 / 公告 / 自定义 promo / 打赏入口
+
+### 设计说明
+- 不做 "array 替代硬编码" 的大重构，保守选 "硬编码 + 追加 array" 的最小侵入方案，降低回归风险
+- 未来重构空间：aside.html 和 aside_post.html 的 `th:switch` 块可抽成 `~{modules/widgets/asideWidget :: render_item(aside)}` fragment 消除代码重复
+
+### 验证
+- 本地 Halo 2.24 dev theme-sync + curl 文章页：默认空配置下 `.joe_aside__item` 仅有 `author` + `newest`（博主信息 + 相关文章），零视觉变化 ✅
+
+---
+
 ## [1.5.1-next.8] · 2026-04-20 · Google AdSense Auto Ads 集成
 
 ### Added
