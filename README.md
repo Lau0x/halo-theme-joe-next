@@ -18,12 +18,29 @@
 </p>
 
 <p align="center">
-  <img width="100%" src="https://wmimg.com/i/70/2023/08/64d3c41d5bde2.webp" alt="Theme Joe3 Next screenshot"/>
+  <img width="100%" src="docs/screenshots/01-home-light.png" alt="Theme Joe3 Next · 首页预览"/>
 </p>
 
 <p align="center">
-  参考站点：<a href="https://blog.laoda.de">blog.laoda.de</a>（维护者博客，基于此主题）· 原作者预览：<a href="https://www.jiewen.run/?preview-theme=theme-Joe3">jiewen.run</a>
+  参考站点：<a href="https://blog.laoda.de">blog.laoda.de</a>（维护者博客，基于此主题 · 截图即实站）· 原作者预览：<a href="https://www.jiewen.run/?preview-theme=theme-Joe3">jiewen.run</a>
 </p>
+
+<details>
+  <summary align="center"><strong>📸 更多截图：暗色模式 · 文章页</strong>（点击展开）</summary>
+  <br>
+  <table align="center">
+    <tr>
+      <td align="center" width="50%">
+        <img src="docs/screenshots/02-home-dark.png" alt="首页 · 暗色模式"/>
+        <br><sub><strong>暗色模式</strong> · 自动跟随系统或手动切换</sub>
+      </td>
+      <td align="center" width="50%">
+        <img src="docs/screenshots/03-post.png" alt="文章页 · 目录 · 温馨提示 · 侧边栏"/>
+        <br><sub><strong>文章页</strong> · 自动目录 · 温馨提示 · 侧边栏广告</sub>
+      </td>
+    </tr>
+  </table>
+</details>
 
 ---
 
