@@ -14,6 +14,53 @@
 
 ---
 
+## [1.6.9] · 2026-04-21 · ⚡ 性能 + SEO + 安全 打包（option A）
+
+**经 rc.01 → rc.02 迭代后 promote**。5 路生产 smoke test 全过（home / article / links / photos / categories），五项改动闭环。
+
+### Added · 性能
+- **LHF-5 img 16:9 numeric dim · 11 处 `<img>`** —— `width="100%" height="100%"` → `width="1600" height="900"` / `400×120` / `400×150` 按实际场景
+  - 主卡片（3 处）：post_item / banner_item / relate_cards (×2)
+  - 侧边卡（5 处）：tags / categories / blogger / hot_category (×2)
+  - 侧栏横条（2 处）：navbar slideout + TOC bg
+  - 轮播（3 处）：banner_item_data (post/custom/hot) 1600×900
+  - **保留**：`ads_post/ads_aside` 因用户自定义广告尺寸多变（970×250 / 728×90 等），硬编码反伤 CLS 预测
+  - **收益**：Lighthouse Core Web Vitals CLS 直接提升
+- **LHF-6 jQuery 3.5.1 → 3.7.1** —— 修 CVE + 微性能；API 100% 向后兼容。**严禁碰 jQuery defer**（next.5 踩过雷）
+- **MED-5 alicdn iconfont 本地化** —— 3 个 CSS 合并为单一 `assets/lib/iconfont-local/iconfont.min.css` + 3 个 woff2（joe-font/jiewen/third-font ~55KB on-disk） + `font-display:swap` 防 FOIT
+  - **去第三方依赖** · alicdn CDN 下线风险排除
+  - **3 HTTP 请求 → 1 请求**
+
+### Added · SEO
+- **MED-1 OG image 富化** —— `og:image:alt`（文章标题）+ `og:image:type`（按 URL 后缀推断 jpeg/png/webp/gif）+ `twitter:image:alt`
+
+### Fixed · 安全
+- **Halo 动态菜单 `target="_blank"` 条件加 `rel="noopener noreferrer"`** —— `menu-item.html` + `navbar.html` 共 11 处 th:target · 修 v1.6.8.1 当时只扫静态 target 漏掉的动态菜单 28 个链接
+
+### 已知非-theme 问题（用户侧，主题无法修）
+- **`theme.config.custom.iconfont`** · 用户自行配置的 alicdn CSS (`font_4441770_2j86yqmszow.css`) 仍从第三方加载 —— 主题只负责渲染 settings 字段。需用户决定在 Halo Console 清空或改本地路径
+- **博主自撰 HTML 内容中的 `<a target="_blank">` 不加 rel** —— 主题无权改用户文章/widget 里的 HTML
+
+### 升级直链
+```
+https://github.com/Lau0x/halo-theme-joe-next/releases/download/v1.6.9/theme-Joe3-1.6.9.zip
+```
+
+### Sprint 对比
+| Sprint | 版本数 | 亮点 |
+|---|---|---|
+| v1.6.6 | 10 rc + 1 stable | 相关推荐视觉 + 数量对齐（Thymeleaf 深坑 10 条 SOP 教训）|
+| v1.6.7 | 1 rc + 1 stable | 主题瘦身 Pass 1 · 288 KB |
+| v1.6.8 | 1 rc + 1 stable | JSON-LD 富结果 |
+| v1.6.8.1 | 1 patch | Audit 揪 4 个 bug · canonical 重复等 |
+| v1.6.9 | 2 rc + 1 stable | 性能 + SEO + 安全 打包 5 项 |
+
+### 下一 sprint 候选（v1.6.10）
+- **MED-6** · tail.html jQuery 全量 defer（next.5 踩雷方案重启·FCP/LCP 最大杠杆）
+- **MED-2 / MED-3 / MED-4 / MED-7** · 字体策略 / 条件加载 / 关键 CSS inline / aside fragment 抽取
+
+---
+
 ## [1.6.9-rc.02] · 2026-04-21 · 🧼 补全 widget img numeric dim（prerelease）
 
 rc.01 验证发现 LHF-5 scope 不够：3 个主卡片模板已改，但 8+ widget 模板仍有 `width="100%"` 未修。rc.02 补完。
