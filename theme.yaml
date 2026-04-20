@@ -33,7 +33,7 @@ spec:
       url: 'https://creativecommons.org/licenses/by-nc-sa/4.0/'
   settingName: 'theme-Joe-setting'
   configMapName: 'theme-Joe-configMap'
-  version: '1.5.1-next.12'
+  version: '1.5.1-next.13'
   requires: '>=2.22.2'
   customTemplates:
     page:
