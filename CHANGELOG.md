@@ -14,6 +14,35 @@
 
 ---
 
+## [1.6.11-rc.04] · 2026-04-21 · 🐛 rc.03 grid 列宽失衡 bug 修复（prerelease）
+
+rc.03 实装后用户截图实测：**两列 grid 布局左右宽度悬殊** — 左列被挤成 ~100px 竖条（文字一个字一个字竖排），右列约 800px 正常宽度。设计语言本身 OK，**布局 bug 致命**。
+
+### 根因 · CSS Grid `1fr` + `min-content` 陷阱
+CSS Grid `grid-template-columns: repeat(2, 1fr)` 的 `1fr` 等价于 `minmax(auto, 1fr)`。其中 `auto` 的最小值 = grid item 的 **min-content 宽度**（内容不可切断的最小宽度）。
+
+**踩坑路径：**
+- moments 用户代码块里有超长 URL `https://www.hncloud.com/activity/activity_2025daily.html?p=laodar`
+- `<pre>` 元素默认 `white-space: pre`（不换行）→ 代码块 min-content = **单行最长 URL 宽度**（≈ 700px）
+- 右 cell 的 `1fr` 被撑到 700px+ → 挤压左 cell 到剩余空间（~100px） → **完全违背等宽意图**
+
+### 修复方案（经典解法）
+```css
+grid-template-columns: repeat(2, minmax(0, 1fr));  /* ← 0 而非 auto */
+.joe_journal__item   { min-width: 0; }            /* ← item 兜底 */
+.joe_journal_block   { min-width: 0; max-width: 100%; }
+.joe_journal_body    { box-sizing: border-box; min-width: 0; overflow: hidden; }
+.content-wrp         { overflow-wrap: anywhere; word-break: break-word; }
+.content-wrp pre     { max-width: 100%; overflow-x: auto; }  /* 代码块横向滚动不撑父 */
+```
+
+### 沉淀
+- ✅ 新经验已入 feedback: **以后 grid 两列/多列布局，一律 `minmax(0, 1fr)`**，不要写裸 `1fr`
+- ✅ grid item 默认 `min-width: 0` 兜底，防止内容 min-content 撑开
+- ✅ 容器内可能有代码块 / 长 URL / 不换行内容时，父元素必须 `overflow: hidden` + 子代码块 `overflow-x: auto`
+
+---
+
 ## [1.6.11-rc.03] · 2026-04-21 · 🎨 /moments Level 3 深度改造 · 换设计语言（prerelease）
 
 **rc.01 L2 + rc.02 L2 收紧两次用户都不满意** → timeline + pill + 锚点 这套概念从根上跑偏。rc.03 **换设计语言**：砍掉时间轴全概念，上现代 IG/Threads 风格 "卡片瀑布流 + 玻璃拟态"。
