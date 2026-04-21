@@ -14,6 +14,36 @@
 
 ---
 
+## [1.6.11-rc.03] · 2026-04-21 · 🎨 /moments Level 3 深度改造 · 换设计语言（prerelease）
+
+**rc.01 L2 + rc.02 L2 收紧两次用户都不满意** → timeline + pill + 锚点 这套概念从根上跑偏。rc.03 **换设计语言**：砍掉时间轴全概念，上现代 IG/Threads 风格 "卡片瀑布流 + 玻璃拟态"。
+
+### 设计语言换血
+| 维度 | rc.01/02 (timeline 路线) | rc.03 (瀑布流路线) |
+|---|---|---|
+| 主视觉结构 | 左侧时间轴竖线 + item 垂直排 | 两列 CSS Grid 瀑布流 (桌面) / 单列 (移动) |
+| 日期位置 | 时间轴上 pill badge (左侧凸出) | 卡片顶部 meta 灰字 (不抢 focus) |
+| 锚点设计 | 品牌蓝圆 / pill / 边框 三处叠加 | 彻底不做锚点, 卡片自身是视觉单元 |
+| 卡片圆角 | 12px + 左侧 indicator | 16px 软圆角 + 双层轻阴影 |
+| hover 反馈 | 边框变蓝 / pill 翻白 | translateY(-4px) + 阴影加深品牌蓝晕 |
+| 互动感 | 无 | ❤️ hover 变红 + pulse 动画 · 评论 scale |
+| Dark mode | 品牌色半透明覆盖 | backdrop-filter blur 玻璃拟态 + 磨砂感 |
+| blogger info | 顶部渐变条 + avatar 光晕 | 54px 大头像 + 16px 粗体名 + 顶部渐变 |
+
+### Level 3 新增特性
+- **CSS Grid 两列瀑布流**（桌面 ≥1024px · 移动端单列）· 纯 CSS 零 JS 依赖
+- **❤️ pulse 动画** · 点赞图标 hover 触发 `scale(1.3→0.95→1.15→1)` 的 pulse keyframe · 0.6s cubic-bezier
+- **💬 评论 hover** · scale(1.2) + 品牌色
+- **🖼️ 卡片内图片** · border-radius 12px + hover `scale(1.02)` + 轻阴影
+- **💠 Dark mode 玻璃拟态** · `backdrop-filter: saturate(140%) blur(10px)` · 卡片半透明 `rgba(30,32,40,0.6)`
+
+### 完整回退策略
+如果 Level 3 仍不满意：
+- 一条 `git revert` 这个 commit 就回到 v1.6.10（无任何 moments 视觉改动）
+- 或者特定元素不喜欢，告诉具体哪个（阴影 / 瀑布流 / pulse / 玻璃拟态）单独改/删
+
+---
+
 ## [1.6.11-rc.02] · 2026-04-21 · 🎨 /moments 视觉收紧（prerelease）
 
 rc.01 实测用户反馈：

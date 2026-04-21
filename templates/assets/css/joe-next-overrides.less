@@ -440,118 +440,197 @@ html[data-mode='dark'] .joe_related {
 }
 
 /* ============================================================
- * v1.6.11-rc.02 · moments / journals 页 Level 2 收紧版
- * rc.01 的蓝色锚点圆跟竖线不对齐 + 整体品牌色打击面过大被用户吐槽.
- * rc.02 克制化改造:
- *   删: 蓝色锚点圆 (多余装饰 · 和 pill + 卡片 border 重复锚点)
- *   删: pill hover 翻蓝底白字 (对比过强)
- *   改: 卡片 hover 边框不再整体变蓝, 改左侧 3px 蓝色 indicator (更克制的 timeline 暗示)
- *   保: 圆角统一 12px / translateY 动效 / 轻阴影 / blogger card 顶部渐变 / 竖线渐变 / pill 浅底蓝字
+ * v1.6.11-rc.03 · moments / journals 页 Level 3 深度改造
+ * rc.01 L2 原设计 + rc.02 收紧都被用户否掉, 证明 timeline+pill+锚点 概念跑偏.
+ * rc.03 换设计语言: 现代 IG/Threads 风 "卡片瀑布流 + 玻璃拟态"
+ *
+ * 设计理念:
+ *   1. 砍 timeline 竖线/锚点/pill 全部, 不再做"时间轴"的视觉暗示
+ *   2. 卡片 = 主视觉单元, 圆角 16px 软阴影, 桌面两列瀑布流平铺
+ *   3. 日期淡化为卡片 header 小 meta, 不抢 focus
+ *   4. 点赞 ❤️ hover pulse 动画, 互动感
+ *   5. 图片内容加圆角 + hover scale, 有质感
+ *   6. Dark mode 玻璃拟态 backdrop-filter 轻度磨砂
+ *
+ * 实施细节:
+ *   - CSS Grid 两列 + gap 16px (桌面 ≥ 1024px), 移动端单列
+ *   - 卡片彻底去掉 position:absolute 的 timeline 定位, 改静态布局
+ *   - 保留 rc.02 圆角统一 + blogger info 装饰条 (那部分设计好的)
  * ============================================================ */
 
-.joe_journal {
-  /* ---- 时间轴竖线 · 虚线 → 品牌色渐变实线 ---- */
-  &__item {
-    padding: 0 0 26px 40px;
+/* ---- moments 列表: 两列瀑布流 (桌面) / 单列 (移动) ---- */
+.joe_journals__list {
+  padding: 16px 0 20px;
+}
 
-    &:before {
-      width: 2px;
-      border-left: none;
-      background: linear-gradient(
-        to bottom,
-        var(--theme) 0%,
-        rgba(42, 100, 246, 0.28) 70%,
-        transparent 100%
-      );
-      opacity: 0.45;
-    }
-
-    &:hover .joe_journal_block {
-      border-color: var(--classC);
-      box-shadow: 0 8px 20px -8px rgba(42, 100, 246, 0.18);
-      transform: translateY(-2px);
-    }
-
-    /* hover 时卡片左侧加 3px 品牌蓝 indicator (时间轴暗示, 替代 rc.01 全边框变蓝) */
-    &:hover .joe_journal_block::before {
-      opacity: 1;
-    }
-  }
-
-  /* ---- 日期 pill badge · 浅蓝底蓝字 · hover 不翻白 ---- */
-  &_date {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    height: auto;
-    line-height: 1.2;
-    padding: 6px 12px;
-    left: -30px;
-    font-size: 12px;
-    font-weight: 500;
-    color: var(--theme);
-    background: rgba(42, 100, 246, 0.08);
-    border: 1px solid rgba(42, 100, 246, 0.2);
-    border-radius: 20px;
-    letter-spacing: 0.3px;
-    font-variant-numeric: tabular-nums;
-    transition: background 0.2s ease;
-
-    i {
-      margin-right: 0;
-      font-size: 12px;
-      color: var(--theme);
-    }
-
-    em {
-      font-style: normal;
-    }
-  }
-
-  /* ---- 卡片: 统一 12px 圆角 · 左侧 3px 蓝 indicator (默认淡, hover 变显眼) ---- */
-  &_block {
-    position: relative;
-    margin-top: 12px;
-    padding: 14px;
-    border-radius: 12px;
-    border-bottom: 1px solid var(--classC);
-    overflow: hidden;
-    transition:
-      transform 0.28s cubic-bezier(0.4, 0, 0.2, 1),
-      box-shadow 0.28s cubic-bezier(0.4, 0, 0.2, 1);
-
-    /* 左侧 3px 蓝色 timeline indicator 默认浅, hover 变亮 (用伪元素, 不动边框) */
-    &::before {
-      content: "";
-      position: absolute;
-      top: 0;
-      left: 0;
-      bottom: 0;
-      width: 3px;
-      background: var(--theme);
-      opacity: 0.25;
-      transition: opacity 0.25s ease;
-    }
-  }
-
-  &_body {
-    padding: 12px 14px;
-    border-radius: 10px;
-    line-height: 1.7;
-  }
-
-  &_footer {
-    padding-top: 2px;
+@media (min-width: 1024px) {
+  .joe_journals__list {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 16px;
+    align-items: start;
+    padding: 16px 0 20px;
   }
 }
 
-/* ---- blogger info card · 顶部品牌色装饰条 ---- */
-.page-journals .joe_detail__count {
+/* ---- moment item: 砍 timeline 定位, 改纯卡片 ---- */
+.joe_journal__item {
   position: relative;
-  padding: 18px 20px;
+  padding: 0;
+  margin: 0;
+
+  /* 删 rc.01/02 的 timeline 竖线 ::before, 以及锚点圆 ::after */
+  &::before,
+  &::after {
+    display: none !important;
+  }
+
+  &:hover .joe_journal_block {
+    transform: translateY(-4px);
+    box-shadow:
+      0 1px 3px rgba(0, 0, 0, 0.05),
+      0 20px 36px -12px rgba(42, 100, 246, 0.18);
+    border-color: rgba(42, 100, 246, 0.3);
+  }
+}
+
+/* 移动端间距 (桌面由 grid gap 控制) */
+@media (max-width: 1023px) {
+  .joe_journal__item {
+    margin-bottom: 14px;
+  }
+}
+
+/* ---- 日期: 从 "时间轴 pill" 变 "卡片 header 小 meta" ---- */
+.joe_journal_date {
+  position: static;
+  left: auto;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 12px 16px 6px;
+  height: auto;
+  line-height: 1;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--minor);
+  background: transparent;
+  border: none;
+  letter-spacing: 0.3px;
+  font-variant-numeric: tabular-nums;
+  margin: 0;
+  border-radius: 0;
+
+  i {
+    margin-right: 0;
+    font-size: 13px;
+    color: var(--theme);
+    opacity: 0.7;
+  }
+
+  em {
+    font-style: normal;
+  }
+}
+
+/* ---- 卡片: 圆角 16px + 软阴影 + 玻璃拟态 ---- */
+.joe_journal_block {
+  position: relative;
+  margin-top: 0;
+  padding: 0 0 12px 0;
+  border-radius: 16px;
   background: var(--background);
   border: 1px solid var(--classC);
-  border-radius: 14px;
+  box-shadow:
+    0 1px 2px rgba(0, 0, 0, 0.04),
+    0 4px 16px rgba(0, 0, 0, 0.04);
+  overflow: hidden;
+  transition:
+    transform 0.32s cubic-bezier(0.4, 0, 0.2, 1),
+    box-shadow 0.32s cubic-bezier(0.4, 0, 0.2, 1),
+    border-color 0.2s ease;
+
+  /* 删掉 rc.02 的左侧 3px indicator */
+  &::before {
+    display: none !important;
+  }
+}
+
+.joe_journal_body {
+  padding: 4px 16px 12px;
+  background: transparent;
+  border-radius: 0;
+  line-height: 1.75;
+  font-size: 14.5px;
+
+  /* 卡片内图片: 圆角 + hover scale + 轻阴影 */
+  img {
+    border-radius: 12px;
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+    transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    max-width: 100%;
+
+    &:hover {
+      transform: scale(1.02);
+    }
+  }
+}
+
+/* ---- footer: like / comment 区 · ❤️ pulse 动画 ---- */
+.joe_journal_footer {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 8px 16px 12px;
+  border-top: 1px dashed var(--classC);
+  margin-top: 4px;
+}
+
+.joe_journal_operate_item {
+  &.like i,
+  &.comment i {
+    transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    will-change: transform;
+  }
+
+  &.like:hover i {
+    animation: joe_heart_pulse 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+    color: #ff6b6b;
+  }
+
+  &.comment:hover i {
+    transform: scale(1.2);
+    color: var(--theme);
+  }
+}
+
+@keyframes joe_heart_pulse {
+  0% {
+    transform: scale(1);
+  }
+  25% {
+    transform: scale(1.3);
+  }
+  50% {
+    transform: scale(0.95);
+  }
+  75% {
+    transform: scale(1.15);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+/* ---- blogger info card: 大头像 + 大字 + 顶部品牌渐变 ---- */
+.page-journals .joe_detail__count {
+  position: relative;
+  padding: 24px 22px;
+  background: var(--background);
+  border: 1px solid var(--classC);
+  border-radius: 16px;
+  margin-bottom: 24px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
   overflow: hidden;
 
   &::before {
@@ -565,55 +644,69 @@ html[data-mode='dark'] .joe_related {
   }
 
   &-information {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+
     .avatar {
+      width: 54px !important;
+      height: 54px !important;
       box-shadow:
-        0 0 0 2px var(--background),
-        0 0 0 4px rgba(42, 100, 246, 0.2);
-      transition: transform 0.28s cubic-bezier(0.4, 0, 0.2, 1);
+        0 0 0 3px var(--background),
+        0 0 0 5px rgba(42, 100, 246, 0.2);
+      transition: transform 0.32s cubic-bezier(0.4, 0, 0.2, 1);
     }
 
     &:hover .avatar {
-      transform: scale(1.05);
+      transform: scale(1.06);
+    }
+
+    .meta .author .link {
+      font-size: 16px;
+      font-weight: 600;
+      letter-spacing: 0.2px;
+    }
+
+    .meta .item .text {
+      font-size: 13px;
+      color: var(--minor);
+      line-height: 1.6;
     }
   }
 }
 
-/* ---- Dark mode 独立配色 ---- */
-html[data-mode="dark"] .joe_journal {
-  &__item {
-    &:before {
-      background: linear-gradient(
-        to bottom,
-        var(--theme) 0%,
-        rgba(153, 153, 255, 0.25) 70%,
-        transparent 100%
-      );
-    }
+/* ---- Dark mode · 玻璃拟态 / 精细配色 ---- */
+html[data-mode="dark"] .joe_journal_block {
+  background: rgba(30, 32, 40, 0.6);
+  border-color: var(--classM, #2d2e37);
+  backdrop-filter: saturate(140%) blur(10px);
+  -webkit-backdrop-filter: saturate(140%) blur(10px);
+  box-shadow:
+    0 1px 2px rgba(0, 0, 0, 0.3),
+    0 4px 18px rgba(0, 0, 0, 0.2);
+}
 
-    &:hover .joe_journal_block {
-      border-color: var(--classM, #2d2e37);
-      box-shadow: 0 8px 22px -8px rgba(153, 153, 255, 0.22);
-    }
-  }
+html[data-mode="dark"] .joe_journal__item:hover .joe_journal_block {
+  border-color: rgba(153, 153, 255, 0.4);
+  box-shadow:
+    0 1px 3px rgba(0, 0, 0, 0.4),
+    0 20px 40px -12px rgba(153, 153, 255, 0.25);
+}
 
-  &_date {
+html[data-mode="dark"] .joe_journal_date {
+  color: var(--minor, #8b949e);
+
+  i {
     color: var(--theme, #9999ff);
-    background: rgba(153, 153, 255, 0.1);
-    border-color: rgba(153, 153, 255, 0.22);
-
-    i {
-      color: var(--theme, #9999ff);
-    }
   }
+}
 
-  &_block {
-    border-color: var(--classM, #2d2e37);
+html[data-mode="dark"] .joe_journal_footer {
+  border-top-color: var(--classM, #2d2e37);
+}
 
-    &::before {
-      background: var(--theme, #9999ff);
-      opacity: 0.3;
-    }
-  }
+html[data-mode="dark"] .joe_journal_operate_item.like:hover i {
+  color: #ff6b6b;
 }
 
 html[data-mode="dark"] .page-journals .joe_detail__count {
@@ -622,5 +715,11 @@ html[data-mode="dark"] .page-journals .joe_detail__count {
 
   &::before {
     background: linear-gradient(90deg, var(--theme, #9999ff) 0%, #8695e6 50%, #818cf8 100%);
+  }
+
+  &-information .avatar {
+    box-shadow:
+      0 0 0 3px var(--sub-background),
+      0 0 0 5px rgba(153, 153, 255, 0.25);
   }
 }
