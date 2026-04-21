@@ -14,6 +14,35 @@
 
 ---
 
+## [1.6.11.3] · 2026-04-21 · 🧹 v1.6.11.2 清理 · 去 debug marker + 风格对齐
+
+### 清理项（非功能变更，仅代码卫生）
+1. **🗑️ 删除临时 debug marker HTML 注释**（v1.6.11.2 引入的 RCA 调试工具，根因已锁死，清退）
+2. **🎨 `.toString()` → `.name` 风格统一**
+   - v1.6.11.2 用 `moment.spec.visible.toString() == 'PUBLIC'`
+   - v1.6.11.3 改用 `moment.spec.visible.name == 'PUBLIC'`
+   - 和原主题 `momentItem.type.name == 'PHOTO'`（moment.html:106）一致的 SpringEL enum property 访问风格
+   - 两者等价（enum 的 `.name` 和 `.toString()` 默认都返回 name 字符串），但 `.name` 是 Halo 原主题模板的既定约定
+3. **📝 CHANGELOG + 注释补充**说明历史教训
+
+### 不变项
+- filter 逻辑**行为完全一致**：PUBLIC moment 显示 / PRIVATE + INTERNAL moment 过滤
+- 已测视觉：v1.6.11.2 Playwright 匿名实测 7 条 PUBLIC 正常 + 0 私有关键词，v1.6.11.3 行为等价
+- 生产无感知升级（hotfix 系列最后一版）
+
+### 迁移建议
+- v1.6.11.2 用户：**可升可不升**，核心安全修复已在 .2 版生效
+- v1.6.11.1 / v1.6.11 用户：**立即升** v1.6.11.3（跳过 .1 .2 直接最终版）
+- v1.6.10 用户：**立即升** v1.6.11.3（v1.6.10 没这个安全补丁）
+
+### 沉淀
+hotfix 系列 .1 .2 .3 走完 → 后续重要规则：
+- **生产安全 hotfix 第一次提交**应直接用 `.name` 或 `.toString()`，不裸 `==`（避免 .1 → .2 连环炸）
+- Debug marker 在根因锁死后**下个版本立刻清理**（不能长期留在生产代码里）
+- 任何字段 filter 发布前先跑 debug marker 验证实际类型，再提交生产
+
+---
+
 ## [1.6.11.2] · 2026-04-21 · 🚨 v1.6.11.1 的修复的修复 · Thymeleaf enum 陷阱
 
 ### 事故

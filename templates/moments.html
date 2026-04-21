@@ -65,30 +65,19 @@
                 class="joe_journals__list hidden"
                 th:classappend="${theme.config.journals.enable_journal_effect ? 'effects':''}"
               >
-                <!--
-                  v1.6.11.2 隐私过滤 RCA 追踪 (临时 debug marker):
-                  v1.6.11.1 用 `moment.spec.visible == 'PUBLIC'` 字符串直接比较, 导致所有
-                  moment 被过滤 (列表全空). 根因: Halo Moment.Spec.visible 在 Java 层是
-                  Visibility enum 对象, 不是 String. enum == String 永远 false.
-                  修复: .toString() 转字符串后比较 + null 兜底.
-                -->
-                <!--
-                DEBUG v1.6.11.2 · 首条 moment visible 字段实际类型 + 值:
-                raw=[[${moments.items[0]?.spec?.visible}]]
-                class=[[${moments.items[0]?.spec?.visible?.getClass()?.getName()}]]
-                total=[[${moments.total}]]
-                -->
                 <th:block
                   th:each="moment,iteration : ${moments.items}"
                   th:with="content=${moment.spec.content}"
                 >
                   <!--
-                    v1.6.11.1 安全补丁 · 隐私泄露 hotfix:
-                    Halo moment 的 spec.visible 枚举 = PUBLIC / INTERNAL / PRIVATE.
-                    白名单 filter: 只渲染 PUBLIC 的. 即便上游 finder 漏过滤, 模板层兜底.
+                    v1.6.11.1+ 安全补丁 · 隐私泄露 hotfix:
+                    Halo Moment.Spec.visible 是 MomentVisible enum (PUBLIC/INTERNAL/PRIVATE).
+                    白名单 filter: 只渲染 PUBLIC 的, 即便上游 finder 漏过滤, 模板层兜底.
+                    注: 用 .name (SpringEL enum property) 跟原主题 momentItem.type.name 同风格,
+                        不用 .toString() 也不用裸 == — 见 feedback_thymeleaf_gotchas.md 根因 2b.
                   -->
                   <li
-                    th:if="${moment.spec.visible != null and moment.spec.visible.toString() == 'PUBLIC'}"
+                    th:if="${moment.spec.visible != null and moment.spec.visible.name == 'PUBLIC'}"
                     class="joe_journal__item animated wow"
                     th:data-wow-delay="'0.'+${iteration.index}+'s'"
                     th:data-cid="${moment.metadata.name}"
