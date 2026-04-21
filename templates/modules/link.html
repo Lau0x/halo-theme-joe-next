@@ -152,10 +152,15 @@
       as="style"
       th:href="${source_link+'/assets/css/min/responsive.min.css?v='+theme.spec.version}"
     />
-    <link
-      rel="stylesheet"
-      th:href="${source_link+'/assets/lib/fancybox/jquery.fancybox.min.css'}"
-    />
+    <!-- MED-3 v1.6.10: fancybox CSS 仅在可能使用 lightbox 的页面加载 (配合 tail.html 的 fancybox JS 条件) -->
+    <th:block
+      th:if="${htmlType == 'post' or htmlType == 'photos' or htmlType == 'journals' or htmlType == 'sheet'}"
+    >
+      <link
+        rel="stylesheet"
+        th:href="${source_link+'/assets/lib/fancybox/jquery.fancybox.min.css'}"
+      />
+    </th:block>
     <link
       th:if="${theme.config.basic.comment_option == 'waline'} and ${#strings.trim(theme.config.basic.waline.waline_serverURL) !=''}"
       rel="stylesheet"

@@ -5,12 +5,23 @@
     th:with="source_link=${(#strings.trim(theme.config.basic.source_link) !='' && theme.config.basic.enable_source_link)? theme.config.basic.source_link : '/themes/theme-Joe3'}"
   >
     <!--    ===== 引入脚本 start ===== -->
-    <!--    <th:block th:if="${htmlType == 'index' && theme.config.home.enable_index_list_effect == true} or ${htmlType == 'journals' && theme.config.journals.enable_journal_effect == true} or ${htmlType == 'photos' && theme.config.photos.enable_photos_effect == true}">-->
-    <script th:src="${source_link+'/assets/lib/wowjs/wow.min.js'}"></script>
-    <!--    </th:block>-->
+    <!--
+      MED-3 v1.6.10: 按页面类型条件加载 JS lib, 减少不需要该 lib 的页面下载成本.
+      wowjs: 只在 index/journals/friends/photos (滚动淡入动画页) 加载 · ~17KB
+      fancybox: 只在 post/photos/journals/sheet (有图片 lightbox 可能) 加载 · ~84KB
+      clipboard: 只在 post/journals/sheet (代码块复制 + 文章分享链接复制) 加载 · ~11KB
+      qmsg / lazysizes 全局保留: 任何页面都可能用 toast 消息 + lazy image 加载.
+    -->
+    <th:block
+      th:if="${htmlType == 'index' or htmlType == 'journals' or htmlType == 'friends' or htmlType == 'photos'}"
+    >
+      <script th:src="${source_link+'/assets/lib/wowjs/wow.min.js'}"></script>
+    </th:block>
     <script th:src="${source_link+'/assets/lib/lazysizes/lazysizes.min.js'}"></script>
     <script th:src="${source_link+'/assets/lib/qmsg/qmsg.js'}"></script>
-    <script th:src="${source_link+'/assets/lib/clipboard/clipboard.min.js'}"></script>
+    <th:block th:if="${htmlType == 'post' or htmlType == 'journals' or htmlType == 'sheet'}">
+      <script th:src="${source_link+'/assets/lib/clipboard/clipboard.min.js'}"></script>
+    </th:block>
     <th:block th:if="${theme.config.aside.show_newreply == true} or ${htmlType == 'sheet'}">
       <script th:src="${source_link+'/assets/lib/j-marked/marked.min.js'}"></script>
     </th:block>
@@ -27,7 +38,12 @@
     >
       <script th:src="${source_link+'/assets/lib/vue@2.6.10/vue.min.js'}"></script>
     </th:block>
-    <script th:src="${source_link+'/assets/lib/fancybox/jquery.fancybox.min.js'}"></script>
+    <!-- MED-3 v1.6.10: fancybox 仅在可能有图片 lightbox 的页面加载 -->
+    <th:block
+      th:if="${htmlType == 'post' or htmlType == 'photos' or htmlType == 'journals' or htmlType == 'sheet'}"
+    >
+      <script th:src="${source_link+'/assets/lib/fancybox/jquery.fancybox.min.js'}"></script>
+    </th:block>
     <th:block
       th:each="aside : ${theme.config.aside.enable_outpost_aside}"
       th:if="${aside.template_aside == 'enable_music_player'} or ${htmlType =='post'}"

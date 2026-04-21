@@ -14,6 +14,57 @@
 
 ---
 
+## [1.6.10-rc.01] · 2026-04-21 · ⚡ MED-3 按页面条件加载 lib · MED-2 已合规不改（prerelease）
+
+### 🚫 MED-2 取消 · 字体策略已合规
+审计发现：
+- **LXGW CDN CSS** 本身已带 `font-display: swap`（jsdelivr 默认）
+- **本地化 iconfont** v1.6.9 已加 `font-display: swap`
+- **"Joe Font" 自定义字体** key_css.html:34 已加 `font-display: swap`
+- **用户 Halo 配置 LXGW 开关为 off** · 博客当前根本没在用 LXGW
+
+→ 原审计基于未验证的建议，实际主题已合规。**不浪费你的 upgrade slot 重做同样的事**。
+
+### Added · MED-3 按页面条件加载 JS / CSS lib
+减少非对应页面下载不需要的 lib，优化 FCP + 带宽。
+
+| lib | 大小 | 改后仅在哪些页面加载 |
+|---|---|---|
+| `wowjs/wow.min.js` | ~17 KB | `index` / `journals` / `friends` / `photos`（有滚动淡入动画的页面）|
+| `fancybox/jquery.fancybox.min.js` + `.css` | ~100 KB | `post` / `photos` / `journals` / `sheet`（可能有图片 lightbox 的页面）|
+| `clipboard/clipboard.min.js` | ~11 KB | `post` / `journals` / `sheet`（有代码块复制或文章分享链接的页面）|
+
+### 保留全局加载（符合实际使用）
+- `lazysizes.min.js` —— 所有页面都有图片需要 lazy load
+- `qmsg/qmsg.js` —— 任何页面都可能用 toast 消息（评论、复制成功提示等）
+- `utils.min.js` / `custom.min.js` / `common.min.js` —— 主题核心工具
+- `ad-close.min.js` —— 全站广告位 × 按钮
+
+### 预期收益（非加载页面的 HTTP 请求减少）
+- **首页** 不再下载 fancybox (~100KB) + clipboard (~11KB) = **节省 ~111 KB**
+- **友链页** 不再下载 fancybox + clipboard = **节省 ~111 KB**
+- **归档页** 同上 = **节省 ~111 KB**
+- **文章页** 不再下载 wowjs (~17KB) = **节省 17 KB**
+- **图库页** 不再下载 clipboard (~11KB) = **节省 11 KB**
+
+### 验证清单（rc.01 → stable 前必跑）
+**8 类页面全跑 + JS console 无 undefined 报错**：
+- 首页 → 滚动动画还在 / 图片 lazyload 正常 / 无 fancybox/clipboard 报错
+- 文章页 → fancybox 点图放大 / 代码块复制 / TOC / 相关推荐 正常
+- 归档页 → 无 fancybox/clipboard 相关报错
+- 留言板（sheet） → fancybox + clipboard 在（便利贴粘贴）
+- 图库（photos） → fancybox 在（点照片放大）+ isotope 布局
+- 友链（friends） → wowjs 动画在
+- 瞬时（journals） → 三件套都在
+- 分类/标签归档 → 无 fancybox/clipboard 报错
+
+### Next v1.6.11 候选
+- **MED-4** 关键 CSS inline + 非关键 async · FCP/LCP 大改
+- **MED-6** jQuery 全量 defer · 性能最大杠杆（重启踩雷方案）
+- **MED-7** aside fragment 抽取 · 维护性重构
+
+---
+
 ## [1.6.9] · 2026-04-21 · ⚡ 性能 + SEO + 安全 打包（option A）
 
 **经 rc.01 → rc.02 迭代后 promote**。5 路生产 smoke test 全过（home / article / links / photos / categories），五项改动闭环。
