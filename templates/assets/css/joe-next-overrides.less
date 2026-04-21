@@ -440,16 +440,13 @@ html[data-mode='dark'] .joe_related {
 }
 
 /* ============================================================
- * v1.6.11 · moments / journals 页 Level 2 视觉升级
- * 目标: 从「朴素时间轴」升到「现代 timeline with pill/品牌色锚点」
- * 策略: 纯 override，不动模板 HTML + 不改原 journals.less，可完全回退
- * 改动摘要:
- *   1. 时间轴竖线: 虚线 → 品牌蓝渐变实线
- *   2. 日期左侧圆点锚点: 品牌蓝实心圆标记每个 moment 时间点
- *   3. 日期文本 → pill badge (品牌蓝背景 + 白字)
- *   4. 卡片圆角统一 12px (原 `0 18px 18px 18px` 气泡风)
- *   5. hover 品牌色阴影 + 边框变蓝 (对齐 v1.6.6 相关推荐卡风格)
- *   6. blogger info card 顶部品牌色装饰条
+ * v1.6.11-rc.02 · moments / journals 页 Level 2 收紧版
+ * rc.01 的蓝色锚点圆跟竖线不对齐 + 整体品牌色打击面过大被用户吐槽.
+ * rc.02 克制化改造:
+ *   删: 蓝色锚点圆 (多余装饰 · 和 pill + 卡片 border 重复锚点)
+ *   删: pill hover 翻蓝底白字 (对比过强)
+ *   改: 卡片 hover 边框不再整体变蓝, 改左侧 3px 蓝色 indicator (更克制的 timeline 暗示)
+ *   保: 圆角统一 12px / translateY 动效 / 轻阴影 / blogger card 顶部渐变 / 竖线渐变 / pill 浅底蓝字
  * ============================================================ */
 
 .joe_journal {
@@ -458,7 +455,6 @@ html[data-mode='dark'] .joe_related {
     padding: 0 0 26px 40px;
 
     &:before {
-      /* 原: border-left: 1px dashed var(--classG); */
       width: 2px;
       border-left: none;
       background: linear-gradient(
@@ -470,40 +466,19 @@ html[data-mode='dark'] .joe_related {
       opacity: 0.45;
     }
 
-    /* ---- 日期左侧锚点圆点 · 品牌蓝 ---- */
-    &:after {
-      content: "";
-      position: absolute;
-      left: 6px;
-      top: 12px;
-      z-index: 2;
-      width: 14px;
-      height: 14px;
-      border-radius: 50%;
-      background: var(--theme);
-      border: 3px solid var(--background);
-      box-shadow: 0 0 0 1px rgba(42, 100, 246, 0.3);
+    &:hover .joe_journal_block {
+      border-color: var(--classC);
+      box-shadow: 0 8px 20px -8px rgba(42, 100, 246, 0.18);
+      transform: translateY(-2px);
     }
 
-    &:hover {
-      &:after {
-        box-shadow: 0 0 0 4px rgba(42, 100, 246, 0.18);
-      }
-
-      .joe_journal_block {
-        border-color: var(--theme);
-        box-shadow: 0 10px 26px -8px rgba(42, 100, 246, 0.22);
-        transform: translateY(-2px);
-      }
-
-      .joe_journal_date {
-        background: var(--theme);
-        color: #fff;
-      }
+    /* hover 时卡片左侧加 3px 品牌蓝 indicator (时间轴暗示, 替代 rc.01 全边框变蓝) */
+    &:hover .joe_journal_block::before {
+      opacity: 1;
     }
   }
 
-  /* ---- 日期改 pill badge ---- */
+  /* ---- 日期 pill badge · 浅蓝底蓝字 · hover 不翻白 ---- */
   &_date {
     display: inline-flex;
     align-items: center;
@@ -515,16 +490,17 @@ html[data-mode='dark'] .joe_related {
     font-size: 12px;
     font-weight: 500;
     color: var(--theme);
-    background: rgba(42, 100, 246, 0.1);
-    border: 1px solid rgba(42, 100, 246, 0.22);
+    background: rgba(42, 100, 246, 0.08);
+    border: 1px solid rgba(42, 100, 246, 0.2);
     border-radius: 20px;
     letter-spacing: 0.3px;
     font-variant-numeric: tabular-nums;
-    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    transition: background 0.2s ease;
 
     i {
       margin-right: 0;
       font-size: 12px;
+      color: var(--theme);
     }
 
     em {
@@ -532,16 +508,30 @@ html[data-mode='dark'] .joe_related {
     }
   }
 
-  /* ---- 卡片: 统一 12px 圆角, 去掉原气泡异形 ---- */
+  /* ---- 卡片: 统一 12px 圆角 · 左侧 3px 蓝 indicator (默认淡, hover 变显眼) ---- */
   &_block {
+    position: relative;
     margin-top: 12px;
     padding: 14px;
     border-radius: 12px;
-    border-bottom: 1px solid var(--classC); /* 保持与 border 一致 */
+    border-bottom: 1px solid var(--classC);
+    overflow: hidden;
     transition:
       transform 0.28s cubic-bezier(0.4, 0, 0.2, 1),
-      box-shadow 0.28s cubic-bezier(0.4, 0, 0.2, 1),
-      border-color 0.2s ease;
+      box-shadow 0.28s cubic-bezier(0.4, 0, 0.2, 1);
+
+    /* 左侧 3px 蓝色 timeline indicator 默认浅, hover 变亮 (用伪元素, 不动边框) */
+    &::before {
+      content: "";
+      position: absolute;
+      top: 0;
+      left: 0;
+      bottom: 0;
+      width: 3px;
+      background: var(--theme);
+      opacity: 0.25;
+      transition: opacity 0.25s ease;
+    }
   }
 
   &_body {
@@ -550,7 +540,6 @@ html[data-mode='dark'] .joe_related {
     line-height: 1.7;
   }
 
-  /* ---- footer (like/comment 等 meta) ---- */
   &_footer {
     padding-top: 2px;
   }
@@ -565,7 +554,6 @@ html[data-mode='dark'] .joe_related {
   border-radius: 14px;
   overflow: hidden;
 
-  /* 顶部 3px 品牌渐变条 */
   &::before {
     content: "";
     position: absolute;
@@ -578,7 +566,9 @@ html[data-mode='dark'] .joe_related {
 
   &-information {
     .avatar {
-      box-shadow: 0 0 0 2px var(--background), 0 0 0 4px rgba(42, 100, 246, 0.2);
+      box-shadow:
+        0 0 0 2px var(--background),
+        0 0 0 4px rgba(42, 100, 246, 0.2);
       transition: transform 0.28s cubic-bezier(0.4, 0, 0.2, 1);
     }
 
@@ -600,32 +590,29 @@ html[data-mode="dark"] .joe_journal {
       );
     }
 
-    &:after {
-      background: var(--theme, #9999ff);
-      border-color: var(--sub-background);
-      box-shadow: 0 0 0 1px rgba(153, 153, 255, 0.35);
-    }
-
-    &:hover {
-      &:after {
-        box-shadow: 0 0 0 4px rgba(153, 153, 255, 0.22);
-      }
-
-      .joe_journal_block {
-        border-color: var(--theme);
-        box-shadow: 0 10px 28px -6px rgba(153, 153, 255, 0.25);
-      }
+    &:hover .joe_journal_block {
+      border-color: var(--classM, #2d2e37);
+      box-shadow: 0 8px 22px -8px rgba(153, 153, 255, 0.22);
     }
   }
 
   &_date {
     color: var(--theme, #9999ff);
-    background: rgba(153, 153, 255, 0.12);
-    border-color: rgba(153, 153, 255, 0.28);
+    background: rgba(153, 153, 255, 0.1);
+    border-color: rgba(153, 153, 255, 0.22);
+
+    i {
+      color: var(--theme, #9999ff);
+    }
   }
 
   &_block {
     border-color: var(--classM, #2d2e37);
+
+    &::before {
+      background: var(--theme, #9999ff);
+      opacity: 0.3;
+    }
   }
 }
 
