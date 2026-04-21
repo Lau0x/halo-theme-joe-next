@@ -14,6 +14,30 @@
 
 ---
 
+## [1.6.11-rc.01] · 2026-04-21 · 🎨 moments 页视觉升级 Level 2（prerelease）
+
+**/moments 页原本时间轴太朴素**（单虚线 + 纯文本日期 + 气泡异形圆角），升级到"现代 timeline with pill/品牌色锚点"风格。
+
+### Changed · 纯 CSS override（不改模板 · 可完全回退）
+- **时间轴竖线** · 单虚线 → 品牌蓝渐变实线（top `var(--theme)` 100% → bottom transparent），更有方向感
+- **日期左侧锚点圆点** · 每个 moment 左侧加 14px 品牌蓝实心圆（带 background 外描边 + 淡蓝光晕），锚定视觉节奏
+- **日期 Pill badge** · 从平文本升级为 pill（品牌蓝半透明背景 + 细边框 + `tabular-nums` 数字等宽 + 圆角 20px）· hover 时翻转为实心蓝白字
+- **卡片圆角** · `0 18px 18px 18px` 气泡异形 → `12px` 四角统一（对齐 v1.6.6 相关推荐卡片现代卡风格）
+- **Hover 动效** · translateY(-2px) + 品牌蓝阴影 `rgba(42,100,246,0.22)` + 边框变蓝
+- **blogger info card** · 顶部加 3px 品牌蓝→紫渐变装饰条 · avatar 加 4px 光晕 + hover 微放大
+- **Dark mode 独立配色** · 暗色下用 `rgba(153,153,255,...)` 紫调不刺眼
+
+### 实施方式
+追加到 `templates/assets/css/joe-next-overrides.less`（v1.6.6 相关推荐卡升级同一 MO），原 `journals.less` 未动。不满意可一条 git revert 完全回退。
+
+### Level 3 保留
+若 Level 2 后仍不够，v1.6.12 可继续：
+- Masonry 两列瀑布流布局（桌面 ≥1024px）
+- 图片 moment 加 backdrop-filter blur 边框光晕
+- 点赞 ❤️ pulse 动画
+
+---
+
 ## [1.6.10] · 2026-04-21 · ⚡ 按页面条件加载 lib · 非对应页面省 11-111 KB
 
 **经 rc.01 curl 矩阵验证 + 用户功能确认 promote stable**。1 rc + 1 stable 节奏保持。
