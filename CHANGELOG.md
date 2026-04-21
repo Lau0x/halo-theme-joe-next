@@ -14,6 +14,41 @@
 
 ---
 
+## [1.6.11.2] · 2026-04-21 · 🚨 v1.6.11.1 的修复的修复 · Thymeleaf enum 陷阱
+
+### 事故
+v1.6.11.1 试图修 `/moments` 私有内容泄露 bug，加了白名单过滤 `th:if="${moment.spec.visible == 'PUBLIC'}"`。**结果前台列表变全空** — 所有 moment（包括 PUBLIC）都被过滤掉了。用户截图："不是私有的没了，而是全部没了"。
+
+### 根因 · Thymeleaf enum vs String 比较陷阱
+Halo moment 的 `spec.visible` 在 **API JSON 层**是 `"PUBLIC"` 字符串（Jackson 把 enum 序列化）。
+但 **Thymeleaf 模板层拿到的是 Java `Moment.Visibility` enum 对象本身**。
+`enum == String` 在 Java（和 Thymeleaf SpEL）里 **永远是 false** → 所有 moment 被过滤。
+
+### 修复
+```html
+<!-- ❌ v1.6.11.1 写法 (enum == String 永远 false) -->
+th:if="${moment.spec.visible == 'PUBLIC'}"
+
+<!-- ✅ v1.6.11.2 正确写法 -->
+th:if="${moment.spec.visible != null and moment.spec.visible.toString() == 'PUBLIC'}"
+```
+
+加 null 检查防止老数据字段缺失；`.toString()` 把 enum 转成字符串 `"PUBLIC"`。
+
+### Debug marker
+本版本 `moments.html` 列表前临时加了一个 HTML 注释，输出首条 moment 的 `visible` 字段原始值 + Java class name：
+```html
+<!-- DEBUG · raw=... class=... total=... -->
+```
+方便用户截图 HTML 源码时直接确认字段实际类型。如果 rc 通过，下版本（1.6.11.3 或 1.6.12）删除 debug 注释。
+
+### 沉淀
+- 新 feedback **enum 陷阱**入 feedback_thymeleaf_gotchas.md 条目 9
+- 以后遇到"字段在 API 层是字符串，但 Java 层可能是 enum" 的场景，一律 `.toString()` 或 `.name()` 再比较
+- 生产模板 filter 改动发版前必须有 debug marker 兜底
+
+---
+
 ## [1.6.11.1] · 2026-04-21 · 🚨 **SECURITY** · /moments 私有内容泄露 hotfix
 
 ### 严重性

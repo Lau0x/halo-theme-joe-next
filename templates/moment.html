@@ -67,12 +67,16 @@
                 <!--
                   v1.6.11.1 安全补丁 · 隐私泄露 hotfix (单条详情页):
                   防止通过 /moments/{name} 直接 URL 访问私有 moment 绕过列表页过滤.
-                  只有 spec.visible == 'PUBLIC' 的才渲染内容.
+                  只有 spec.visible.toString() == 'PUBLIC' 的才渲染内容.
 
-                  注: 分两层 th:block 避免单元素多 th:* 的 Thymeleaf 已知深坑
-                  (refs: feedback_thymeleaf_gotchas.md · th:block 多 th:* 同元素不可靠).
+                  注 1: 分两层 th:block 避免单元素多 th:* 的 Thymeleaf 已知深坑
+                       (refs: feedback_thymeleaf_gotchas.md · th:block 多 th:* 同元素不可靠).
+                  注 2: .toString() 必须的 — Halo Moment.Visibility 在 Java 是 enum,
+                       v1.6.11.1 的字符串直比较 == 永远 false 全被过滤 (rc.2 修复).
                 -->
-                <th:block th:if="${moment.spec.visible == 'PUBLIC'}">
+                <th:block
+                  th:if="${moment.spec.visible != null and moment.spec.visible.toString() == 'PUBLIC'}"
+                >
                   <th:block th:with="content=${moment.spec.content}">
                     <li
                       class="joe_journal__item animated wow"
