@@ -14,6 +14,56 @@
 
 ---
 
+## [1.6.10] · 2026-04-21 · ⚡ 按页面条件加载 lib · 非对应页面省 11-111 KB
+
+**经 rc.01 curl 矩阵验证 + 用户功能确认 promote stable**。1 rc + 1 stable 节奏保持。
+
+### Added · MED-3 按 htmlType 条件加载
+3 个 lib + 1 个 CSS 原本全页面无条件下载，现按 `htmlType` 条件化：
+
+| lib | 原来 | v1.6.10 改后 |
+|---|---|---|
+| `wowjs/wow.min.js` (~17 KB) | 所有页面 | `index` / `journals` / `friends` / `photos` |
+| `fancybox/jquery.fancybox.min.js` (~84 KB) | 所有页面 | `post` / `photos` / `journals` / `sheet` |
+| `fancybox/jquery.fancybox.min.css` (~15 KB) | 所有页面 | `post` / `photos` / `journals` / `sheet` |
+| `clipboard/clipboard.min.js` (~11 KB) | 所有页面 | `post` / `journals` / `sheet` |
+
+### 保留全局加载（符合实际使用）
+`lazysizes` / `qmsg` / `utils` / `custom` / `common` / `ad-close` —— 任一页面都可能用到。
+
+### MED-2 跳过 · 字体策略已合规
+Audit 确认：LXGW CDN 默认 `font-display: swap` · 本地化 iconfont v1.6.9 已加 · `Joe Font` 已加。用户也没启用 LXGW。**原审计建议基于未验证，实际主题已合规**，不浪费 upgrade slot 重做。
+
+### 生产验证矩阵（5 类页面 · curl 确认）
+
+| 页面 | wowjs | fancybox JS | fancybox CSS | clipboard |
+|---|---|---|---|---|
+| home | ✅ | — | — | — |
+| post | — | ✅ | ✅ | ✅ |
+| archives | — | — | — | — |
+| links | — | — | — | — |
+| photos | ✅ | ✅ | ✅ | — |
+
+### 节省带宽
+- **首页 / 归档 / 标签 / 分类** 不再下载 fancybox (~100KB) + clipboard (~11KB) = **省 ~111 KB / 请求**
+- **文章** 不再下载 wowjs = **省 ~17 KB**
+- **图库** 不再下载 clipboard = **省 ~11 KB**
+
+### 历史功能继承验证（v1.6.6 → v1.6.9 全部保持）
+- 相关推荐 3 卡 · pagination · JSON-LD 3 块 · canonical permalink · OG image meta · jQuery 3.7.1 · iconfont 本地 · 34 img numeric dim · debug marker 0 残留
+
+### 升级
+```
+https://github.com/Lau0x/halo-theme-joe-next/releases/download/v1.6.10/theme-Joe3-1.6.10.zip
+```
+
+### Next v1.6.11 候选
+- **MED-6** tail.html jQuery 全量 defer · 性能最大杠杆（重启 next.5 踩雷方案）
+- **MED-4** 关键 CSS inline + 非关键 async · FCP/LCP 大改
+- **MED-7** aside / aside_post 重复 widget 抽 fragment · 维护性
+
+---
+
 ## [1.6.10-rc.01] · 2026-04-21 · ⚡ MED-3 按页面条件加载 lib · MED-2 已合规不改（prerelease）
 
 ### 🚫 MED-2 取消 · 字体策略已合规
