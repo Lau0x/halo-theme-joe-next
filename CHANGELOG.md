@@ -14,108 +14,32 @@
 
 ---
 
-## [1.6.11-rc.04] · 2026-04-21 · 🐛 rc.03 grid 列宽失衡 bug 修复（prerelease）
+## [1.6.11] · 2026-04-21 · 🔙 放弃 /moments 视觉改造 · 回退到 v1.6.10 原版
 
-rc.03 实装后用户截图实测：**两列 grid 布局左右宽度悬殊** — 左列被挤成 ~100px 竖条（文字一个字一个字竖排），右列约 800px 正常宽度。设计语言本身 OK，**布局 bug 致命**。
+### 决策
+v1.6.11 周期连续迭代 4 个 rc（rc.01 Level 2 / rc.02 L2 收紧 / rc.03 Level 3 换设计语言 / rc.04 grid bug 修复），**每一版用户都不满意**。最终用户反馈："还没有最初的时候好看，还是用原版吧"。
 
-### 根因 · CSS Grid `1fr` + `min-content` 陷阱
-CSS Grid `grid-template-columns: repeat(2, 1fr)` 的 `1fr` 等价于 `minmax(auto, 1fr)`。其中 `auto` 的最小值 = grid item 的 **min-content 宽度**（内容不可切断的最小宽度）。
+**诚实 owner**：rc.01~04 的所有 /moments 视觉 override 全部回退。v1.6.11 stable 的视觉表现 = v1.6.10 stable，完全一致。
 
-**踩坑路径：**
-- moments 用户代码块里有超长 URL `https://www.hncloud.com/activity/activity_2025daily.html?p=laodar`
-- `<pre>` 元素默认 `white-space: pre`（不换行）→ 代码块 min-content = **单行最长 URL 宽度**（≈ 700px）
-- 右 cell 的 `1fr` 被撑到 700px+ → 挤压左 cell 到剩余空间（~100px） → **完全违背等宽意图**
+### Why
+根本问题不在于 CSS 细节（rc.04 grid bug 其实修得很干净），而在于**设计方向本身用户不认可**——设计改造类工作需要在开工前就和用户对齐视觉预期（甚至草图 / 参考网站 link），否则 agent 自判断的"改进"和用户审美错位，每版 rc 都是无效迭代。
 
-### 修复方案（经典解法）
-```css
-grid-template-columns: repeat(2, minmax(0, 1fr));  /* ← 0 而非 auto */
-.joe_journal__item   { min-width: 0; }            /* ← item 兜底 */
-.joe_journal_block   { min-width: 0; max-width: 100%; }
-.joe_journal_body    { box-sizing: border-box; min-width: 0; overflow: hidden; }
-.content-wrp         { overflow-wrap: anywhere; word-break: break-word; }
-.content-wrp pre     { max-width: 100%; overflow-x: auto; }  /* 代码块横向滚动不撑父 */
+### Revert 清单
 ```
+git revert fc9f32a f151189 c98148e 2c030d1
+```
+- `fc9f32a` fix(moments): rc.04 grid 列宽失衡 bug
+- `f151189` style(moments): rc.03 Level 3 深度改造
+- `c98148e` style(moments): rc.02 收紧
+- `2c030d1` style(moments): v1.6.11-rc.01 Level 2 视觉升级
+
+### Installation 影响
+- 如果你正在用 v1.6.11-rc.01/02/03/04 任一 prerelease：**Console 升级到 v1.6.11 stable 即可一键回到原版外观**（身份字段 name/settingName/configMapName 不变，配置 0 丢失）
+- 如果你在 v1.6.10 stable：v1.6.11 内容等同 v1.6.10，升级无感知，**可以不升级** 也可升级保持版本号一致
+- rc.01~04 prerelease 保留在 releases 历史页面（不强制撤下），但不再推荐
 
 ### 沉淀
-- ✅ 新经验已入 feedback: **以后 grid 两列/多列布局，一律 `minmax(0, 1fr)`**，不要写裸 `1fr`
-- ✅ grid item 默认 `min-width: 0` 兜底，防止内容 min-content 撑开
-- ✅ 容器内可能有代码块 / 长 URL / 不换行内容时，父元素必须 `overflow: hidden` + 子代码块 `overflow-x: auto`
-
----
-
-## [1.6.11-rc.03] · 2026-04-21 · 🎨 /moments Level 3 深度改造 · 换设计语言（prerelease）
-
-**rc.01 L2 + rc.02 L2 收紧两次用户都不满意** → timeline + pill + 锚点 这套概念从根上跑偏。rc.03 **换设计语言**：砍掉时间轴全概念，上现代 IG/Threads 风格 "卡片瀑布流 + 玻璃拟态"。
-
-### 设计语言换血
-| 维度 | rc.01/02 (timeline 路线) | rc.03 (瀑布流路线) |
-|---|---|---|
-| 主视觉结构 | 左侧时间轴竖线 + item 垂直排 | 两列 CSS Grid 瀑布流 (桌面) / 单列 (移动) |
-| 日期位置 | 时间轴上 pill badge (左侧凸出) | 卡片顶部 meta 灰字 (不抢 focus) |
-| 锚点设计 | 品牌蓝圆 / pill / 边框 三处叠加 | 彻底不做锚点, 卡片自身是视觉单元 |
-| 卡片圆角 | 12px + 左侧 indicator | 16px 软圆角 + 双层轻阴影 |
-| hover 反馈 | 边框变蓝 / pill 翻白 | translateY(-4px) + 阴影加深品牌蓝晕 |
-| 互动感 | 无 | ❤️ hover 变红 + pulse 动画 · 评论 scale |
-| Dark mode | 品牌色半透明覆盖 | backdrop-filter blur 玻璃拟态 + 磨砂感 |
-| blogger info | 顶部渐变条 + avatar 光晕 | 54px 大头像 + 16px 粗体名 + 顶部渐变 |
-
-### Level 3 新增特性
-- **CSS Grid 两列瀑布流**（桌面 ≥1024px · 移动端单列）· 纯 CSS 零 JS 依赖
-- **❤️ pulse 动画** · 点赞图标 hover 触发 `scale(1.3→0.95→1.15→1)` 的 pulse keyframe · 0.6s cubic-bezier
-- **💬 评论 hover** · scale(1.2) + 品牌色
-- **🖼️ 卡片内图片** · border-radius 12px + hover `scale(1.02)` + 轻阴影
-- **💠 Dark mode 玻璃拟态** · `backdrop-filter: saturate(140%) blur(10px)` · 卡片半透明 `rgba(30,32,40,0.6)`
-
-### 完整回退策略
-如果 Level 3 仍不满意：
-- 一条 `git revert` 这个 commit 就回到 v1.6.10（无任何 moments 视觉改动）
-- 或者特定元素不喜欢，告诉具体哪个（阴影 / 瀑布流 / pulse / 玻璃拟态）单独改/删
-
----
-
-## [1.6.11-rc.02] · 2026-04-21 · 🎨 /moments 视觉收紧（prerelease）
-
-rc.01 实测用户反馈：
-- **蓝色锚点圆跟时间轴竖线不对齐**，视觉像个悬浮小图标看不懂用途
-- 锚点圆 + pill 翻蓝底白字 + 卡片 hover 全边框蓝 → **品牌色打击面过大、重复锚点、凌乱**
-
-### rc.02 收紧改动
-- **🗑️ 删蓝色锚点圆** · 干净直接 · 让时间轴竖线 + feather 图标 + pill 自身承担视觉锚点
-- **🗑️ 删 pill hover 翻蓝底白字** · 保留浅蓝底蓝字（+`tabular-nums`），hover 无剧烈翻转
-- **🔄 卡片 hover 边框不再全变蓝** · 改用左侧 3px 蓝色 `::before` indicator：默认 25% 透明度、hover 100%（更克制的 timeline 暗示）
-- **✅ 保留 rc.01 里好的部分**：
-  - 圆角统一 12px（去掉 `0 18px 18px 18px` 气泡异形）
-  - Hover translateY(-2px) + 轻阴影
-  - 时间轴竖线品牌蓝渐变
-  - blogger info card 顶部 3px 品牌渐变条 + avatar 光晕
-  - Dark mode 独立配色
-
-### 设计理念调整
-**"装饰越多 ≠ 越有设计感"** · rc.01 把时间轴锚点 + pill + 卡片边框 三处叠加品牌色，反而让主视觉失焦。rc.02 坚持"单一强锚点"（pill 承担主锚点，卡片左 indicator 辅助，竖线承担结构），克制 = 高级。
-
----
-
-## [1.6.11-rc.01] · 2026-04-21 · 🎨 moments 页视觉升级 Level 2（prerelease）
-
-**/moments 页原本时间轴太朴素**（单虚线 + 纯文本日期 + 气泡异形圆角），升级到"现代 timeline with pill/品牌色锚点"风格。
-
-### Changed · 纯 CSS override（不改模板 · 可完全回退）
-- **时间轴竖线** · 单虚线 → 品牌蓝渐变实线（top `var(--theme)` 100% → bottom transparent），更有方向感
-- **日期左侧锚点圆点** · 每个 moment 左侧加 14px 品牌蓝实心圆（带 background 外描边 + 淡蓝光晕），锚定视觉节奏
-- **日期 Pill badge** · 从平文本升级为 pill（品牌蓝半透明背景 + 细边框 + `tabular-nums` 数字等宽 + 圆角 20px）· hover 时翻转为实心蓝白字
-- **卡片圆角** · `0 18px 18px 18px` 气泡异形 → `12px` 四角统一（对齐 v1.6.6 相关推荐卡片现代卡风格）
-- **Hover 动效** · translateY(-2px) + 品牌蓝阴影 `rgba(42,100,246,0.22)` + 边框变蓝
-- **blogger info card** · 顶部加 3px 品牌蓝→紫渐变装饰条 · avatar 加 4px 光晕 + hover 微放大
-- **Dark mode 独立配色** · 暗色下用 `rgba(153,153,255,...)` 紫调不刺眼
-
-### 实施方式
-追加到 `templates/assets/css/joe-next-overrides.less`（v1.6.6 相关推荐卡升级同一 MO），原 `journals.less` 未动。不满意可一条 git revert 完全回退。
-
-### Level 3 保留
-若 Level 2 后仍不够，v1.6.12 可继续：
-- Masonry 两列瀑布流布局（桌面 ≥1024px）
-- 图片 moment 加 backdrop-filter blur 边框光晕
-- 点赞 ❤️ pulse 动画
+新 feedback 规则：**视觉类改造任务开工前必须先跟用户对齐"你想要什么样"**（参考站/关键词/情绪板三选一），不要在"让博客更有设计感"这种模糊需求上自行启动设计迭代。
 
 ---
 
