@@ -69,7 +69,15 @@
                   th:each="moment,iteration : ${moments.items}"
                   th:with="content=${moment.spec.content}"
                 >
+                  <!--
+                    v1.6.11.1 安全补丁 · 隐私泄露 hotfix:
+                    Halo moment 的 spec.visible 枚举 = PUBLIC / INTERNAL / PRIVATE.
+                    原模板 th:each 直接遍历 moments.items, 对**已登录管理员**浏览前台时,
+                    finder 会返回包含私有/内部 moment 的完整列表 → 前台公开页面渲染出私有内容.
+                    白名单 filter: 只渲染 PUBLIC 的. 即便上游 finder 漏过滤, 模板层兜底.
+                  -->
                   <li
+                    th:if="${moment.spec.visible == 'PUBLIC'}"
                     class="joe_journal__item animated wow"
                     th:data-wow-delay="'0.'+${iteration.index}+'s'"
                     th:data-cid="${moment.metadata.name}"

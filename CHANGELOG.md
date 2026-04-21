@@ -14,6 +14,52 @@
 
 ---
 
+## [1.6.11.1] · 2026-04-21 · 🚨 **SECURITY** · /moments 私有内容泄露 hotfix
+
+### 严重性
+🔴 **P0 安全补丁** · 隐私数据泄露 · 请所有用户**立即升级**。
+
+### Bug 现象
+博主在 Halo Console 后台将 moment 设置为**私有**（visible = PRIVATE / INTERNAL），但已登录管理员通过**博客前台** `/moments` 公开列表页 **仍能看到私有 moment 内容**。直接访问 `/moments/{name}` 详情页 URL 也会渲染私有内容。
+
+### 根因
+原主题模板 `moments.html` / `moment.html` 在渲染 moment 时**完全没有 visibility 过滤**：
+```html
+<!-- 原代码 · 无过滤 -->
+<th:block th:each="moment,iteration : ${moments.items}">
+  <li class="joe_journal__item"> ... content ... </li>
+</th:block>
+```
+Halo moment plugin 的 finder 对管理员身份会返回**包含私有/内部** moment 的完整列表 → 模板直接遍历渲染 → 隐私泄露。
+
+### 修复 (defense-in-depth)
+白名单过滤 `spec.visible == 'PUBLIC'`，模板层兜底（即便上游 finder 漏过滤也不会渲染私有）：
+
+**1. `moments.html` 列表页**：
+```html
+<li th:if="${moment.spec.visible == 'PUBLIC'}" ...>
+```
+
+**2. `moment.html` 详情页**（防止直连 URL 绕过）：
+```html
+<th:block th:if="${moment.spec.visible == 'PUBLIC'}">
+  <th:block th:with="content=${moment.spec.content}">
+    ...
+  </th:block>
+</th:block>
+```
+
+### 验证
+- 匿名 curl `blog.laoda.de/moments` 确认 HTML 不含私有 moment 关键词
+- Halo moment API 返回字段 `visible: "PUBLIC"` 确认枚举
+
+### 升级建议
+- **所有 v1.6.11 及之前版本**：建议尽快升级
+- 特别是后台有私有 moment 的博主，且经常用管理员身份浏览博客前台的
+- Halo Console → 主题 → 升级 → 上传 v1.6.11.1 zip · 配置 0 丢失
+
+---
+
 ## [1.6.11] · 2026-04-21 · 🔙 放弃 /moments 视觉改造 · 回退到 v1.6.10 原版
 
 ### 决策
