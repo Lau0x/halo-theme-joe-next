@@ -175,6 +175,57 @@
       const loading = document.querySelector('.joe_load_container');
       ob.observe(loading);
     </script>
+    <!--
+      v1.6.11.4: PluginCommentWidget toast 主题色适配
+      上游 <lit-toast> (LitElement) 用 Shadow DOM + 硬编码 #4ccba0 绿色,
+      外部 CSS 摸不到. 用 MutationObserver 监听元素出现, 注 stylesheet
+      到 shadowRoot, 把 .toast--success 改为 var(--theme).
+      仅 patch success (绿色违和), error 红 / warn 橙 保留语义色.
+      浏览器要求 adoptedStyleSheets (Chrome 99+/Firefox 101+/Safari 16.4+),
+      老浏览器跳过, 静默 fallback 原绿色.
+    -->
+    <script>
+      (function patchHaloCommentToastTheme() {
+        if (!('adoptedStyleSheets' in Document.prototype)) return;
+
+        let sheet;
+        const getSheet = () => {
+          if (sheet) return sheet;
+          sheet = new CSSStyleSheet();
+          sheet.replaceSync(
+            '.toast--success { background-color: var(--theme, #fb6c28) !important; }'
+          );
+          return sheet;
+        };
+
+        const patch = (toast, retries) => {
+          if (toast.__joeThemed) return;
+          if (!toast.shadowRoot) {
+            if (retries > 0) setTimeout(() => patch(toast, retries - 1), 16);
+            return;
+          }
+          toast.__joeThemed = true;
+          toast.shadowRoot.adoptedStyleSheets = [
+            ...toast.shadowRoot.adoptedStyleSheets,
+            getSheet(),
+          ];
+        };
+
+        document.querySelectorAll('lit-toast').forEach((t) => patch(t, 5));
+
+        new MutationObserver((mutations) => {
+          for (const m of mutations) {
+            for (const node of m.addedNodes) {
+              if (node.nodeType !== 1) continue;
+              if (node.tagName === 'LIT-TOAST') patch(node, 5);
+              else if (node.querySelectorAll) {
+                node.querySelectorAll('lit-toast').forEach((t) => patch(t, 5));
+              }
+            }
+          }
+        }).observe(document.body, { childList: true, subtree: true });
+      })();
+    </script>
     <halo:footer />
   </th:block>
 </html>

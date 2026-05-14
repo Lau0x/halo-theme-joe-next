@@ -14,6 +14,32 @@
 
 ---
 
+## [1.6.11.4] · 2026-05-14 · 🎨 评论 toast 主题色适配
+
+### 修复
+- **`<lit-toast>` success 绿色 → 主题色**
+  - 上游 PluginCommentWidget 的 `.toast--success` 硬编码 `#4ccba0` 薄荷绿（`packages/comment-widget/src/lit-toast.ts`）
+  - 该组件是 Web Component (LitElement)，用 Shadow DOM (mode: open) 隔离，且**没暴露 CSS 变量**给 success 色，主题层 less / `joe-next-overrides.less` 都改不到
+  - `templates/modules/macro/tail.html` 加 inline `<script>` · MutationObserver + `adoptedStyleSheets` 注样式表到每个新出现的 `<lit-toast>` 的 shadowRoot
+  - 仅 patch `.toast--success`（违和点），`.toast--error` 红 / `.toast--warn` 橙 保留语义色不动
+  - 浅色：跟 `var(--theme)` 走（默认 `#fb6c28`，用户自定义如 `#2A64F6` 蓝同步生效）
+  - 暗色：跟 `var(--theme)` 走（默认 `#9999ff` 淡紫）
+
+### 不变项
+- 评论提交 / 渲染 / 回复 / 通知逻辑完全不变，仅改弹窗背景色
+- 浏览器要求 `adoptedStyleSheets` API（Chrome 99+ / Firefox 101+ / Safari 16.4+）
+- 老浏览器静默 fallback 显示原绿色（无降级风险，不报错）
+
+### 迁移建议
+- 任意 v1.6.x 用户：**可升可不升**，纯视觉细节
+- 关心 UI 一致性的：推荐升 v1.6.11.4
+
+### 沉淀
+- Shadow DOM 组件改色 SOP：不能用外部 CSS 直接 override，必须 JS 注 `adoptedStyleSheets`
+- 视觉/配色类 RCA 必须 `curl` 拉取生产 HTML 看实际 `--theme` 值，不能用 settings.yaml 的 default value 当事实（吃过 default `#fb6c28` 但用户实际 `#2A64F6` 的判断错亏）
+
+---
+
 ## [1.6.11.3] · 2026-04-21 · 🧹 v1.6.11.2 清理 · 去 debug marker + 风格对齐
 
 ### 清理项（非功能变更，仅代码卫生）
