@@ -14,6 +14,31 @@
 
 ---
 
+## [1.6.11.5] · 2026-05-14 · 🎨 暗色模式评论组件 primary 色适配 · v1.6.11.4 补丁
+
+### 修复
+- **暗色模式下评论输入框 border + 提交按钮绿色违和**
+  - v1.6.11.4 修了 success toast 绿色，但发现暗色下还有一处绿色没盖：评论输入框的 focus border 和"提交评论"按钮
+  - 上游 PluginCommentWidget 在 `[data-color-scheme='dark']` 默认设 `--halo-cw-primary-1-color: #059669` (emerald-600 深绿)，跟主题 `--theme: #9999ff` 紫色严重违和
+  - 主题层 `joe-next-overrides.less` 原本只在 `:root` 给浅色设 primary 色（蓝色 `#3a63ed`），**暗色模式没 override**，被插件 dark selector 覆盖回绿色
+  - `joe-next-overrides.less` 新增 `html[data-color-scheme='dark']` 段，给暗色 primary 1/2/3 一组 indigo 紫色系（`#9999ff` / `#818cf8` / `#6366f1`）
+  - 主题 `common.js` 切暗色时已同步设 `html[data-color-scheme='dark']`（[c1] 行 42），所以 selector 能命中
+
+### 不变项
+- 浅色模式 primary 蓝色 (`#3a63ed`) 完全不动
+- 评论 toast success 改造（v1.6.11.4 那次）继续生效
+- error 红 / warn 橙 保留语义色
+
+### 迁移建议
+- v1.6.11.4 用户：**推荐升**（暗色用户必升，浅色用户无感知）
+- v1.6.10 及更早：**可一次升到 .5** 拿全所有 toast/primary 主题色适配
+
+### 沉淀
+- `:root` override 只覆盖浅色模式，**暗色 selector 要单独写一遍** — 因为浏览器 CSS 优先级里，后定义的同优先级选择器赢，插件 dark selector 加载在主题 less 之后
+- 一次 ticket 一次修：v1.6.11.4 修 toast 改色，没顺手扫 primary 色，留了尾巴 → v1.6.11.5 补。**owner 意识**：以后改 widget 颜色类 ticket，必须同时审 light + dark 两路
+
+---
+
 ## [1.6.11.4] · 2026-05-14 · 🎨 评论 toast 主题色适配
 
 ### 修复

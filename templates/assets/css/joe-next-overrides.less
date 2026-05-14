@@ -32,6 +32,21 @@
   --halo-search-widget-kbd-shadow: 0 1px 3px rgba(60, 64, 67, 0.3);
 }
 
+/* ---- v1.6.11.5: 暗色模式下评论组件 primary 色 override ----
+ *      上游 PluginCommentWidget 在 [data-color-scheme='dark'] 选择器下
+ *      默认 --halo-cw-primary-1-color: #059669 (emerald 深绿)，
+ *      跟主题 --theme 紫色 (#9999ff) 严重违和。
+ *      主题 common.js 切暗色时同步设置 html[data-color-scheme='dark']，
+ *      这里 override 把 primary 色系换成跟 --theme 紫色协调的 indigo 系。
+ *      注：插件没暴露 --halo-cw-text-1-color 之类的所有变量，
+ *      只 patch primary 1/2/3 三个核心交互色（输入框 border、按钮、hover）。
+ *      ---- */
+html[data-color-scheme='dark'] {
+  --halo-cw-primary-1-color: #9999ff; /* 跟 --theme 暗色一致 */
+  --halo-cw-primary-2-color: #818cf8; /* indigo-400 hover */
+  --halo-cw-primary-3-color: #6366f1; /* indigo-500 更深 */
+}
+
 /* ---- 亮色：文章正文加深 + 字号提升 ---- */
 .joe_detail__article {
   p,
