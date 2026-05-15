@@ -104,9 +104,10 @@
     -->
     <th:block
       th:with="siteUrlClean = ${#strings.endsWith(site.url, '/') ? #strings.substring(site.url, 0, #strings.length(site.url) - 1) : site.url},
-               pageUrl = ${post != null ? siteUrlClean + post.status.permalink : site.url},
-               ogImage = ${post != null and !#strings.isEmpty(post.spec.cover) ? post.spec.cover : site.favicon},
-               ogDesc  = ${post != null and !#strings.isEmpty(post.status.excerpt) ? post.status.excerpt : site.seo.description}"
+               pageUrl  = ${post != null ? siteUrlClean + post.status.permalink : site.url},
+               hasCover = ${post != null and !#strings.isEmpty(post.spec.cover)},
+               ogTitle  = ${post != null ? post.spec.title : title},
+               ogDesc   = ${post != null and !#strings.isEmpty(post.status.excerpt) ? post.status.excerpt : site.seo.description}"
     >
       <!-- Base SEO · description 补齐（原主题只有 og:description） -->
       <meta name="description" th:content="${ogDesc}" />
@@ -117,14 +118,27 @@
       <meta name="msapplication-TileColor" content="#3a63ed" />
 
       <!-- Open Graph · 文章页用文章封面 + 摘要 + 文章 URL，其它页用站点级 -->
-      <meta property="og:image" th:content="${ogImage}" />
-      <!-- v1.6.9: og:image:alt (文章标题或站点标题) 提升分享卡辅助文本 + a11y -->
-      <meta property="og:image:alt" th:content="${post != null ? post.spec.title : site.title}" />
-      <!-- v1.6.9: og:image:type (按 URL 后缀推断) -->
-      <meta
-        property="og:image:type"
-        th:content="${#strings.endsWith(#strings.toLowerCase(ogImage), '.png') ? 'image/png' : (#strings.endsWith(#strings.toLowerCase(ogImage), '.webp') ? 'image/webp' : (#strings.endsWith(#strings.toLowerCase(ogImage), '.gif') ? 'image/gif' : 'image/jpeg'))}"
-      />
+      <!-- v1.6.11.6: og:image 改为条件输出, 仅文章有 cover 时才输出 image 类 meta.
+                      原 fallback site.favicon (e.g. 1024x1024 正方形吉祥物) 会被
+                      Telegram 当 large preview 撑高预览框, 视觉丑.
+                      无 cover 时干脆不输出 og:image → 渲染纯文字紧凑卡片.
+                      同时把相对路径绝对化, 防社交媒体抓取器拼错 host. -->
+      <th:block
+        th:if="${hasCover}"
+        th:with="ogImageAbs = ${#strings.startsWith(post.spec.cover, 'http') ? post.spec.cover : siteUrlClean + post.spec.cover}"
+      >
+        <meta property="og:image" th:content="${ogImageAbs}" />
+        <!-- v1.6.9: og:image:alt 提升分享卡辅助文本 + a11y -->
+        <meta property="og:image:alt" th:content="${post.spec.title}" />
+        <!-- v1.6.9: og:image:type (按 URL 后缀推断) -->
+        <meta
+          property="og:image:type"
+          th:content="${#strings.endsWith(#strings.toLowerCase(ogImageAbs), '.png') ? 'image/png' : (#strings.endsWith(#strings.toLowerCase(ogImageAbs), '.webp') ? 'image/webp' : (#strings.endsWith(#strings.toLowerCase(ogImageAbs), '.gif') ? 'image/gif' : 'image/jpeg'))}"
+        />
+        <meta name="twitter:image" th:content="${ogImageAbs}" />
+        <!-- v1.6.9: twitter:image:alt · X 辅助文本 -->
+        <meta name="twitter:image:alt" th:content="${post.spec.title}" />
+      </th:block>
       <!-- Fix upstream bug: was th:content="site.seo.description" (missing ${}),
            rendered the literal string "site.seo.description" as the social
            preview description. -->
@@ -133,15 +147,15 @@
       <meta property="og:locale" content="zh_CN" />
       <meta property="og:site_name" th:content="${site.title}+'-'+${site.subtitle}" />
       <meta property="og:url" th:content="${pageUrl}" />
-      <meta property="og:title" th:content="${title}" />
+      <!-- v1.6.11.6: og:title 改用 ogTitle (post 用 post.spec.title) 而非 ${title}.
+                      原 ${title} = "post.spec.title - site.title", 跟 og:site_name
+                      重复显示, Telegram 渲染标题超长 + 看着像撞名. -->
+      <meta property="og:title" th:content="${ogTitle}" />
 
       <!-- Twitter Card · summary_large_image 让 X 分享卡显示大图 -->
       <meta name="twitter:card" content="summary_large_image" />
-      <meta name="twitter:title" th:content="${title}" />
+      <meta name="twitter:title" th:content="${ogTitle}" />
       <meta name="twitter:description" th:content="${ogDesc}" />
-      <meta name="twitter:image" th:content="${ogImage}" />
-      <!-- v1.6.9: twitter:image:alt · X 辅助文本 -->
-      <meta name="twitter:image:alt" th:content="${post != null ? post.spec.title : site.title}" />
     </th:block>
     <meta property="twitter:partner" content="ogwp" />
     <!-- /OG -->

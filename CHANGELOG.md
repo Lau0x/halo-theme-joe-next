@@ -14,6 +14,49 @@
 
 ---
 
+## [1.6.11.6] · 2026-05-15 · 🔗 Open Graph 分享卡片优化 · Telegram 预览不再丑
+
+### 修复
+- **`og:title` 去掉 site 后缀**
+  - 之前 `<meta property="og:title">` 取 `${title}` 变量，post.html 拼成 `${post.spec.title} + '-' + ${site.title}`
+  - 导致 og:title 同时包含文章标题 + 站点名（"...3HK eSIM 储值卡购买激活全流程分享（2026）-我不是咕咕鸽"）
+  - 而 `og:site_name` 已经独立输出站点名 → Telegram / Twitter / FB 分享卡**重复显示 site name**
+  - 改为：`ogTitle = ${post != null ? post.spec.title : title}` → 文章页 og:title 只是文章标题本身
+  - 同步 `twitter:title` 也用 `ogTitle`
+
+- **`og:image` 改为条件输出（无 cover 不 fallback 到 site.favicon）**
+  - 原逻辑：文章无 cover → fallback 到 `site.favicon`（用户场景下是 `/upload/guguge.webp`，1024×1024 正方形吉祥物）
+  - 问题：Telegram 检测到 image >= 400×400 触发 large preview，正方形撑高预览框 → 视觉撑得过大、丑
+  - 改为：用 `hasCover = post != null and !#strings.isEmpty(post.spec.cover)` 守门
+    - 有 cover → 输出 `og:image` / `og:image:alt` / `og:image:type` / `twitter:image` / `twitter:image:alt`
+    - 无 cover → **不输出任何 image 类 meta** → Telegram 渲染纯文字紧凑卡片
+  - 适配场景："懒得给每篇文章配封面"的博客，无封面文章分享自然紧凑
+
+- **`og:image` 路径绝对化**
+  - 原：`th:content="${ogImage}"`，直接输出 `post.spec.cover`，如果是相对路径（`/upload/xxx.png`）社交媒体抓取器要自己拼 host
+  - 改为：`#strings.startsWith(post.spec.cover, 'http')` 判断 → 相对路径自动拼接 `siteUrlClean`
+  - 防止 Telegram / 微信 / FB 抓取时 host 拼错
+
+### 不变项
+- `og:description` / `og:type` / `og:site_name` / `og:url` 逻辑不变
+- `og:image:alt` / `og:image:type` 行为不变（仅 wrap 进 hasCover 块）
+- 文章有 cover 的情况完全不变：image meta 照常输出
+- 非文章页（首页 / archives / tags / categories）：title 仍是带 site 后缀（这些页面无 og:image，不受影响）
+
+### 迁移建议
+- 任意 v1.6.x 用户：**推荐升**，纯 SEO 优化，无破坏性
+- 在意 Telegram / Twitter 分享视觉的用户：**必升**
+
+### 沉淀
+- `og:title` 跟 `<title>` 元素不是一回事，不要复用同一变量
+  - `<title>` 加 site 后缀 → 浏览器 tab 显示 + 搜索引擎结果 ✅
+  - `og:title` 加 site 后缀 → 跟 og:site_name 重复 ❌
+- 默认 OG fallback 图必须是横图（1200×630 标准）或 < 400×400 小图
+  - 正方形大图 → Telegram large preview 撑高 → 丑
+- Thymeleaf 属性优先级 SOP：`th:if` (400) 在 `th:with` (600) 之前执行，所以 `th:if + th:with` 同元素安全
+
+---
+
 ## [1.6.11.5] · 2026-05-14 · 🎨 暗色模式评论组件 primary 色适配 · v1.6.11.4 补丁
 
 ### 修复
