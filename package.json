@@ -15,7 +15,7 @@
     "@waline/client": "^2.15.8",
     "husky": "^9.1.7",
     "less": "^4.6.4",
-    "lint-staged": "^15.5.2",
+    "lint-staged": "^17.0.4",
     "prettier": "^3.8.3",
     "rolldown": "1.0.0-beta.58",
     "rollup-plugin-less": "^1.1.3",
