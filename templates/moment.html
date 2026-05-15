@@ -22,7 +22,7 @@
                   class="joe_journal_add"
                   th:href="@{/console/moments}"
                   target="_blank"
-                  rel="nofollow"
+                  rel="noopener noreferrer nofollow"
                   ><i class="joe-font joe-icon-edit"></i
                 ></a>
               </th:block>
@@ -41,7 +41,7 @@
                     <div class="author">
                       <a
                         class="link"
-                        th:href="@{authors}+'/'+${moment.owner.name}"
+                        th:href="@{/authors/{name}(name=${moment.owner.name})}"
                         th:title="${moment.owner.displayName}"
                         >[[${moment.owner.displayName}]]</a
                       >

@@ -15,7 +15,11 @@
   sort: {'stats.visit,desc', 'metadata.creationTimestamp,asc'}
 })}"
           >
-            <li class="item" th:each="post : ${posts.items}">
+            <li
+              class="item"
+              th:each="post : ${posts.items}"
+              th:if="${post.spec.visible != null and post.spec.visible.name == 'PUBLIC'}"
+            >
               <a class="link" th:href="@{${post.status.permalink}}" th:text="${post.spec.title}"
                 >${post.title!}</a
               >

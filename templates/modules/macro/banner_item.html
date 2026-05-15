@@ -5,7 +5,10 @@
       th:each="bannerPost : ${theme.config.carousel.banner_source}"
       th:with="post = ${postFinder.getByName(bannerPost.posts)}"
     >
-      <div class="swiper-slide">
+      <div
+        class="swiper-slide"
+        th:if="${post != null and post.spec.visible != null and post.spec.visible.name == 'PUBLIC'}"
+      >
         <a
           class="item"
           th:href="${post.status.permalink}"

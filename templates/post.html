@@ -250,14 +250,20 @@
                 class="joe_post__pagination"
                 th:with="postCursor = ${postFinder.cursor(post.metadata.name)}"
               >
-                <li class="joe_post__pagination-item prev" th:if="${postCursor.hasPrevious()}">
+                <li
+                  class="joe_post__pagination-item prev"
+                  th:if="${postCursor.hasPrevious() and postCursor.previous.spec.visible != null and postCursor.previous.spec.visible.name == 'PUBLIC'}"
+                >
                   <a
                     th:href="@{${postCursor.previous.status.permalink}}"
                     th:title="${postCursor.previous.spec.title}"
                     >上一篇</a
                   >
                 </li>
-                <li class="joe_post__pagination-item next" th:if="${postCursor.hasNext()}">
+                <li
+                  class="joe_post__pagination-item next"
+                  th:if="${postCursor.hasNext() and postCursor.next.spec.visible != null and postCursor.next.spec.visible.name == 'PUBLIC'}"
+                >
                   <a
                     th:href="@{${postCursor.next.status.permalink}}"
                     th:title="${postCursor.next.spec.title}"

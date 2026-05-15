@@ -1,45 +1,50 @@
 <!doctype html>
 <html th:lang="${#locale.toLanguageTag}" xmlns:th="http://www.thymeleaf.org">
   <th:block th:fragment="data_by_post(post_metadata)">
-    <div class="swiper-slide" th:with="post = ${postFinder.getByName(post_metadata)}">
-      <a
-        class="item"
-        th:classappend="${post.status.permalink !='' ? 'clickable': ''}"
-        th:href="${post.status.permalink !='' ? post.status.permalink : 'javascript:;'}"
-        target="_blank"
-        rel="noopener noreferrer nofollow"
+    <th:block th:with="post = ${postFinder.getByName(post_metadata)}">
+      <div
+        class="swiper-slide"
+        th:if="${post != null and post.spec.visible != null and post.spec.visible.name == 'PUBLIC'}"
       >
-        <th:block
-          th:with="postCover = ${#lists.isEmpty(theme.config.home.post_thumbnail)? theme.config.basic.random_img_api_url+'?pageid='+post.metadata.name : theme.config.home.post_thumbnail}"
+        <a
+          class="item"
+          th:classappend="${post.status.permalink !='' ? 'clickable': ''}"
+          th:href="${post.status.permalink !='' ? post.status.permalink : 'javascript:;'}"
+          target="_blank"
+          rel="noopener noreferrer nofollow"
         >
-          <img
-            width="1600"
-            height="900"
-            class="thumbnail lazyload"
-            th:with="cover = ${post.spec.cover ?: postCover}"
-            th:data-src="${cover}"
-            th:srcset="|${thumbnail.gen(cover, 's')} 400w,
+          <th:block
+            th:with="postCover = ${#lists.isEmpty(theme.config.home.post_thumbnail)? theme.config.basic.random_img_api_url+'?pageid='+post.metadata.name : theme.config.home.post_thumbnail}"
+          >
+            <img
+              width="1600"
+              height="900"
+              class="thumbnail lazyload"
+              th:with="cover = ${post.spec.cover ?: postCover}"
+              th:data-src="${cover}"
+              th:srcset="|${thumbnail.gen(cover, 's')} 400w,
               ${thumbnail.gen(cover, 'm')} 800w,
               ${thumbnail.gen(cover, 'l')} 1200w,
               ${thumbnail.gen(cover, 'xl')} 1600w|"
-            sizes="(max-width: 1600px) 100vw, 1600px"
-            th:src="${theme.config.carousel.banner_lazyload_img}"
-            th:alt="${post.spec.title}"
-            onerror="Joe.errorImg(this, 'HomeErrImg')"
-          />
-        </th:block>
-
-        <div class="title-row">
-          <h3 class="title">[[${post.spec.title}]]</h3>
-
-          <th:block th:if="${post.status.excerpt != ''}">
-            <p class="subtitle">[[${post.status.excerpt}]]</p>
+              sizes="(max-width: 1600px) 100vw, 1600px"
+              th:src="${theme.config.carousel.banner_lazyload_img}"
+              th:alt="${post.spec.title}"
+              onerror="Joe.errorImg(this, 'HomeErrImg')"
+            />
           </th:block>
-        </div>
 
-        <i class="joe-font joe-icon-zhifeiji"></i>
-      </a>
-    </div>
+          <div class="title-row">
+            <h3 class="title">[[${post.spec.title}]]</h3>
+
+            <th:block th:if="${post.status.excerpt != ''}">
+              <p class="subtitle">[[${post.status.excerpt}]]</p>
+            </th:block>
+          </div>
+
+          <i class="joe-font joe-icon-zhifeiji"></i>
+        </a>
+      </div>
+    </th:block>
   </th:block>
   <th:block th:fragment="data_by_custom(banner_url, banner_cover, banner_title, banner_excerpt)">
     <div class="swiper-slide">
@@ -90,7 +95,11 @@
   sort: {'stats.visit,desc', 'metadata.creationTimestamp,asc'}
 })}"
     >
-      <div class="swiper-slide" th:each="post : ${posts.items}">
+      <div
+        class="swiper-slide"
+        th:each="post : ${posts.items}"
+        th:if="${post.spec.visible != null and post.spec.visible.name == 'PUBLIC'}"
+      >
         <a
           class="item"
           th:classappend="${post.status.permalink !='' ? 'clickable': ''}"

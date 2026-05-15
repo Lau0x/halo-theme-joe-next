@@ -121,59 +121,61 @@
             th:if="${theme.config.basic.comment_option == 'default'} or ${#strings.trim(theme.config.basic.waline.waline_serverURL) ==''}"
             th:each="result : ${commentFinder.list(null,1,new_reply_data.show_newreply_num)}"
           >
-            <!--th:data-src="${result.owner.avatar ?: (theme.config.blogger.default_avatar ?: '/themes/theme-Joe3/assets/img/transparent-placeholder.png')}"-->
-
-            <li class="item">
-              <div class="user">
-                <img
-                  width="35"
-                  height="35"
-                  class="avatar lazyload"
-                  th:data-src="${#strings.isEmpty(result.owner.avatar)? 'https://cravatar.cn/avatar/'+result.spec.owner.annotations['email-hash'] :result.owner.avatar}"
-                  th:src="${theme.config.blogger.lazyload_avatar}"
-                  alt="头像"
-                  th:data-text-avatar="${result.owner.displayName}"
-                  onload="Joe.loadedPlaceholderReplaceImg(this, 'AvatarImg')"
-                  onerror="Joe.errorImg(this, 'ErrAvatarImg')"
-                />
-                <div class="info">
-                  <div class="author">[[${result.owner.displayName}]]</div>
-                  <span class="date"
-                    >[[${#temporals.format(result.spec.creationTime, 'yyyy-MM-dd HH:mm:ss')}]]</span
-                  >
+            <th:block
+              th:with="postSubject=${result.spec.subjectRef.kind == 'Post' ? postFinder.getByName(result.spec.subjectRef.name) : null},
+                       pageSubject=${result.spec.subjectRef.kind == 'SinglePage' ? singlePageFinder.getByName(result.spec.subjectRef.name) : null}"
+            >
+              <li
+                class="item"
+                th:if="${(result.spec.subjectRef.kind == 'Post' and postSubject != null and postSubject.spec.visible != null and postSubject.spec.visible.name == 'PUBLIC') or (result.spec.subjectRef.kind == 'SinglePage' and result.spec.subjectRef.name != 'links' and pageSubject != null and pageSubject.spec.visible != null and pageSubject.spec.visible.name == 'PUBLIC') or result.spec.subjectRef.kind == 'Plugin'}"
+              >
+                <div class="user">
+                  <img
+                    width="35"
+                    height="35"
+                    class="avatar lazyload"
+                    th:data-src="${#strings.isEmpty(result.owner.avatar)? 'https://cravatar.cn/avatar/'+result.spec.owner.annotations['email-hash'] :result.owner.avatar}"
+                    th:src="${theme.config.blogger.lazyload_avatar}"
+                    alt="头像"
+                    th:data-text-avatar="${result.owner.displayName}"
+                    onload="Joe.loadedPlaceholderReplaceImg(this, 'AvatarImg')"
+                    onerror="Joe.errorImg(this, 'ErrAvatarImg')"
+                  />
+                  <div class="info">
+                    <div class="author">[[${result.owner.displayName}]]</div>
+                    <span
+                      class="date"
+                      th:text="${#temporals.format(result.spec.creationTime, 'yyyy-MM-dd HH:mm:ss')}"
+                    ></span>
+                  </div>
                 </div>
-              </div>
-              <div class="reply">
-                <th:block
-                  th:if="${result.spec.subjectRef.kind == 'SinglePage'}  and ${result.spec.subjectRef.name != 'links'}"
-                >
+                <div class="reply">
                   <th:block
-                    th:with="singlePage = ${singlePageFinder.getByName(result.spec.subjectRef.name)}"
+                    th:if="${result.spec.subjectRef.kind == 'SinglePage'}  and ${result.spec.subjectRef.name != 'links'}"
                   >
-                    <a class="link aside-reply-content" th:href="@{${singlePage.status.permalink}}">
+                    <a
+                      class="link aside-reply-content"
+                      th:href="@{${pageSubject.status.permalink}}"
+                    >
                       <p th:utext="${result.spec.content}"></p>
                     </a>
                   </th:block>
-                </th:block>
-                <th:block th:if="${result.spec.subjectRef.kind == 'Plugin'}">
-                  <a class="link aside-reply-content" th:href="@{/links}">
-                    <p th:utext="${result.spec.content}"></p>
-                  </a>
-                </th:block>
-                <th:block th:if="${result.spec.subjectRef.kind == 'Post'}">
-                  <th:block th:with="post = ${postFinder.getByName(result.spec.subjectRef.name)}">
-                    <a class="link aside-reply-content" th:href="@{${post.status.permalink}}">
+                  <th:block th:if="${result.spec.subjectRef.kind == 'Plugin'}">
+                    <a class="link aside-reply-content" th:href="@{/links}">
                       <p th:utext="${result.spec.content}"></p>
                     </a>
                   </th:block>
-                </th:block>
-                <th:block th:if="${result.spec.subjectRef.kind == 'Moment'}">
-                  <a class="link aside-reply-content" th:href="@{/moments}">
-                    <p th:utext="${result.spec.content}"></p>
-                  </a>
-                </th:block>
-              </div>
-            </li>
+                  <th:block th:if="${result.spec.subjectRef.kind == 'Post'}">
+                    <a
+                      class="link aside-reply-content"
+                      th:href="@{${postSubject.status.permalink}}"
+                    >
+                      <p th:utext="${result.spec.content}"></p>
+                    </a>
+                  </th:block>
+                </div>
+              </li>
+            </th:block>
           </th:block>
         </ul>
         <th:block
@@ -190,6 +192,29 @@
           <script type="module" th:inline="javascript">
             import { RecentComments } from /*[[${theme.config.basic.waline.waline_js_leaving}]]*/ '';
 
+            const escapeHTML = (value = '') =>
+              String(value).replace(
+                /[&<>"']/g,
+                (char) =>
+                  ({
+                    '&': '&amp;',
+                    '<': '&lt;',
+                    '>': '&gt;',
+                    '"': '&quot;',
+                    "'": '&#39;',
+                  })[char]
+              );
+
+            const safeURL = (value, fallback = '#') => {
+              if (!value) return fallback;
+              try {
+                const url = new URL(value, window.location.origin);
+                return ['http:', 'https:', 'mailto:'].includes(url.protocol) ? url.href : fallback;
+              } catch {
+                return fallback;
+              }
+            };
+
             RecentComments({
               serverURL: /*[[${theme.config.basic.waline.waline_serverURL}]]*/ '',
               count: /*[[${new_reply_data.show_newreply_num}]]*/ 5,
@@ -197,14 +222,16 @@
               document.getElementById('waline-recent').innerHTML = comments
                 .map((comment) => {
                   const commentContent = document.createElement('div');
-                  let commentText = '';
-                  commentContent.innerHTML = comment.comment;
-                  const hasAnchor = commentContent.querySelector('a') !== null;
-                  if (hasAnchor) {
-                    commentText = commentContent.textContent;
-                  } else {
-                    commentText = commentContent.outerHTML || commentContent.textContent;
-                  }
+                  commentContent.innerHTML = comment.comment || '';
+                  const commentText = escapeHTML(commentContent.textContent || '');
+                  const nick = escapeHTML(comment.nick || '匿名');
+                  const avatarPlaceholder =
+                    '/themes/theme-Joe3/assets/img/transparent-placeholder.png';
+                  const avatar = escapeHTML(safeURL(comment.avatar, avatarPlaceholder));
+                  const lazyloadAvatar = escapeHTML(
+                    safeURL(ThemeConfig.lazyload_avatar, avatarPlaceholder)
+                  );
+                  const url = escapeHTML(safeURL(comment.url));
 
                   const timestamp = new Date(comment.time);
 
@@ -220,16 +247,16 @@
                   const commentTime = `${year}-${month < 10 ? '0' : ''}${month}-${day < 10 ? '0' : ''}${day} ${hours < 10 ? '0' : ''}${hours}:${minutes < 10 ? '0' : ''}${minutes}:${seconds < 10 ? '0' : ''}${seconds}`;
 
                   return `<li class="item">
-                    <div class="user">
-                        <img width="35" height="35" class="avatar lazyload" data-src="${comment.avatar || '/themes/theme-Joe3/assets/img/transparent-placeholder.png'}" src="${ThemeConfig.lazyload_avatar}"  alt="头像" data-text-avatar="${comment.nick}" onload="Joe.loadedPlaceholderReplaceImg(this, 'AvatarImg')" onerror="Joe.errorImg(this, 'ErrAvatarImg')" />
-                        <div class="info">
-                            <div class="author">${comment.nick}</div>
-                            <span class="date">${commentTime}</span>
-                        </div>
-                    </div>
-                    <div class="reply">
-                    <a href="${comment.url}" class="link aside-reply-content">${commentText}</a>
-                    </div>`;
+		                    <div class="user">
+		                        <img width="35" height="35" class="avatar lazyload" data-src="${avatar}" src="${lazyloadAvatar}"  alt="头像" data-text-avatar="${nick}" onload="Joe.loadedPlaceholderReplaceImg(this, 'AvatarImg')" onerror="Joe.errorImg(this, 'ErrAvatarImg')" />
+		                        <div class="info">
+		                            <div class="author">${nick}</div>
+		                            <span class="date">${commentTime}</span>
+		                        </div>
+		                    </div>
+		                    <div class="reply">
+		                    <a href="${url}" class="link aside-reply-content">${commentText}</a>
+		                    </div></li>`;
                 })
                 .join('');
             });

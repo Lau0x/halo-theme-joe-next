@@ -6,7 +6,7 @@
       - WebSite   (所有页面 · 含 SearchAction)
       - BlogPosting   (post != null · 文章页)
       - BreadcrumbList   (post != null 且 有 category · 文章页)
-    Author 固定 "咕咕" (按 v1.6.8 sprint 用户决策).
+    Author 优先取文章作者，其次取主题博主昵称，最后回落到站点标题.
     datePublished 格式: ISO 8601 with JVM 时区 offset (如 +08:00) 用 XXX pattern.
     URL 策略: 绝对化 · cover/logo/permalink 若非 http 开头则 siteUrlClean + path.
     转义策略: th:inline="javascript" 让 Thymeleaf 对字符串自动加双引号 + JS-safe 转义,
@@ -15,7 +15,7 @@
   <th:block
     th:fragment="json_ld_blocks"
     th:with="siteUrlClean = ${#strings.endsWith(site.url, '/') ? #strings.substring(site.url, 0, #strings.length(site.url) - 1) : site.url},
-             jsonAuthor = '咕咕',
+             jsonAuthor = ${!#strings.isEmpty(theme.config.blogger.nickname) ? theme.config.blogger.nickname : site.title},
              jsonLogo = ${!#strings.isEmpty(site.logo) ? (#strings.startsWith(site.logo, 'http') ? site.logo : siteUrlClean + site.logo) : (!#strings.isEmpty(site.favicon) ? (#strings.startsWith(site.favicon, 'http') ? site.favicon : siteUrlClean + site.favicon) : siteUrlClean + '/favicon.ico')}"
   >
     <!-- 1. WebSite · all pages -->
@@ -43,6 +43,7 @@
                postImageRaw = ${!#strings.isEmpty(post.spec.cover) ? post.spec.cover : jsonLogo},
                postImage = ${#strings.startsWith(postImageRaw, 'http') ? postImageRaw : siteUrlClean + postImageRaw},
                postDesc = ${!#strings.isEmpty(post.status.excerpt) ? post.status.excerpt : site.seo.description},
+               postAuthor = ${post.owner != null and !#strings.isEmpty(post.owner.displayName) ? post.owner.displayName : jsonAuthor},
                datePub = ${post.spec.publishTime != null ? #dates.format(post.spec.publishTime, 'yyyy-MM-dd''T''HH:mm:ssXXX') : ''}"
     >
       <script type="application/ld+json" th:inline="javascript">
@@ -56,7 +57,7 @@
           "dateModified": [[${datePub}]],
           "author": {
             "@type": "Person",
-            "name": [[${jsonAuthor}]]
+            "name": [[${postAuthor}]]
           },
           "publisher": {
             "@type": "Organization",

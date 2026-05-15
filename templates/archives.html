@@ -60,7 +60,11 @@
                     <ul class="joe_archives-list">
                       <th:block th:each="archive : ${archives.items}">
                         <th:block th:each="month : ${archive.months}">
-                          <li class="item" th:each="post : ${month.posts}">
+                          <li
+                            class="item"
+                            th:each="post : ${month.posts}"
+                            th:if="${post.spec.visible != null and post.spec.visible.name == 'PUBLIC'}"
+                          >
                             <a
                               rel="noopener noreferrer"
                               target="_blank"
@@ -97,7 +101,10 @@
                                 <i class="joe-font joe-icon-arrow-down"></i>
                               </div>
                               <ol class="panel-body">
-                                <li th:each="post : ${month.posts}">
+                                <li
+                                  th:each="post : ${month.posts}"
+                                  th:if="${post.spec.visible != null and post.spec.visible.name == 'PUBLIC'}"
+                                >
                                   <a
                                     rel="noopener noreferrer"
                                     target="_blank"
@@ -126,7 +133,10 @@
                                   th:if="${theme.config.archives.archives_timeline_metric == 'year'}"
                                   th:each="month : ${archive.months}"
                                 >
-                                  <li th:each="post : ${month.posts}">
+                                  <li
+                                    th:each="post : ${month.posts}"
+                                    th:if="${post.spec.visible != null and post.spec.visible.name == 'PUBLIC'}"
+                                  >
                                     <a
                                       rel="noopener noreferrer"
                                       target="_blank"

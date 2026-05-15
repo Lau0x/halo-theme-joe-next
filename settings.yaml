@@ -944,7 +944,7 @@ spec:
           key: big_banner_Photos
           if: '$get(enable_big_banner).value === true'
           label: 图片或者api地址
-          value: 'http://imgapi.xl0408.top/index.php'
+          value: 'https://imgapi.xl0408.top/index.php'
           help: '填写图片地址或者随机图api地址'
         - $formkit: switch
           value: false

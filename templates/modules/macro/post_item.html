@@ -2,8 +2,9 @@
 <html th:lang="${#locale.toLanguageTag}" xmlns:th="https://www.thymeleaf.org">
   <th:block th:fragment="post_item">
     <li
-      th:class="'joe_list__item default ' + ${htmlType == 'index' ? 'animated wow' : ''} + ${htmlType == 'index' ? ' data-wow-delay=&quot;0.' + iteration.index + 's&quot;' : ''}"
+      th:class="'joe_list__item default ' + ${htmlType == 'index' ? 'animated wow' : ''}"
       th:style="'animation-delay: '+${'0.'+iteration.index}+'s;'"
+      th:if="${post.spec.visible != null and post.spec.visible.name == 'PUBLIC'}"
     >
       <th:block th:if="${theme.config.home.enable_post_thumbnail}">
         <a

@@ -3,7 +3,12 @@
   <th:block th:fragment="post_operate_aside">
     <ul
       class="aside_operations"
-      th:with="site_url = ${#strings.substring(site.url, #strings.length(site.url) - 1)== '/'}? ${#strings.substring(site.url,0,#strings.length(site.url) - 1)}:${site.url}"
+      th:with="site_url = ${#strings.substring(site.url, #strings.length(site.url) - 1)== '/'}? ${#strings.substring(site.url,0,#strings.length(site.url) - 1)}:${site.url},
+               post_url = ${site_url + post.status.permalink},
+               share_title = ${'『' + post.spec.title + '』，作者：' + post.owner.displayName},
+               share_text = ${'分享：『' + post.spec.title + '』，作者：' + post.owner.displayName + '，原文链接：' + site_url + post.status.permalink},
+               share_cover = ${!#strings.isEmpty(post.spec.cover) ? post.spec.cover : ''},
+               share_excerpt = ${!#strings.isEmpty(post.status.excerpt) ? post.status.excerpt : ''}"
     >
       <th:block
         th:if="${#annotations.getOrDefault(post, 'enable_like', 'true')} and ${theme.config.post.enable_like}"
@@ -66,7 +71,7 @@
             </th:block>
             <th:block th:if="${theme.config.post.enable_share_weibo}">
               <a
-                th:href="'http://service.weibo.com/share/share.php?sharesource=weibo&title=分享：『'+${post.spec.title}+'』，作者：'+${post.owner.displayName}+'，原文链接：'+${site_url}+${post.status.permalink}+'&pic='+${post.spec.cover}"
+                th:href="${'https://service.weibo.com/share/share.php?sharesource=weibo&title=' + #uris.escapeQueryParam(share_text) + '&pic=' + #uris.escapeQueryParam(share_cover)}"
                 target="_blank"
                 rel="noopener noreferrer"
                 title="分享到新浪微博"
@@ -95,7 +100,7 @@
             </th:block>
             <th:block th:if="${theme.config.post.enable_share_qq}">
               <a
-                th:href="'https://connect.qq.com/widget/shareqq/index.html?url='+${site_url}+${post.status.permalink}+'&title=『'+${post.spec.title}+'』，作者：'+${post.owner.displayName}+'&pics='+${post.spec.cover}"
+                th:href="${'https://connect.qq.com/widget/shareqq/index.html?url=' + #uris.escapeQueryParam(post_url) + '&title=' + #uris.escapeQueryParam(share_title) + '&pics=' + #uris.escapeQueryParam(share_cover)}"
                 target="_blank"
                 rel="noopener noreferrer"
                 title="分享到QQ"
@@ -116,7 +121,7 @@
             </th:block>
             <th:block th:if="${theme.config.post.enable_share_qzone}">
               <a
-                th:href="'https://sns.qzone.qq.com/cgi-bin/qzshare/cgi_qzshare_onekey?url='+${site_url}+${post.status.permalink}+'&sharesource=qzone&title=『'+${post.spec.title}+'』，作者：'+${post.owner.displayName}+'&pics='+${post.spec.cover}+'&summary='+${post.status.excerpt}"
+                th:href="${'https://sns.qzone.qq.com/cgi-bin/qzshare/cgi_qzshare_onekey?url=' + #uris.escapeQueryParam(post_url) + '&sharesource=qzone&title=' + #uris.escapeQueryParam(share_title) + '&pics=' + #uris.escapeQueryParam(share_cover) + '&summary=' + #uris.escapeQueryParam(share_excerpt)}"
                 target="_blank"
                 rel="noopener noreferrer"
                 title="分享到QQ空间"
@@ -165,7 +170,7 @@
             <!-- #358 分享渠道扩展 · X (Twitter) -->
             <th:block th:if="${theme.config.post.enable_share_x}">
               <a
-                th:href="'https://twitter.com/intent/tweet?url='+${site_url}+${post.status.permalink}+'&text='+${post.spec.title}"
+                th:href="${'https://twitter.com/intent/tweet?url=' + #uris.escapeQueryParam(post_url) + '&text=' + #uris.escapeQueryParam(post.spec.title)}"
                 target="_blank"
                 rel="noopener noreferrer"
                 title="分享到 X"
@@ -189,7 +194,7 @@
             <!-- #358 分享渠道扩展 · Telegram -->
             <th:block th:if="${theme.config.post.enable_share_telegram}">
               <a
-                th:href="'https://t.me/share/url?url='+${site_url}+${post.status.permalink}+'&text='+${post.spec.title}"
+                th:href="${'https://t.me/share/url?url=' + #uris.escapeQueryParam(post_url) + '&text=' + #uris.escapeQueryParam(post.spec.title)}"
                 target="_blank"
                 rel="noopener noreferrer"
                 title="分享到 Telegram"

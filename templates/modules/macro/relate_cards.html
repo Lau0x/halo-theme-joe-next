@@ -29,7 +29,7 @@
               >
                 <a
                   th:each="recommendPost : ${recommendPosts.items}"
-                  th:if="${post.metadata.name != recommendPost.metadata.name}"
+                  th:if="${post.metadata.name != recommendPost.metadata.name and recommendPost.spec.visible != null and recommendPost.spec.visible.name == 'PUBLIC'}"
                   th:with="postCover=${#lists.isEmpty(theme.config.home.post_thumbnail) ? theme.config.basic.random_img_api_url+'?pageid='+recommendPost.metadata.name : theme.config.home.post_thumbnail},
                            cardCover=${recommendPost.spec.cover ?: postCover}"
                   class="joe_related__card"
@@ -76,7 +76,7 @@
               >
                 <a
                   th:each="recommendPost : ${recommendPosts.items}"
-                  th:if="${post.metadata.name != recommendPost.metadata.name}"
+                  th:if="${post.metadata.name != recommendPost.metadata.name and recommendPost.spec.visible != null and recommendPost.spec.visible.name == 'PUBLIC'}"
                   th:with="postCover=${#lists.isEmpty(theme.config.home.post_thumbnail) ? theme.config.basic.random_img_api_url+'?pageid='+recommendPost.metadata.name : theme.config.home.post_thumbnail},
                            cardCover=${recommendPost.spec.cover ?: postCover}"
                   class="joe_related__card"
