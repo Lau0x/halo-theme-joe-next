@@ -174,10 +174,14 @@
         th:href="${source_link+'/assets/cursor/style/min/'+theme.config.theme.cursor_skin+'.min.css'}"
       />
     </th:block>
-    <link
-      rel="preload stylesheet"
-      as="style"
-      th:href="${source_link+'/assets/css/min/beauty.min.css?v='+theme.spec.version}"
-    />
+    <th:block
+      th:if="${#bools.isTrue(theme.config.beauty.enable_big_banner) or htmlType == 'links'}"
+    >
+      <link
+        rel="preload stylesheet"
+        as="style"
+        th:href="${source_link+'/assets/css/min/beauty.min.css?v='+theme.spec.version}"
+      />
+    </th:block>
   </th:block>
 </html>

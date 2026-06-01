@@ -168,19 +168,56 @@
                         max-width: 100%;
                       }
                     </style>
-                    <script type="module" th:inline="javascript">
-                      import { RecentComments } from /*[[${theme.config.basic.waline.waline_js_leaving}]]*/ '';
+                    <script th:inline="javascript">
+                      const escapeHTML = (value = '') =>
+                        String(value).replace(
+                          /[&<>"']/g,
+                          (char) =>
+                            ({
+                              '&': '&amp;',
+                              '<': '&lt;',
+                              '>': '&gt;',
+                              '"': '&quot;',
+                              "'": '&#39;',
+                            })[char]
+                        );
+
+                      const safeURL = (value, fallback = '#') => {
+                        if (!value) return fallback;
+                        try {
+                          const url = new URL(value, window.location.origin);
+                          return ['http:', 'https:', 'mailto:'].includes(url.protocol)
+                            ? url.href
+                            : fallback;
+                        } catch {
+                          return fallback;
+                        }
+                      };
+
                       const serverURL = /*[[${theme.config.basic.waline.waline_serverURL}]]*/ '';
                       const path = window.location.pathname;
+                      const avatarPlaceholder =
+                        '/themes/theme-Joe3/assets/img/transparent-placeholder.png';
 
-                      const url = serverURL + '/api/comment?path=' + path + '&pageSize=100';
+                      const url =
+                        serverURL +
+                        '/api/comment?path=' +
+                        encodeURIComponent(path) +
+                        '&pageSize=100';
 
                       fetch(url).then(async (response) => {
                         const data = await response.json();
-                        console.log(data.data.data);
-                        const comments = data.data.data;
+                        const comments = data?.data?.data || [];
                         document.getElementById('waline-leaving').innerHTML = comments
                           .map((comment) => {
+                            const commentContent = document.createElement('div');
+                            commentContent.innerHTML = comment.comment || '';
+                            const commentText = escapeHTML(commentContent.textContent || '');
+                            const nick = escapeHTML(comment.nick || '匿名');
+                            const avatar = escapeHTML(safeURL(comment.avatar, avatarPlaceholder));
+                            const lazyloadAvatar = escapeHTML(
+                              safeURL(ThemeConfig.lazyload_avatar, avatarPlaceholder)
+                            );
                             const timestamp = new Date(comment.time);
 
                             // 获取年、月、日、时、分、秒
@@ -195,13 +232,13 @@
                             const commentTime = `${year}-${month < 10 ? '0' : ''}${month}-${day < 10 ? '0' : ''}${day}`;
                             return `<li class="item">
               <div class="user">
-                <img class="avatar lazyload" src="${ThemeConfig.lazyload_avatar}" alt="用户头像"
-                     data-src="${comment.avatar || '/themes/theme-Joe3/assets/img/transparent-placeholder.png'}" data-text-avatar="${comment.nick}" onload="Joe.loadedPlaceholderReplaceImg(this, 'AvatarImg')" onerror="Joe.errorImg(this, 'ErrAvatarImg')" />
-                <div class="nickname" >${comment.nick}</div>
+                <img class="avatar lazyload" src="${lazyloadAvatar}" alt="用户头像"
+                     data-src="${avatar}" data-text-avatar="${nick}" onload="Joe.loadedPlaceholderReplaceImg(this, 'AvatarImg')" onerror="Joe.errorImg(this, 'ErrAvatarImg')" />
+                <div class="nickname" >${nick}</div>
                 <div class="date" >${commentTime}</div>
               </div>
               <div class="wrapper">
-                <div class="content leaving-content" >${comment.comment}</div>
+                <div class="content leaving-content" >${commentText}</div>
               </div>
             </li>`;
                           })

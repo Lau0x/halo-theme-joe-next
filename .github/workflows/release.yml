@@ -17,7 +17,7 @@ on:
         required: true
 
 permissions:
-  contents: write   # 创建 release 需要
+  contents: write # 创建 release 需要
 
 jobs:
   release:
@@ -65,8 +65,14 @@ jobs:
             ls -la dist/ 2>/dev/null || echo "(dist/ missing)"
             exit 1
           fi
+          zip_name=$(basename "$zip_file")
+          current_tag="${{ inputs.tag || github.ref_name }}"
+          download_url="https://github.com/${{ github.repository }}/releases/download/${current_tag}/${zip_name}"
           echo "zip=$zip_file" >> "$GITHUB_OUTPUT"
+          echo "zip_name=$zip_name" >> "$GITHUB_OUTPUT"
+          echo "download_url=$download_url" >> "$GITHUB_OUTPUT"
           echo "Release zip: $zip_file ($(du -h "$zip_file" | cut -f1))"
+          echo "Download URL: $download_url"
 
       - name: Build commit list + tag highlight since previous tag
         id: commits
@@ -122,6 +128,10 @@ jobs:
           body: |
             ${{ steps.commits.outputs.highlight }}
 
+            ## 直接下载
+
+            [${{ steps.find-zip.outputs.zip_name }}](${{ steps.find-zip.outputs.download_url }})
+
             ## 本次变更（${{ steps.commits.outputs.human_range }}）
 
             ${{ steps.commits.outputs.commits }}
@@ -150,3 +160,10 @@ jobs:
             ## License
 
             [CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/) — 原作 © Jiewenhuang，本 fork 由 Roy Leo 继续维护。
+
+      - name: Write download URL to workflow summary
+        run: |
+          {
+            echo "### Download"
+            echo "${{ steps.find-zip.outputs.download_url }}"
+          } >> "$GITHUB_STEP_SUMMARY"
