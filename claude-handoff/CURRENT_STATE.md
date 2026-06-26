@@ -3,7 +3,7 @@
 ## 项目
 
 - 仓库：`Lau0x/halo-theme-joe-next`
-- 本地路径：`/Users/royleo/Documents/Codex/halo_theme/halo-theme-joe-next`
+- 本地路径：`/Users/royleo/Documents/CC/codextocc/halo_theme/halo-theme-joe-next`
 - 技术栈：Halo 2.x、Thymeleaf、jQuery、Less、rolldown、pnpm 10.x
 - 最新 stable：`v1.6.11.8`
 - 最新 commit：`c69ce5a chore(theme): v1.6.11.8 · 发布直链与 Waline 稳定性`
