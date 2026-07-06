@@ -7,6 +7,18 @@
 > - **主题配置说明**：见 [docs/configuration.md](docs/configuration.md)
 > - **NPM 反代配置**：见 [docs/deployment/npm-setup.md](docs/deployment/npm-setup.md)
 > - **本文件**：项目身份 + 红线 + 踩坑速查 + 接活 SOP
+> - **一页纸入口 + 状态快照**：见 [handoff/HANDOFF.md](handoff/HANDOFF.md)
+
+---
+
+## 0. 给 Codex 的开工提示
+
+Codex 默认自动读本文件（`AGENTS.md`）——你已经在正确的入口。
+
+1. 想要最短路径 + 当前状态快照，先扫一眼 [handoff/HANDOFF.md](handoff/HANDOFF.md)，再回本文看细节。
+2. 动手前务必先跑 §4 的接活 SOP，确认最新 release / 未 push commit / 开着的 PR。
+3. 三条红线（§3）任何一条都不能碰；**不 push，除非 Roy 明确说“推”**。
+4. 默认中文回复 Roy，简洁、先给结论。改完至少跑 `git diff --check` + `pnpm build`。
 
 ---
 
@@ -19,22 +31,23 @@
 - **生产参考站**：见 README.md 顶部链接（截图即实站）
 - **技术栈**：Halo 2.x（Spring Boot WebFlux + Thymeleaf + R2DBC）· jQuery 3.7.1 · less · rolldown build · pnpm 10.x
 
-## 2. 当前状态（最后更新：2026-06-02）
+## 2. 当前状态（最后更新：2026-07-06）
 
 - **最新 stable**：`v1.6.11.8`（2026-06-01）
 - **最新下载链接**：`https://github.com/Lau0x/halo-theme-joe-next/releases/download/v1.6.11.8/theme-Joe3-1.6.11.8.zip`
+- **交接说明**：项目从 Claude Code 移交 Codex 维护；`main` 领先 origin 若干未推的 docs commit（交接文档整理），代码无改动。
 - **近期 sprint 焦点**：发布直链自动化、Waline 稳定性、私密内容可见性兜底、资源瘦身
 - **维护者生产站**：优先使用 GitHub Release zip 手动上传升级
 
 近 5 版概览（详见 CHANGELOG.md）：
 
-| 版本 | 主题 |
-|---|---|
+| 版本      | 主题                                                                                      |
+| --------- | ----------------------------------------------------------------------------------------- |
 | v1.6.11.8 | 发布直链与 Waline 稳定性（Release 正文写 zip 直链 · Waline v2 默认锁定 · 留言页安全渲染） |
-| v1.6.11.7 | 可见性兜底与资源瘦身（私密文章/动态前台白名单过滤 · 包体约 22M → 16.4M） |
-| v1.6.11.6 | Open Graph 分享卡优化（og:title 去 site 后缀 · og:image 条件输出 · 路径绝对化） |
-| v1.6.11.5 | 暗色模式评论组件 primary 色（绿 → 紫，跟 `--theme` 协调） |
-| v1.6.11.4 | 评论 success toast 主题色（Shadow DOM 注样式 patch） |
+| v1.6.11.7 | 可见性兜底与资源瘦身（私密文章/动态前台白名单过滤 · 包体约 22M → 16.4M）                  |
+| v1.6.11.6 | Open Graph 分享卡优化（og:title 去 site 后缀 · og:image 条件输出 · 路径绝对化）           |
+| v1.6.11.5 | 暗色模式评论组件 primary 色（绿 → 紫，跟 `--theme` 协调）                                 |
+| v1.6.11.4 | 评论 success toast 主题色（Shadow DOM 注样式 patch）                                      |
 
 ---
 
@@ -43,9 +56,9 @@
 ### 红线 ① · 升级兼容铁三角不准改
 
 ```yaml
-metadata.name:      theme-Joe3              # ← 不准改
-spec.settingName:   theme-Joe-setting       # ← 不准改
-spec.configMapName: theme-Joe-configMap     # ← 不准改
+metadata.name: theme-Joe3 # ← 不准改
+spec.settingName: theme-Joe-setting # ← 不准改
+spec.configMapName: theme-Joe-configMap # ← 不准改
 ```
 
 这三个字段必须跟上游 `jiewenhuang/halo-theme-joe3.0` 100% 一致——只有这样老用户在 Halo Console 上传新 zip 才能**原地覆盖升级**，后台配置（颜色、Waline、博主信息）不丢。
@@ -119,9 +132,11 @@ sed -n '/^## \[/,/^## \[/p' CHANGELOG.md | head -120
 7. **连续 2 版同方向失败 → 立即加 debug marker**：
 
    ```html
-   <span style="display: none"
-         th:attr="data-debug-x=${someExpr},
-                  data-debug-x-class=${someExpr != null ? someExpr.getClass().getName() : 'null'}">
+   <span
+     style="display: none"
+     th:attr="data-debug-x=${someExpr},
+                  data-debug-x-class=${someExpr != null ? someExpr.getClass().getName() : 'null'}"
+   >
    </span>
    ```
 
@@ -154,9 +169,15 @@ sed -n '/^## \[/,/^## \[/p' CHANGELOG.md | head -120
 
 ```css
 grid-template-columns: repeat(N, minmax(0, 1fr));
-.grid-item { min-width: 0; }                 /* 兜底 */
-.grid-item pre { overflow-x: auto; }          /* 代码块 */
-.grid-item .ugc { overflow-wrap: anywhere; } /* UGC / 长 URL */
+.grid-item {
+  min-width: 0;
+} /* 兜底 */
+.grid-item pre {
+  overflow-x: auto;
+} /* 代码块 */
+.grid-item .ugc {
+  overflow-wrap: anywhere;
+} /* UGC / 长 URL */
 ```
 
 ### 5.4 主题模板必须自做 visibility 白名单过滤
@@ -211,11 +232,11 @@ gh workflow run release.yml --repo Lau0x/halo-theme-joe-next --field tag=vX.Y.Z
 
 ### 6.1 三档授权（很重要）
 
-| 档 | 类型 | 动作 |
-|---|---|---|
-| 🟢 全权 | patch / docs / chore（拼写、补文档、CSS 色微调、bug fix） | 打 tag → 直接发，做完报告 |
-| 🟡 过目（默认） | minor feat（新功能、视觉改动、非破坏性增量） | 写好 notes 贴给用户看 → 用户点头才推 |
-| 🔴 必对齐 | major / breaking（schema 破坏、API 弃用、v2.0） | 先讨论版本号 + 时机 → 用户明确授权才发 |
+| 档              | 类型                                                      | 动作                                   |
+| --------------- | --------------------------------------------------------- | -------------------------------------- |
+| 🟢 全权         | patch / docs / chore（拼写、补文档、CSS 色微调、bug fix） | 打 tag → 直接发，做完报告              |
+| 🟡 过目（默认） | minor feat（新功能、视觉改动、非破坏性增量）              | 写好 notes 贴给用户看 → 用户点头才推   |
+| 🔴 必对齐       | major / breaking（schema 破坏、API 弃用、v2.0）           | 先讨论版本号 + 时机 → 用户明确授权才发 |
 
 ### 6.2 标准发版步骤（按顺序跑）
 
@@ -288,18 +309,21 @@ CHANGELOG.md                             # Keep-a-Changelog
 ## 8. Parking · 待办池（次要 / 阻塞中）
 
 ### 需用户提供复现才能动
+
 - upstream#380 标题文字阴影（无截图）
 - upstream#351 Waline 路由（需启用 Waline 的用户复现）
 - upstream#363 控制台报错（细节不明）
 - upstream#353 搜索空格（非主题层，转 `plugin-search-widget`）
 
 ### 独立 PR · 改动大需生产验证
+
 - **lib/ 进一步裁剪**：待核查 `katex@0.13.18` 2.3MB / `pdfjs` 6.9MB / `halo-comment` 8.2MB 是否还在用
 - **jQuery 全量 defer**：给 tail.html 所有 jQuery-dep `<script>` 统一 defer（真正的 render-blocking 优化，回归面大）
 - **AdSense 手动 slot 模式**：当前只有 Auto Ads
 - **aside.html / aside_post.html 的 switch 块抽 fragment 复用**
 
 ### 长期理想
+
 - **Halo 应用市场注册发布**（在 halo.run/developers 注册新 app-id · 不能复用上游 `app-ZxiPb` · 见红线 ②）
 - upstream#364 pjax 支持
 - upstream#339 中英切换
@@ -322,16 +346,16 @@ CHANGELOG.md                             # Keep-a-Changelog
 
 ## 10. 关联文档地图
 
-| 文档 | 用途 |
-|---|---|
-| [README.md](README.md) | 用户面对的安装 / 升级 / 截图 |
-| [CHANGELOG.md](CHANGELOG.md) | 所有版本变更记录（Keep-a-Changelog 格式） |
-| [docs/configuration.md](docs/configuration.md) | 主题配置详细（Waline / 天气 / Iconfont / 阅读样式） |
-| [docs/release-sop.md](docs/release-sop.md) | 发版完整 SOP（核心 3 原则 + 完整流程） |
-| [docs/deployment/npm-setup.md](docs/deployment/npm-setup.md) | NPM 反代完整配置 + securityheaders A 评级 |
-| `.github/workflows/release.yml` | tag 触发 → 自动 build zip + 创建 Release |
-| `.github/workflows/build.yml` | push/PR 触发 → build 验证 |
-| `.github/dependabot.yml` | npm 周扫 + GH Actions 月扫 |
+| 文档                                                         | 用途                                                |
+| ------------------------------------------------------------ | --------------------------------------------------- |
+| [README.md](README.md)                                       | 用户面对的安装 / 升级 / 截图                        |
+| [CHANGELOG.md](CHANGELOG.md)                                 | 所有版本变更记录（Keep-a-Changelog 格式）           |
+| [docs/configuration.md](docs/configuration.md)               | 主题配置详细（Waline / 天气 / Iconfont / 阅读样式） |
+| [docs/release-sop.md](docs/release-sop.md)                   | 发版完整 SOP（核心 3 原则 + 完整流程）              |
+| [docs/deployment/npm-setup.md](docs/deployment/npm-setup.md) | NPM 反代完整配置 + securityheaders A 评级           |
+| `.github/workflows/release.yml`                              | tag 触发 → 自动 build zip + 创建 Release            |
+| `.github/workflows/build.yml`                                | push/PR 触发 → build 验证                           |
+| `.github/dependabot.yml`                                     | npm 周扫 + GH Actions 月扫                          |
 
 ---
 
@@ -347,4 +371,4 @@ CHANGELOG.md                             # Keep-a-Changelog
 
 ---
 
-*Last updated: 2026-06-02 · at v1.6.11.8 · by Roy Leo / 咕咕*
+_Last updated: 2026-07-06 · at v1.6.11.8 · by Roy Leo / 咕咕_
