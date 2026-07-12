@@ -31,11 +31,11 @@ Codex 默认自动读本文件（`AGENTS.md`）——你已经在正确的入口
 - **生产参考站**：见 README.md 顶部链接（截图即实站）
 - **技术栈**：Halo 2.x（Spring Boot WebFlux + Thymeleaf + R2DBC）· jQuery 3.7.1 · less · rolldown build · pnpm 10.x
 
-## 2. 当前状态（最后更新：2026-07-06）
+## 2. 当前状态（最后更新：2026-07-12）
 
-- **最新 stable**：`v1.6.11.8`（2026-06-01）
-- **最新下载链接**：`https://github.com/Lau0x/halo-theme-joe-next/releases/download/v1.6.11.8/theme-Joe3-1.6.11.8.zip`
-- **交接说明**：项目从 Claude Code 移交 Codex 维护；`main` 领先 origin 若干未推的 docs commit（交接文档整理），代码无改动。
+- **最新 stable**：`v1.6.11.9`（2026-07-12）
+- **最新下载链接**：`https://github.com/Lau0x/halo-theme-joe-next/releases/download/v1.6.11.9/theme-Joe3-1.6.11.9.zip`
+- **交接说明**：项目已从 Claude Code 移交 Codex 维护；2026-07-10 开工时 `main` 与 `origin/main` 一致，本轮维护改动尚未提交或 push。
 - **近期 sprint 焦点**：发布直链自动化、Waline 稳定性、私密内容可见性兜底、资源瘦身
 - **维护者生产站**：优先使用 GitHub Release zip 手动上传升级
 
@@ -43,11 +43,11 @@ Codex 默认自动读本文件（`AGENTS.md`）——你已经在正确的入口
 
 | 版本      | 主题                                                                                      |
 | --------- | ----------------------------------------------------------------------------------------- |
+| v1.6.11.9 | Halo 2.25.4 兼容与资源瘦身（覆盖升级验证 · 自动加载修复 · 包体降至 13.53M）               |
 | v1.6.11.8 | 发布直链与 Waline 稳定性（Release 正文写 zip 直链 · Waline v2 默认锁定 · 留言页安全渲染） |
 | v1.6.11.7 | 可见性兜底与资源瘦身（私密文章/动态前台白名单过滤 · 包体约 22M → 16.4M）                  |
 | v1.6.11.6 | Open Graph 分享卡优化（og:title 去 site 后缀 · og:image 条件输出 · 路径绝对化）           |
 | v1.6.11.5 | 暗色模式评论组件 primary 色（绿 → 紫，跟 `--theme` 协调）                                 |
-| v1.6.11.4 | 评论 success toast 主题色（Shadow DOM 注样式 patch）                                      |
 
 ---
 
@@ -371,4 +371,4 @@ CHANGELOG.md                             # Keep-a-Changelog
 
 ---
 
-_Last updated: 2026-07-06 · at v1.6.11.8 · by Roy Leo / 咕咕_
+_Last updated: 2026-07-12 · at v1.6.11.9 · by Roy Leo / 咕咕_

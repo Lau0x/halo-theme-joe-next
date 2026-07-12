@@ -117,7 +117,7 @@ spec:
                   key: lskypro_apiTOKEN
                   label: 兰空图床 Token
                   value: ''
-                  help: '兰空图床 Token，如 2|1bJbwlqBfnggmOMEZqXT5XusaIwqiZjCDs7r1Ob5'
+                  help: '该值会下发到浏览器，请仅使用权限受限、可随时撤销的上传 Token，禁止填写管理员或长期 Token。示例：YOUR_LSKYPRO_TOKEN'
         - $formkit: radio
           name: enable_source_link
           id: enable_source_link

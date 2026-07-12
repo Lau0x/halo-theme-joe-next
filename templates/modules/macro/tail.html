@@ -33,11 +33,6 @@
     <th:block th:if="${htmlType == 'post'} and ${theme.config.post.enable_toc == true}">
       <script th:src="${source_link+'/assets/lib/tocbot/tocbot.min.js'}"></script>
     </th:block>
-    <th:block
-      th:if="${theme.config.other.enable_clean_mode != false && (htmlType =='post' || htmlType =='journals' || htmlType =='sheet')}"
-    >
-      <script th:src="${source_link+'/assets/lib/vue@2.6.10/vue.min.js'}"></script>
-    </th:block>
     <!-- MED-3 v1.6.10: fancybox 仅在可能有图片 lightbox 的页面加载 -->
     <th:block
       th:if="${htmlType == 'post' or htmlType == 'photos' or htmlType == 'journals' or htmlType == 'sheet'}"
@@ -159,21 +154,27 @@
     <th:block th:if="${htmlType == 'photos'}"> </th:block>
     <script
       type="text/javascript"
-      th:if="${theme.config.home.enable_auto_ajax} and ${theme.config.home.enable_index_list_ajax}"
+      th:if="${htmlType == 'index' and #bools.isTrue(theme.config.home.enable_auto_ajax) and #bools.isTrue(theme.config.home.enable_index_list_ajax)}"
     >
-      const ob = new IntersectionObserver(
-        (entries) => {
-          const domClick = document.querySelector('.joe_load');
-          if (entries[0].isIntersecting) {
-            domClick.click();
-          }
-        },
-        {
-          threshold: 1,
-        }
-      );
       const loading = document.querySelector('.joe_load_container');
-      ob.observe(loading);
+      if (loading && 'IntersectionObserver' in window) {
+        const ob = new IntersectionObserver(
+          (entries) => {
+            const domClick = loading.querySelector('.joe_load');
+            if (
+              entries[0].isIntersecting &&
+              domClick &&
+              domClick.getAttribute('loading') !== 'true'
+            ) {
+              domClick.click();
+            }
+          },
+          {
+            threshold: 1,
+          }
+        );
+        ob.observe(loading);
+      }
     </script>
     <!--
       v1.6.11.4: PluginCommentWidget toast 主题色适配

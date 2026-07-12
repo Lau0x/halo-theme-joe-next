@@ -14,11 +14,11 @@
 
 ## 当前状态
 
-- 最新 stable：`v1.6.11.8`
-- 最新 commit：`c69ce5a chore(theme): v1.6.11.8 · 发布直链与 Waline 稳定性`
+- 最新 stable：`v1.6.11.9`
+- 最新 commit：`3cca1ca docs: 交接文档整理为 Codex 入口`
 - 最新 zip：
-  `https://github.com/Lau0x/halo-theme-joe-next/releases/download/v1.6.11.8/theme-Joe3-1.6.11.8.zip`
-- 本地构建产物：`dist/theme-Joe3-1.6.11.8.zip`
+  `https://github.com/Lau0x/halo-theme-joe-next/releases/download/v1.6.11.9/theme-Joe3-1.6.11.9.zip`
+- 本地构建产物：`dist/theme-Joe3-1.6.11.9.zip`
 - 维护策略：小步、低风险、可验证；优先安全、可见性、发布流程、资源加载、Waline 兼容。
 
 ## 绝对红线
@@ -39,9 +39,12 @@ spec.configMapName: theme-Joe-configMap
 
 先不要合：
 
+- PR #14：GitHub Actions major 更新组，CI 绿，需独立评估。
+- PR #13：构建工具混合更新组，CI 绿，不整包直接合。
 - PR #11：`lint-staged 15.5.2 -> 17.0.5`，CI 绿，但 major，v17 不支持 Node 20。
-- PR #10：`rolldown 1.0.0-beta.58 -> 1.0.1`，CI 红，lockfile overrides 与 `package.json` 不匹配。
 - PR #3：`@waline/client 2.15.8 -> 3.13.0`，CI 绿，但 Waline v3 major，需要专项测试。
+
+PR #10 已关闭且未合并。
 
 ## 开工检查
 
@@ -77,8 +80,8 @@ unzip -p dist/theme-Joe3-<version>.zip theme.yaml | rg "name: theme-Joe3|setting
 
 ## 发版规则
 
-- 下一次小修版本建议：`v1.6.11.9`
-- 不确定的线上验证走 prerelease：`v1.6.11.9-rc.01`
+- 下一次小修版本建议：`v1.6.11.10`
+- 不确定的线上验证走 prerelease：`v1.6.11.10-rc.01`
 - stable 版本才作为 Latest Release。
 - Debug 连续失败两次，停止猜，加入可 curl 看到的 debug marker。
 

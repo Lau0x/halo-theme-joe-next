@@ -53,6 +53,17 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      - name: Check formatting
+        run: pnpm format:check
+
+      - name: Audit dependencies
+        run: pnpm audit:ci
+
+      - name: Verify release metadata
+        env:
+          RELEASE_TAG: ${{ inputs.tag || github.ref_name }}
+        run: node scripts/verify-theme-package.mjs --tag "$RELEASE_TAG"
+
       - name: Build theme zip
         run: pnpm build
 
@@ -73,6 +84,11 @@ jobs:
           echo "download_url=$download_url" >> "$GITHUB_OUTPUT"
           echo "Release zip: $zip_file ($(du -h "$zip_file" | cut -f1))"
           echo "Download URL: $download_url"
+
+      - name: Verify release zip
+        env:
+          RELEASE_TAG: ${{ inputs.tag || github.ref_name }}
+        run: node scripts/verify-theme-package.mjs --zip "${{ steps.find-zip.outputs.zip }}" --tag "$RELEASE_TAG"
 
       - name: Build commit list + tag highlight since previous tag
         id: commits

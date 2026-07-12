@@ -40,6 +40,15 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      - name: Check formatting
+        run: pnpm format:check
+
+      - name: Audit dependencies
+        run: pnpm audit:ci
+
+      - name: Verify theme metadata
+        run: pnpm verify:source
+
       - name: Build (rolldown + theme-package zip)
         run: pnpm build
 
@@ -56,6 +65,9 @@ jobs:
           fi
           echo "zip=$zip_file" >> "$GITHUB_OUTPUT"
           echo "Built: $zip_file ($(du -h "$zip_file" | cut -f1))"
+
+      - name: Verify theme zip
+        run: pnpm verify:package
 
       - name: Upload theme zip artifact
         uses: actions/upload-artifact@v7

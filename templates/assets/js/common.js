@@ -262,7 +262,7 @@ const commonContext = {
 		if (!$pdfs.length) return;
 		$pdfs.each((_index, item) => {
 			const $item = $(item);
-			options = {
+			const options = {
 				src: $item.attr("src") || "",
 				width: $item.attr("width") || "100%",
 				height: $item.attr("height") || "500px",
@@ -271,10 +271,11 @@ const commonContext = {
 			if (!options.src) {
 				htmlStr = "<p>pdf地址未填写！</p>";
 			} else {
+				const file = encodeURIComponent(options.src);
 				htmlStr = `
-      <div class="joe_pdf">
-        <iframe src="${ThemeConfig.BASE_RES_URL}/assets/lib/pdfjs/web/viewer.html?file=${options.src}" style="width:${options.width};height:${options.height}"></iframe>
-      </div>`;
+	      <div class="joe_pdf">
+	        <iframe src="${ThemeConfig.BASE_RES_URL}/assets/lib/pdfjs/web/viewer.html?file=${file}" style="width:${options.width};height:${options.height}"></iframe>
+	      </div>`;
 			}
 			$(item).replaceWith(htmlStr);
 		});

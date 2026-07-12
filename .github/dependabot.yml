@@ -9,51 +9,60 @@
 version: 2
 updates:
   # 主题自身的前端依赖（pnpm 通过 package.json 管）
-  - package-ecosystem: "npm"
-    directory: "/"
+  - package-ecosystem: 'npm'
+    directory: '/'
     schedule:
-      interval: "weekly"
-      day: "monday"
-      time: "09:00"
-      timezone: "Asia/Shanghai"
+      interval: 'weekly'
+      day: 'monday'
+      time: '09:00'
+      timezone: 'Asia/Shanghai'
     open-pull-requests-limit: 5
-    labels:
-      - "dependencies"
-      - "npm"
     commit-message:
-      prefix: "chore(deps)"
-      include: "scope"
+      prefix: 'chore(deps)'
+      include: 'scope'
     groups:
-      # patch/minor 合并——多数是安全补丁+小版本，一次 review 一次 merge
-      minor-and-patch:
-        patterns:
-          - "*"
+      formatting-and-styles:
+        patterns: ['less', 'prettier']
         update-types:
-          - "minor"
-          - "patch"
+          - 'minor'
+          - 'patch'
+      packaging:
+        patterns: ['@halo-dev/theme-package-cli']
+        update-types:
+          - 'minor'
+          - 'patch'
+      bundler:
+        patterns: ['rolldown']
+        update-types:
+          - 'minor'
+          - 'patch'
     # major 升级单独提 PR，需要人工评估 breaking change
     ignore:
       # 锁死 pnpm 主版本（Corepack 管的），dependabot 别碰
-      - dependency-name: "pnpm"
+      - dependency-name: 'pnpm'
         update-types:
-          - "version-update:semver-major"
+          - 'version-update:semver-major'
+      # Node 20 构建链暂不升级到要求 Node 22 的 lint-staged v17
+      - dependency-name: 'lint-staged'
+        update-types:
+          - 'version-update:semver-major'
 
   # CI / Release workflow 里用的 Actions
-  - package-ecosystem: "github-actions"
-    directory: "/"
+  - package-ecosystem: 'github-actions'
+    directory: '/'
     schedule:
-      interval: "monthly"
-      day: "monday"
-      time: "09:00"
-      timezone: "Asia/Shanghai"
+      interval: 'monthly'
+      day: 'monday'
+      time: '09:00'
+      timezone: 'Asia/Shanghai'
     open-pull-requests-limit: 3
-    labels:
-      - "dependencies"
-      - "github-actions"
     commit-message:
-      prefix: "ci(deps)"
-      include: "scope"
+      prefix: 'ci(deps)'
+      include: 'scope'
     groups:
       all-actions:
         patterns:
-          - "*"
+          - '*'
+        update-types:
+          - 'minor'
+          - 'patch'

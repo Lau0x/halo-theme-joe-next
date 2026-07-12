@@ -357,8 +357,12 @@
       <script>
         // 等待文档加载完成
         document.addEventListener('DOMContentLoaded', function () {
+          const postContentElement = document.getElementById('post-inner');
+          const wordCountElement = document.getElementById('wordCount');
+          if (!postContentElement || !wordCountElement) return;
+
           // 获取文章内容
-          const postContent = document.getElementById('post-inner').innerText || '';
+          const postContent = postContentElement.innerText || '';
 
           // 使用正则表达式匹配中文、数字和字母
           const matches = postContent.match(/[\u4e00-\u9fa5a-zA-Z0-9]/g);
@@ -367,7 +371,7 @@
           const wordCount = matches ? matches.length : 0;
 
           // 更新字数统计显示
-          document.getElementById('wordCount').innerText = `${wordCount} 字`;
+          wordCountElement.innerText = `${wordCount} 字`;
         });
       </script>
       <th:block th:replace="~{modules/macro/tail :: tail}" />

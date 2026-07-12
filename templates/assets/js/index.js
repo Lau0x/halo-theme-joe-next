@@ -290,16 +290,20 @@ const homeContext = {
 				: 0;
 		$(document).ready(() => {
 			const $domLoadContainer = $(".joe_load_container");
-			$domLoadContainer.on('click','.joe_load', async function () {
-				const lastItemTop = document.querySelector(".joe_list__item:last-child").offsetTop;
-				const $domLoad = $(".joe_load");
-				this.domNext = $domLoad.attr('data-next');
-				// console.log(this.domNext)
+			$domLoadContainer.on('click','.joe_load', function () {
+				if ($(this).attr("loading") === "true") return;
+				const $domLoad = $(this);
+				const domNext = $domLoad.attr('data-next');
+				if (!domNext) return;
+				const lastItemTop = document.querySelector(".joe_list__item:last-child")?.offsetTop;
 				$domLoad.html("加载中...").attr("loading", "true");
-				fetch(this.domNext, {
+				fetch(domNext, {
 					method: "GET",
 				})
-					.then((response) => response.text())
+					.then((response) => {
+						if (!response.ok) throw new Error(`HTTP ${response.status}`);
+						return response.text();
+					})
 					.then((html) => {
 						const parser = new DOMParser();
 						const doc = parser.parseFromString(html, "text/html");
@@ -312,10 +316,10 @@ const homeContext = {
 							postListNewElements.forEach((element) => {
 								postListElement.appendChild(element.cloneNode(true));
 							});
-
 						}
 						const $newDomLoad = $(doc).find(".joe_load");
-						if ($newDomLoad.attr('data-next') !== '/') {
+						const nextPage = $newDomLoad.attr('data-next');
+						if ($newDomLoad.length && nextPage && nextPage !== '/') {
 							$domLoadContainer.empty().append($newDomLoad);
 						} else {
 							$domLoadContainer.remove();
@@ -324,18 +328,18 @@ const homeContext = {
 						// const lastItemTop = postListElement.querySelector(".joe_list__item:last-child").offsetTop;
 						// console.log(postListElement.querySelector(".joe_list__item:last-child"))
 						// console.log($headerHeight)
-						const scrollTop = lastItemTop - $headerHeight; // Adjust the value as needed
-						window.scrollTo({
-							top: scrollTop,
-							behavior: 'smooth'
-						});
+						if (lastItemTop != null) {
+							const scrollTop = lastItemTop - $headerHeight; // Adjust the value as needed
+							window.scrollTo({
+								top: scrollTop,
+								behavior: 'smooth'
+							});
+						}
 
 					})
 					.catch((error) => {
 						console.error(error);
-					})
-					.finally(() => {
-
+						$domLoad.html("加载失败，点击重试").removeAttr("loading");
 					});
 			});
 		});
