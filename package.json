@@ -10,7 +10,10 @@
     "verify:source": "node scripts/verify-theme-package.mjs"
   },
   "lint-staged": {
-    "*.{html,yaml}": [
+    "*.html": [
+      "prettier --write"
+    ],
+    "{annotation-setting,settings,theme}.yaml": [
       "prettier --write"
     ]
   },
