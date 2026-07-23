@@ -127,6 +127,18 @@ if (
   throw new Error('templates/modules/macro/tail.html: strips.js must load after jQuery');
 }
 
+const hotCategory = readFileSync(resolve('templates/modules/macro/hot_category.html'), 'utf8');
+for (const source of ['category.spec.cover', 'custom_data.hot_custom_img']) {
+  if (
+    !hotCategory.includes(`th:data-src="\${${source}}"`) ||
+    !hotCategory.includes(`th:data-srcset="\${${source}}"`)
+  ) {
+    throw new Error(
+      `templates/modules/macro/hot_category.html: ${source} must lazy-load both src and srcset`
+    );
+  }
+}
+
 const sourceJsDir = resolve('templates/assets/js');
 for (const file of readdirSync(sourceJsDir).filter((name) => name.endsWith('.js'))) {
   execFileSync(process.execPath, ['--check', resolve(sourceJsDir, file)], { stdio: 'pipe' });

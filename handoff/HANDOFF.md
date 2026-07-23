@@ -18,13 +18,14 @@
 - 仓库：`Lau0x/halo-theme-joe-next`
 - 本地路径：`/Users/royleo/Documents/Codex/NEW_HAI/halo_theme/halo-theme-joe-next`
 - 技术栈：Halo 2.x（Thymeleaf + jQuery 3.7.1 + Less + rolldown + pnpm 10.x，Node 20+）
-- 最新 stable：`v1.6.11.10`
-- 最新构建包：`dist/theme-Joe3-1.6.11.10.zip`
+- 最新 stable：`v1.6.11.11`
+- 最新构建包：`dist/theme-Joe3-1.6.11.11.zip`
 - 已在 Halo 2.25.4 完成 `v1.6.11.8 → v1.6.11.9` 控制台覆盖升级测试；主题保持激活，自定义设置保留。
 - 最新下载直链：
-  `https://github.com/Lau0x/halo-theme-joe-next/releases/download/v1.6.11.10/theme-Joe3-1.6.11.10.zip`
+  `https://github.com/Lau0x/halo-theme-joe-next/releases/download/v1.6.11.11/theme-Joe3-1.6.11.11.zip`
 - `v1.6.11.10` 在 rc.01 的移动端可访问性和非阻塞资源加载基础上，补充轮播首图优先级、非首屏图片延迟下载、热门分类模板修复、分页与加载条无障碍修复，以及开发依赖漏洞 overrides。
 - 已通过 Halo 2.25.4 首页/文章页、1440px 桌面端和 390px 移动端回归。
+- `v1.6.11.11` 修复精品分类懒加载未替换 `srcset`，导致真实分类封面被 Halo 自动生成的占位图 `srcset` 覆盖；已在 Halo 2.25.4 用真实浏览器验证不同封面分别加载，控制台无错误。
 - 维护策略：小步、低风险、可验证。诊断阶段不重构，重构阶段不诊断。
 
 ## 🚨 三条红线（细节见 AGENTS.md §3）
