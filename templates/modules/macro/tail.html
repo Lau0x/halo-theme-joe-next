@@ -5,6 +5,13 @@
     th:with="source_link=${(#strings.trim(theme.config.basic.source_link) !='' && theme.config.basic.enable_source_link)? theme.config.basic.source_link : '/themes/theme-Joe3'}"
   >
     <!--    ===== 引入脚本 start ===== -->
+    <!-- 所有外部主题脚本统一 defer，并保持 jQuery 第一，禁止只给 jQuery 单独加 defer。 -->
+    <script defer th:src="${source_link+'/assets/lib/jquery@3.7.1/jquery.min.js'}"></script>
+    <script
+      defer
+      th:if="${theme.config.blogger.enable_strips}"
+      th:src="${source_link+'/assets/effect/bg/strips.js'}"
+    ></script>
     <!--
       MED-3 v1.6.10: 按页面类型条件加载 JS lib, 减少不需要该 lib 的页面下载成本.
       wowjs: 只在 index/journals/friends/photos (滚动淡入动画页) 加载 · ~17KB
@@ -15,29 +22,29 @@
     <th:block
       th:if="${htmlType == 'index' or htmlType == 'journals' or htmlType == 'friends' or htmlType == 'photos'}"
     >
-      <script th:src="${source_link+'/assets/lib/wowjs/wow.min.js'}"></script>
+      <script defer th:src="${source_link+'/assets/lib/wowjs/wow.min.js'}"></script>
     </th:block>
-    <script th:src="${source_link+'/assets/lib/lazysizes/lazysizes.min.js'}"></script>
-    <script th:src="${source_link+'/assets/lib/qmsg/qmsg.js'}"></script>
+    <script defer th:src="${source_link+'/assets/lib/lazysizes/lazysizes.min.js'}"></script>
+    <script defer th:src="${source_link+'/assets/lib/qmsg/qmsg.js'}"></script>
     <th:block th:if="${htmlType == 'post' or htmlType == 'journals' or htmlType == 'sheet'}">
-      <script th:src="${source_link+'/assets/lib/clipboard/clipboard.min.js'}"></script>
+      <script defer th:src="${source_link+'/assets/lib/clipboard/clipboard.min.js'}"></script>
     </th:block>
     <th:block th:if="${theme.config.aside.show_newreply == true} or ${htmlType == 'sheet'}">
-      <script th:src="${source_link+'/assets/lib/j-marked/marked.min.js'}"></script>
+      <script defer th:src="${source_link+'/assets/lib/j-marked/marked.min.js'}"></script>
     </th:block>
-    <script th:src="${source_link+'/assets/js/min/utils.min.js'}"></script>
+    <script defer th:src="${source_link+'/assets/js/min/utils.min.js'}"></script>
 
     <th:block th:if="${htmlType == 'index' && theme.config.carousel.enable_banner}">
-      <script th:src="${source_link+'/assets/lib/swiper/swiper-bundle.min.js'}"></script>
+      <script defer th:src="${source_link+'/assets/lib/swiper/swiper-bundle.min.js'}"></script>
     </th:block>
     <th:block th:if="${htmlType == 'post'} and ${theme.config.post.enable_toc == true}">
-      <script th:src="${source_link+'/assets/lib/tocbot/tocbot.min.js'}"></script>
+      <script defer th:src="${source_link+'/assets/lib/tocbot/tocbot.min.js'}"></script>
     </th:block>
     <!-- MED-3 v1.6.10: fancybox 仅在可能有图片 lightbox 的页面加载 -->
     <th:block
       th:if="${htmlType == 'post' or htmlType == 'photos' or htmlType == 'journals' or htmlType == 'sheet'}"
     >
-      <script th:src="${source_link+'/assets/lib/fancybox/jquery.fancybox.min.js'}"></script>
+      <script defer th:src="${source_link+'/assets/lib/fancybox/jquery.fancybox.min.js'}"></script>
     </th:block>
     <th:block
       th:each="aside : ${theme.config.aside.enable_outpost_aside}"
@@ -45,62 +52,84 @@
     >
       <th:block th:if="${#strings.trim(aside.aside_music_player.music_id) !=''}">
         <link rel="stylesheet" th:href="${source_link+'/assets/lib/APlayer/APlayer.min.css'}" />
-        <script th:src="${source_link+'/assets/lib/APlayer/APlayer.min.js'}"></script>
-        <script th:src="${source_link+'/assets/lib/meting/meting.min.js'}"></script>
+        <script defer th:src="${source_link+'/assets/lib/APlayer/APlayer.min.js'}"></script>
+        <script defer th:src="${source_link+'/assets/lib/meting/meting.min.js'}"></script>
       </th:block>
     </th:block>
-    <script th:src="${source_link+'/assets/js/min/custom.min.js?v='+theme.spec.version}"></script>
+    <script
+      defer
+      th:src="${source_link+'/assets/js/min/custom.min.js?v='+theme.spec.version}"
+    ></script>
     <th:block th:if="${theme.config.custom.favicon != null && theme.config.custom.favicon != ''}">
-      <script th:src="${source_link+'/assets/lib/favico/favico.min.js'}"></script>
+      <script defer th:src="${source_link+'/assets/lib/favico/favico.min.js'}"></script>
     </th:block>
     <th:block th:if="${htmlType == 'post'}">
-      <script th:src="${source_link+'/assets/lib/jquery-qrcode/jquery.qrcode.min.js'}"></script>
+      <script
+        defer
+        th:src="${source_link+'/assets/lib/jquery-qrcode/jquery.qrcode.min.js'}"
+      ></script>
     </th:block>
     <!--相册-->
     <th:block th:if="${htmlType == 'photos'}">
       <script
+        defer
         th:src="${source_link+'/assets/lib/justifiedGallery/justifiedGallery.min.js'}"
       ></script>
-      <script th:src="${source_link+'/assets/lib/masonry/masonry.pkgd.min.js'}"></script>
-      <script th:src="${source_link+'/assets/lib/masonry/isotope.pkgd.min.js'}"></script>
-      <script th:src="${source_link+'/assets/lib/masonry/imagesloaded.pkgd.min.js'}"></script>
+      <script defer th:src="${source_link+'/assets/lib/masonry/masonry.pkgd.min.js'}"></script>
+      <script defer th:src="${source_link+'/assets/lib/masonry/isotope.pkgd.min.js'}"></script>
+      <script defer th:src="${source_link+'/assets/lib/masonry/imagesloaded.pkgd.min.js'}"></script>
     </th:block>
 
     <!--===== 引入页面级js start =====-->
-    <script th:src="${source_link+'/assets/js/min/common.min.js?v='+theme.spec.version}"></script>
+    <script
+      defer
+      th:src="${source_link+'/assets/js/min/common.min.js?v='+theme.spec.version}"
+    ></script>
     <th:block th:if="${htmlType == 'post'} or ${htmlType == 'journals'} or ${htmlType == 'sheet'}">
-      <script th:src="${source_link+'/assets/lib/prism/prism.min.js'}"></script>
+      <script defer th:src="${source_link+'/assets/lib/prism/prism.min.js'}"></script>
     </th:block>
     <th:block th:if="${htmlType == 'index'}">
-      <script th:src="${source_link+'/assets/js/min/index.min.js?v='+theme.spec.version}"></script>
+      <script
+        defer
+        th:src="${source_link+'/assets/js/min/index.min.js?v='+theme.spec.version}"
+      ></script>
     </th:block>
     <th:block th:if="${htmlType == 'archives'}">
       <script
+        defer
         th:src="${source_link+'/assets/js/min/archives.min.js?v='+theme.spec.version}"
       ></script>
     </th:block>
     <th:block th:if="${htmlType == 'post'}">
-      <script th:src="${source_link+'/assets/js/min/post.min.js?v='+theme.spec.version}"></script>
+      <script
+        defer
+        th:src="${source_link+'/assets/js/min/post.min.js?v='+theme.spec.version}"
+      ></script>
     </th:block>
     <th:block th:if="${htmlType == 'journals'}">
       <script
+        defer
         th:src="${source_link+'/assets/js/min/journals.min.js?v='+theme.spec.version}"
       ></script>
     </th:block>
     <th:block th:if="${htmlType == 'friends'}">
       <script
+        defer
         th:src="${source_link+'/assets/js/min/friends.min.js?v='+theme.spec.version}"
       ></script>
     </th:block>
     <th:block th:if="${htmlType == 'photos'}">
-      <script th:src="${source_link+'/assets/js/min/photos.min.js?v='+theme.spec.version}"></script>
+      <script
+        defer
+        th:src="${source_link+'/assets/js/min/photos.min.js?v='+theme.spec.version}"
+      ></script>
     </th:block>
     <th:block th:if="${htmlType == 'sheet'}">
-      <script th:src="${source_link+'/assets/lib/draggabilly/draggabilly.min.js'}"></script>
-      <script th:src="${source_link+'/assets/js/min/leaving.min.js'}"></script>
+      <script defer th:src="${source_link+'/assets/lib/draggabilly/draggabilly.min.js'}"></script>
+      <script defer th:src="${source_link+'/assets/js/min/leaving.min.js'}"></script>
     </th:block>
     <th:block th:if="${theme.config.beauty.enable_big_banner}">
-      <script th:src="${source_link+'/assets/js/min/beauty.min.js'}"></script>
+      <script defer th:src="${source_link+'/assets/js/min/beauty.min.js'}"></script>
     </th:block>
 
     <!-- ===== 引入页面级js end ===== -->
@@ -109,16 +138,19 @@
 
     <th:block th:if="${theme.config.footer.enable_busuanzi}">
       <!-- 卜算子 -->
-      <script th:src="${source_link+'/assets/lib/busuanzi/busuanzi.min.js'}"></script>
+      <script defer th:src="${source_link+'/assets/lib/busuanzi/busuanzi.min.js'}"></script>
     </th:block>
 
     <!-- 广告关闭按钮 · × 持久化（localStorage） · 不依赖 jQuery -->
-    <script th:src="${source_link+'/assets/js/min/ad-close.min.js?v='+theme.spec.version}"></script>
+    <script
+      defer
+      th:src="${source_link+'/assets/js/min/ad-close.min.js?v='+theme.spec.version}"
+    ></script>
 
     <!-- ===== 引入脚本 end =====-->
     <th:block th:if="${theme.config.other.enable_debug}">
       <!-- vconsole -->
-      <script th:src="${source_link+'/assets/lib/vconsole/vconsole.min.js'}"></script>
+      <script defer th:src="${source_link+'/assets/lib/vconsole/vconsole.min.js'}"></script>
     </th:block>
 
     <!--搜索点击-->
@@ -131,21 +163,23 @@
 
     <!--    大图配置-->
     <script th:inline="javascript" th:if="${theme.config.beauty.enable_big_banner}">
-      // 以下配置参数均为默认值
-      new EvanBigBanner({
-        followMode: false, // 跟随模式
-        followTheme: false, // 跟随主题
-        titlePrint: true, // 是否启用打字机效果
-        titlePrintInterval: 300, // 打字机速度
-        titleTiktok: false, // 标题文字抖音效果
-        titleText:
-          /*[[${(theme.config.beauty.big_banner_title != null and theme.config.beauty.big_banner_title != '') ? theme.config.beauty.big_banner_title : site.title}]]*/ '', // 标题文字
-        titleColor: '#ffffff', // 标题文字颜色
-        titleShadow: '-3px 2px 6px #1c1f21', // 标题文字阴影
-        hitokotoParams: {}, // 一言参数，参考：https://developer.hitokoto.cn/sentence/#%E8%AF%B7%E6%B1%82%E5%8F%82%E6%95%B0
-        hitokotoApi: 'https://v1.hitokoto.cn', // 一言API
-        hitokotoColor: '#ffffff', // 一言文字颜色
-        hitokotoEnable: /*[[${theme.config.beauty.enable_big_banner_hitokoto}]]*/ true, // 是否使用一言
+      document.addEventListener('DOMContentLoaded', () => {
+        // 以下配置参数均为默认值
+        new EvanBigBanner({
+          followMode: false, // 跟随模式
+          followTheme: false, // 跟随主题
+          titlePrint: true, // 是否启用打字机效果
+          titlePrintInterval: 300, // 打字机速度
+          titleTiktok: false, // 标题文字抖音效果
+          titleText:
+            /*[[${(theme.config.beauty.big_banner_title != null and theme.config.beauty.big_banner_title != '') ? theme.config.beauty.big_banner_title : site.title}]]*/ '', // 标题文字
+          titleColor: '#ffffff', // 标题文字颜色
+          titleShadow: '-3px 2px 6px #1c1f21', // 标题文字阴影
+          hitokotoParams: {}, // 一言参数，参考：https://developer.hitokoto.cn/sentence/#%E8%AF%B7%E6%B1%82%E5%8F%82%E6%95%B0
+          hitokotoApi: 'https://v1.hitokoto.cn', // 一言API
+          hitokotoColor: '#ffffff', // 一言文字颜色
+          hitokotoEnable: /*[[${theme.config.beauty.enable_big_banner_hitokoto}]]*/ true, // 是否使用一言
+        });
       });
 
       // 以上配置均为默认值，可直接使用进行初始化

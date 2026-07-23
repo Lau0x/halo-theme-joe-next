@@ -69,7 +69,18 @@
         }
       }
     </style>
-    <link rel="stylesheet" th:href="${source_link+'/assets/lib/qmsg/qmsg.css'}" />
+    <link
+      rel="preload"
+      as="style"
+      th:href="${source_link+'/assets/lib/qmsg/qmsg.css'}"
+      onload="
+        this.onload = null;
+        this.rel = 'stylesheet';
+      "
+    />
+    <noscript>
+      <link rel="stylesheet" th:href="${source_link+'/assets/lib/qmsg/qmsg.css'}" />
+    </noscript>
     <link
       rel="preload stylesheet"
       as="style"
@@ -157,9 +168,20 @@
       th:if="${htmlType == 'post' or htmlType == 'photos' or htmlType == 'journals' or htmlType == 'sheet'}"
     >
       <link
-        rel="stylesheet"
+        rel="preload"
+        as="style"
         th:href="${source_link+'/assets/lib/fancybox/jquery.fancybox.min.css'}"
+        onload="
+          this.onload = null;
+          this.rel = 'stylesheet';
+        "
       />
+      <noscript>
+        <link
+          rel="stylesheet"
+          th:href="${source_link+'/assets/lib/fancybox/jquery.fancybox.min.css'}"
+        />
+      </noscript>
     </th:block>
     <link
       th:if="${theme.config.basic.comment_option == 'waline'} and ${#strings.trim(theme.config.basic.waline.waline_serverURL) !=''}"

@@ -31,11 +31,11 @@
                     <img
                       width="400"
                       height="120"
-                      class="image ls-is-cached lazyloaded"
-                      th:data-src="@{/assets/img/hot_cover1.jpg}"
-                      th:src="${category.spec.cover}"
+                      class="image lazyload"
+                      th:data-src="${category.spec.cover}"
+                      th:src="@{/assets/img/hot_cover1.jpg}"
                       onerror="Joe.errorImg(this, 'HomeErrImg')"
-                      th:alt="${category.spec.displayName}"
+                      alt=""
                     />
                     <figcaption class="title">[[${category.spec.displayName}]]</figcaption>
                   </figure>
@@ -55,11 +55,11 @@
                     <img
                       width="400"
                       height="120"
-                      class="image ls-is-cached lazyloaded"
-                      th:data-src="@{/assets/img/hot_cover1.jpg}"
-                      th:src="${custom_data.hot_custom_img}"
+                      class="image lazyload"
+                      th:data-src="${custom_data.hot_custom_img}"
+                      th:src="@{/assets/img/hot_cover1.jpg}"
                       onerror="Joe.errorImg(this, 'HomeErrImg')"
-                      th:alt="${category.spec.displayName}"
+                      alt=""
                     />
                     <figcaption class="title">[[${custom_data.hot_custom_title}]]</figcaption>
                   </figure>

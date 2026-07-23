@@ -4,21 +4,23 @@
     <div class="joe_index__banner">
       <div class="swiper">
         <div class="swiper-wrapper">
-          <th:block th:each="banner_data : ${theme.config.carousel.banner_data_group}">
+          <th:block
+            th:each="banner_data, bannerIteration : ${theme.config.carousel.banner_data_group}"
+          >
             <th:block th:switch="${banner_data.banner_section_type}">
               <th:block th:case="'post'">
                 <th:block
-                  th:insert="~{modules/macro/banner_item_data :: data_by_post(post_metadata = ${banner_data.data_by_post})}"
+                  th:insert="~{modules/macro/banner_item_data :: data_by_post(post_metadata = ${banner_data.data_by_post}, eager = ${bannerIteration.first})}"
                 />
               </th:block>
               <th:block th:case="'custom'">
                 <th:block
-                  th:insert="~{modules/macro/banner_item_data :: data_by_custom(banner_url = ${banner_data.data_by_custom.banner_url}, banner_cover = ${banner_data.data_by_custom.banner_img}, banner_title = ${banner_data.data_by_custom.banner_title}, banner_excerpt = ${banner_data.data_by_custom.banner_subtitle})}"
+                  th:insert="~{modules/macro/banner_item_data :: data_by_custom(banner_url = ${banner_data.data_by_custom.banner_url}, banner_cover = ${banner_data.data_by_custom.banner_img}, banner_title = ${banner_data.data_by_custom.banner_title}, banner_excerpt = ${banner_data.data_by_custom.banner_subtitle}, eager = ${bannerIteration.first})}"
                 />
               </th:block>
               <th:block th:case="'hot_post'">
                 <th:block
-                  th:replace="~{modules/macro/banner_item_data :: data_by_hot(num = ${banner_data.hot_post_num})}"
+                  th:replace="~{modules/macro/banner_item_data :: data_by_hot(num = ${banner_data.hot_post_num}, eager = ${bannerIteration.first})}"
                 />
               </th:block>
             </th:block>

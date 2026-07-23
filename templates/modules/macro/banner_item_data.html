@@ -1,6 +1,6 @@
 <!doctype html>
 <html th:lang="${#locale.toLanguageTag}" xmlns:th="http://www.thymeleaf.org">
-  <th:block th:fragment="data_by_post(post_metadata)">
+  <th:block th:fragment="data_by_post(post_metadata, eager)">
     <th:block th:with="post = ${postFinder.getByName(post_metadata)}">
       <div
         class="swiper-slide"
@@ -19,22 +19,22 @@
             <img
               width="1600"
               height="900"
-              class="thumbnail lazyload"
+              class="thumbnail"
+              th:classappend="${eager ? '' : ' lazyload'}"
               th:with="cover = ${post.spec.cover ?: postCover}"
-              th:data-src="${cover}"
-              th:srcset="|${thumbnail.gen(cover, 's')} 400w,
-              ${thumbnail.gen(cover, 'm')} 800w,
-              ${thumbnail.gen(cover, 'l')} 1200w,
-              ${thumbnail.gen(cover, 'xl')} 1600w|"
+              th:data-src="${eager ? null : cover}"
+              th:srcset="${eager ? thumbnail.gen(cover, 's') + ' 400w, ' + thumbnail.gen(cover, 'm') + ' 800w, ' + thumbnail.gen(cover, 'l') + ' 1200w, ' + thumbnail.gen(cover, 'xl') + ' 1600w' : null}"
+              th:data-srcset="${eager ? null : thumbnail.gen(cover, 's') + ' 400w, ' + thumbnail.gen(cover, 'm') + ' 800w, ' + thumbnail.gen(cover, 'l') + ' 1200w, ' + thumbnail.gen(cover, 'xl') + ' 1600w'}"
               sizes="(max-width: 1600px) 100vw, 1600px"
-              th:src="${theme.config.carousel.banner_lazyload_img}"
-              th:alt="${post.spec.title}"
+              th:src="${eager ? cover : theme.config.carousel.banner_lazyload_img}"
+              th:attr="loading=${eager ? 'eager' : 'lazy'},fetchpriority=${eager ? 'high' : null}"
+              alt=""
               onerror="Joe.errorImg(this, 'HomeErrImg')"
             />
           </th:block>
 
           <div class="title-row">
-            <h3 class="title">[[${post.spec.title}]]</h3>
+            <p class="title">[[${post.spec.title}]]</p>
 
             <th:block th:if="${post.status.excerpt != ''}">
               <p class="subtitle">[[${post.status.excerpt}]]</p>
@@ -46,7 +46,9 @@
       </div>
     </th:block>
   </th:block>
-  <th:block th:fragment="data_by_custom(banner_url, banner_cover, banner_title, banner_excerpt)">
+  <th:block
+    th:fragment="data_by_custom(banner_url, banner_cover, banner_title, banner_excerpt, eager)"
+  >
     <div class="swiper-slide">
       <a
         class="item"
@@ -61,22 +63,22 @@
           <img
             width="1600"
             height="900"
-            class="thumbnail lazyload"
+            class="thumbnail"
+            th:classappend="${eager ? '' : ' lazyload'}"
             th:with="cover = ${banner_cover ?: postCover}"
-            th:data-src="${cover}"
-            th:srcset="|${thumbnail.gen(cover, 's')} 400w,
-              ${thumbnail.gen(cover, 'm')} 800w,
-              ${thumbnail.gen(cover, 'l')} 1200w,
-              ${thumbnail.gen(cover, 'xl')} 1600w|"
+            th:data-src="${eager ? null : cover}"
+            th:srcset="${eager ? thumbnail.gen(cover, 's') + ' 400w, ' + thumbnail.gen(cover, 'm') + ' 800w, ' + thumbnail.gen(cover, 'l') + ' 1200w, ' + thumbnail.gen(cover, 'xl') + ' 1600w' : null}"
+            th:data-srcset="${eager ? null : thumbnail.gen(cover, 's') + ' 400w, ' + thumbnail.gen(cover, 'm') + ' 800w, ' + thumbnail.gen(cover, 'l') + ' 1200w, ' + thumbnail.gen(cover, 'xl') + ' 1600w'}"
             sizes="(max-width: 1600px) 100vw, 1600px"
-            th:src="${theme.config.carousel.banner_lazyload_img}"
-            th:alt="${banner_title}"
+            th:src="${eager ? cover : theme.config.carousel.banner_lazyload_img}"
+            th:attr="loading=${eager ? 'eager' : 'lazy'},fetchpriority=${eager ? 'high' : null}"
+            alt=""
             onerror="Joe.errorImg(this, 'HomeErrImg')"
           />
         </th:block>
 
         <div class="title-row">
-          <h3 class="title">[[${banner_title}]]</h3>
+          <p class="title">[[${banner_title}]]</p>
 
           <th:block th:if="${banner_excerpt != ''}">
             <p class="subtitle">[[${banner_excerpt}]]</p>
@@ -87,7 +89,7 @@
       </a>
     </div>
   </th:block>
-  <th:block th:fragment="data_by_hot(num)">
+  <th:block th:fragment="data_by_hot(num, eager)">
     <th:block
       th:with="posts = ${postFinder.list({
   page: 1,
@@ -97,7 +99,7 @@
     >
       <div
         class="swiper-slide"
-        th:each="post : ${posts.items}"
+        th:each="post, postIteration : ${posts.items}"
         th:if="${post.spec.visible != null and post.spec.visible.name == 'PUBLIC'}"
       >
         <a
@@ -108,27 +110,27 @@
           rel="noopener noreferrer nofollow"
         >
           <th:block
-            th:with="postCover = ${#lists.isEmpty(theme.config.home.post_thumbnail)? theme.config.basic.random_img_api_url+'?pageid='+post.metadata.name : theme.config.home.post_thumbnail}"
+            th:with="postCover = ${#lists.isEmpty(theme.config.home.post_thumbnail)? theme.config.basic.random_img_api_url+'?pageid='+post.metadata.name : theme.config.home.post_thumbnail}, prioritize = ${eager and postIteration.first}"
           >
             <img
               width="1600"
               height="900"
-              class="thumbnail lazyload"
+              class="thumbnail"
+              th:classappend="${prioritize ? '' : ' lazyload'}"
               th:with="cover = ${post.spec.cover ?: postCover}"
-              th:data-src="${cover}"
-              th:srcset="|${thumbnail.gen(cover, 's')} 400w,
-              ${thumbnail.gen(cover, 'm')} 800w,
-              ${thumbnail.gen(cover, 'l')} 1200w,
-              ${thumbnail.gen(cover, 'xl')} 1600w|"
+              th:data-src="${prioritize ? null : cover}"
+              th:srcset="${prioritize ? thumbnail.gen(cover, 's') + ' 400w, ' + thumbnail.gen(cover, 'm') + ' 800w, ' + thumbnail.gen(cover, 'l') + ' 1200w, ' + thumbnail.gen(cover, 'xl') + ' 1600w' : null}"
+              th:data-srcset="${prioritize ? null : thumbnail.gen(cover, 's') + ' 400w, ' + thumbnail.gen(cover, 'm') + ' 800w, ' + thumbnail.gen(cover, 'l') + ' 1200w, ' + thumbnail.gen(cover, 'xl') + ' 1600w'}"
               sizes="(max-width: 1600px) 100vw, 1600px"
-              th:src="${theme.config.carousel.banner_lazyload_img}"
-              th:alt="${post.spec.title}"
+              th:src="${prioritize ? cover : theme.config.carousel.banner_lazyload_img}"
+              th:attr="loading=${prioritize ? 'eager' : 'lazy'},fetchpriority=${prioritize ? 'high' : null}"
+              alt=""
               onerror="Joe.errorImg(this, 'HomeErrImg')"
             />
           </th:block>
 
           <div class="title-row">
-            <h3 class="title">[[${post.spec.title}]]</h3>
+            <p class="title">[[${post.spec.title}]]</p>
 
             <th:block th:if="${post.status.excerpt != ''}">
               <p class="subtitle">[[${post.status.excerpt}]]</p>

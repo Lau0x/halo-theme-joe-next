@@ -91,12 +91,40 @@ for (const [path, minimumCount] of Object.entries(visibilityGuards)) {
 }
 
 const layout = readFileSync(resolve('templates/modules/layout.html'), 'utf8');
-const jqueryScript = layout.match(/<script[^>]+jquery@3\.7\.1[^>]*>/)?.[0];
-if (!jqueryScript) {
-  throw new Error('templates/modules/layout.html: jQuery script tag not found');
+if (layout.includes('jquery@3.7.1')) {
+  throw new Error('templates/modules/layout.html: jQuery must not block the document head');
 }
-if (/\bdefer\b/.test(jqueryScript)) {
-  throw new Error('templates/modules/layout.html: jQuery must not use defer');
+
+const tail = readFileSync(resolve('templates/modules/macro/tail.html'), 'utf8');
+const externalScripts = [...tail.matchAll(/<script[^>]+(?:th:src|src)=[^>]+>/g)].map(
+  (match) => match[0]
+);
+const jqueryScript = externalScripts.find((script) => script.includes('jquery@3.7.1'));
+if (!jqueryScript) {
+  throw new Error('templates/modules/macro/tail.html: jQuery script tag not found');
+}
+if (externalScripts[0] !== jqueryScript) {
+  throw new Error('templates/modules/macro/tail.html: jQuery must load before all theme scripts');
+}
+const nonDeferredScripts = externalScripts.filter((script) => !/\bdefer\b/.test(script));
+if (nonDeferredScripts.length > 0) {
+  throw new Error(
+    `templates/modules/macro/tail.html: all external theme scripts must use defer: ${nonDeferredScripts.join(', ')}`
+  );
+}
+
+const blogger = readFileSync(resolve('templates/modules/common/blogger.html'), 'utf8');
+if (blogger.includes('assets/effect/bg/strips.js')) {
+  throw new Error('templates/modules/common/blogger.html: strips.js must load after tail jQuery');
+}
+const stripsScript = externalScripts.find((script) =>
+  script.includes('assets/effect/bg/strips.js')
+);
+if (
+  !stripsScript ||
+  externalScripts.indexOf(stripsScript) < externalScripts.indexOf(jqueryScript)
+) {
+  throw new Error('templates/modules/macro/tail.html: strips.js must load after jQuery');
 }
 
 const sourceJsDir = resolve('templates/assets/js');

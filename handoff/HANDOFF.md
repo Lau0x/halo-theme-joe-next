@@ -13,17 +13,18 @@
 4. `settings.yaml` —— Halo Console 后台配置 schema。
 5. `.github/workflows/release.yml` —— tag 触发自动 build zip + 建 Release。
 
-## 当前状态（快照 · 2026-07-12）
+## 当前状态（快照 · 2026-07-23）
 
 - 仓库：`Lau0x/halo-theme-joe-next`
 - 本地路径：`/Users/royleo/Documents/Codex/NEW_HAI/halo_theme/halo-theme-joe-next`
 - 技术栈：Halo 2.x（Thymeleaf + jQuery 3.7.1 + Less + rolldown + pnpm 10.x，Node 20+）
-- 最新 stable：`v1.6.11.9`
-- 本地构建包：`dist/theme-Joe3-1.6.11.9.zip`（13.53 MB）。
+- 最新 stable：`v1.6.11.10`
+- 最新构建包：`dist/theme-Joe3-1.6.11.10.zip`
 - 已在 Halo 2.25.4 完成 `v1.6.11.8 → v1.6.11.9` 控制台覆盖升级测试；主题保持激活，自定义设置保留。
 - 最新下载直链：
-  `https://github.com/Lau0x/halo-theme-joe-next/releases/download/v1.6.11.9/theme-Joe3-1.6.11.9.zip`
-- 2026-07-10 开工时 `main` 与 `origin/main` 一致；v1.6.11.9 发布前已完成完整本地验证。
+  `https://github.com/Lau0x/halo-theme-joe-next/releases/download/v1.6.11.10/theme-Joe3-1.6.11.10.zip`
+- `v1.6.11.10` 在 rc.01 的移动端可访问性和非阻塞资源加载基础上，补充轮播首图优先级、非首屏图片延迟下载、热门分类模板修复、分页与加载条无障碍修复，以及开发依赖漏洞 overrides。
+- 已通过 Halo 2.25.4 首页/文章页、1440px 桌面端和 390px 移动端回归。
 - 维护策略：小步、低风险、可验证。诊断阶段不重构，重构阶段不诊断。
 
 ## 🚨 三条红线（细节见 AGENTS.md §3）
@@ -41,12 +42,10 @@
 
 ## 开着的 PR（都先不合）
 
-- **#14** GitHub Actions major 更新组：CI 绿，需独立评估 runner 与 action runtime 后再决定。
-- **#13** 构建工具 minor/patch 更新组：CI 绿，但混合打包 CLI、Less、Prettier 与 Rolldown，不能整包直接合。
-- **#11** `lint-staged` 15.5.2 → 17.0.5：CI 绿，但 major，v17 不支持 Node 20。
-- **#3** `@waline/client` 2.15.8 → 3.13.0：CI 绿，但 v3 major，需专项测试，不当顺手依赖升。
-
-已关闭未合并：**#10** `rolldown` 更新，历史 CI 红，不再列为开放 PR。
+- **#17** `less` 4.6.7 → 4.7.0：minor，待独立构建与浏览器回归。
+- **#16** `js-yaml` 4.3.0 → 5.2.1：major，需独立评估 Node 20 和构建兼容性。
+- **#15** `rolldown` 1.0.0-beta.58 → 1.1.5：跨 beta / stable，需做构建产物对比和浏览器回归。
+- **#3** `@waline/client` 2.15.8 → 3.13.0：major，需专项测试，不当顺手依赖升。
 
 ## 开工检查（每次动手前）
 

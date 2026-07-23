@@ -5,6 +5,7 @@
   xmlns:th="http://www.thymeleaf.org"
 >
   <head>
+    <meta charset="utf-8" />
     <!--
       🧹 遗留 Service Worker 迁移清理（refs v1.5.1-next.15）
       面向"原来是 hexo/wordpress/其它框架、迁移到 Halo+本主题"的博主场景：
@@ -77,7 +78,6 @@
 
     <title th:text="${title}"></title>
 
-    <meta charset="utf-8" />
     <meta name="renderer" content="webkit" />
     <meta name="format-detection" content="email=no" />
     <meta name="format-detection" content="telephone=no" />
@@ -86,7 +86,7 @@
     <meta http-equiv="X-UA-Compatible" content="IE=edge, chrome=1" />
     <meta
       name="viewport"
-      content="width=device-width, user-scalable=no, initial-scale=1.0, shrink-to-fit=no, viewport-fit=cover"
+      content="width=device-width, initial-scale=1.0, shrink-to-fit=no, viewport-fit=cover"
     />
     <meta
       name="author"
@@ -186,14 +186,6 @@
 
     <th:block th:replace="~{modules/config :: config}" />
     <th:block th:replace="~{modules/link :: links}" />
-    <!--
-      ⚠️ 重要 · 切勿再加 defer 到 jQuery！
-      v1.5.1-next.5 曾尝试 defer 导致留言板（journals.js 便利贴初始化）全面挂掉，
-      根因：body 内的 <script src> 立即执行，永远**早于** head defer jQuery 执行完，
-      导致 common.min.js / journals.min.js / photos.min.js 加载时 $ is not defined。
-      正确 FCP 优化需要给 tail.html 里所有 jQuery-dep script 统一加 defer（已 parking）。
-    -->
-    <script th:src="@{/assets/lib/jquery@3.7.1/jquery.min.js}"></script>
   </head>
   <!-- /OG -->
   <th:block th:replace="${content}"></th:block>

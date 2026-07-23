@@ -31,11 +31,11 @@ Codex 默认自动读本文件（`AGENTS.md`）——你已经在正确的入口
 - **生产参考站**：见 README.md 顶部链接（截图即实站）
 - **技术栈**：Halo 2.x（Spring Boot WebFlux + Thymeleaf + R2DBC）· jQuery 3.7.1 · less · rolldown build · pnpm 10.x
 
-## 2. 当前状态（最后更新：2026-07-12）
+## 2. 当前状态（最后更新：2026-07-23）
 
-- **最新 stable**：`v1.6.11.9`（2026-07-12）
-- **最新下载链接**：`https://github.com/Lau0x/halo-theme-joe-next/releases/download/v1.6.11.9/theme-Joe3-1.6.11.9.zip`
-- **交接说明**：项目已从 Claude Code 移交 Codex 维护；2026-07-10 开工时 `main` 与 `origin/main` 一致，本轮维护改动尚未提交或 push。
+- **最新 stable**：`v1.6.11.10`（2026-07-23）
+- **最新下载链接**：`https://github.com/Lau0x/halo-theme-joe-next/releases/download/v1.6.11.10/theme-Joe3-1.6.11.10.zip`
+- **交接说明**：项目已从 Claude Code 移交 Codex 维护；`v1.6.11.10` 已通过 Halo 2.25.4 上传验收并发布。
 - **近期 sprint 焦点**：发布直链自动化、Waline 稳定性、私密内容可见性兜底、资源瘦身
 - **维护者生产站**：优先使用 GitHub Release zip 手动上传升级
 
@@ -43,11 +43,11 @@ Codex 默认自动读本文件（`AGENTS.md`）——你已经在正确的入口
 
 | 版本      | 主题                                                                                      |
 | --------- | ----------------------------------------------------------------------------------------- |
+| v1.6.11.10 | 首屏性能与无障碍优化（轮播图片分级加载 · 脚本 defer · 移动端与分页语义修复）              |
 | v1.6.11.9 | Halo 2.25.4 兼容与资源瘦身（覆盖升级验证 · 自动加载修复 · 包体降至 13.53M）               |
 | v1.6.11.8 | 发布直链与 Waline 稳定性（Release 正文写 zip 直链 · Waline v2 默认锁定 · 留言页安全渲染） |
 | v1.6.11.7 | 可见性兜底与资源瘦身（私密文章/动态前台白名单过滤 · 包体约 22M → 16.4M）                  |
 | v1.6.11.6 | Open Graph 分享卡优化（og:title 去 site 后缀 · og:image 条件输出 · 路径绝对化）           |
-| v1.6.11.5 | 暗色模式评论组件 primary 色（绿 → 紫，跟 `--theme` 协调）                                 |
 
 ---
 
@@ -151,13 +151,15 @@ sed -n '/^## \[/,/^## \[/p' CHANGELOG.md | head -120
    [ $(curl -sL $UA "$URL" | grep -c "joe_post__pagination-item") -ge 1 ] || echo "❌ 分页丢了"
    ```
 
-### 5.2 jQuery 永远不准加 `defer`
+### 5.2 jQuery 永远不准单独加 `defer`
 
 `v1.5.1-next.5` 给 `<head>` jQuery 加 defer → 留言板/图库/复制按钮全挂。next.6 紧急回退。
 
-**根因**：HTML5 规范里 body 内的 `<script src>` 在 parse 到达时**同步执行**，永远早于 `<head>` defer 完成。所以 jQuery defer = `$ is not defined`。
+**根因**：HTML5 规范里 body 内的 `<script src>` 在 parse 到达时**同步执行**，永远早于 `<head>` defer 完成。所以只给 head jQuery 加 defer = `$ is not defined`。
 
-**正确方向**（如果未来要做）：给 `tail.html` 里所有 jQuery-dep `<script>` **统一** defer，**整体迁移**，不能只 defer jQuery 自己。
+**当前实现**：jQuery 是 `tail.html` 中第一个外部主题脚本，且 tail 内所有外部主题脚本统一使用 `defer`。这样既不阻塞首屏 HTML 解析，也利用 defer 的文档顺序保证 `common.min.js` / `journals.min.js` / `photos.min.js` 等依赖在 jQuery 后执行。`verify-theme-package.mjs` 会守住这三点：不在 head、所有外部主题脚本都带 defer、jQuery 永远排第一。
+
+**后续纪律**：新增外部主题脚本也必须使用 `defer`，并按依赖顺序放置；禁止只移动或单独修改 jQuery 的加载属性。
 
 ### 5.3 CSS Grid 多列布局一律用 `minmax(0, 1fr)`
 
@@ -318,7 +320,6 @@ CHANGELOG.md                             # Keep-a-Changelog
 ### 独立 PR · 改动大需生产验证
 
 - **lib/ 进一步裁剪**：待核查 `katex@0.13.18` 2.3MB / `pdfjs` 6.9MB / `halo-comment` 8.2MB 是否还在用
-- **jQuery 全量 defer**：给 tail.html 所有 jQuery-dep `<script>` 统一 defer（真正的 render-blocking 优化，回归面大）
 - **AdSense 手动 slot 模式**：当前只有 Auto Ads
 - **aside.html / aside_post.html 的 switch 块抽 fragment 复用**
 
@@ -327,7 +328,7 @@ CHANGELOG.md                             # Keep-a-Changelog
 - **Halo 应用市场注册发布**（在 halo.run/developers 注册新 app-id · 不能复用上游 `app-ZxiPb` · 见红线 ②）
 - upstream#364 pjax 支持
 - upstream#339 中英切换
-- Lighthouse baseline + 性能深度优化
+- 持续跟踪 Lighthouse / Core Web Vitals
 - a11y 系统审计
 
 ---
@@ -371,4 +372,4 @@ CHANGELOG.md                             # Keep-a-Changelog
 
 ---
 
-_Last updated: 2026-07-12 · at v1.6.11.9 · by Roy Leo / 咕咕_
+_Last updated: 2026-07-23 · at v1.6.11.10 · by Roy Leo / 咕咕_

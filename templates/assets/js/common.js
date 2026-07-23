@@ -52,9 +52,12 @@ const commonContext = {
 		show() {
 			if (!ThemeConfig.enable_loading_bar) return;
 			NProgress.configure({
+				barSelector: '[role="progressbar"]',
 				easing: "ease",
 				speed: 500,
 				showSpinner: false,
+				template:
+					'<div class="bar" role="progressbar" aria-label="页面加载进度"><div class="peg"></div></div>',
 			});
 			NProgress.start();
 		},

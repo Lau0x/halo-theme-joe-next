@@ -9,7 +9,7 @@
         <!--        页面总数小于等于7-->
         <ul class="joe_pagination" th:if="${(totalPages le 7) && (totalPages gt 0)}">
           <li class="prev" th:classappend="${1 eq pageIndex} ? ' disabled':''">
-            <a th:href="@{${posts.prevUrl}}">
+            <a aria-label="上一页" th:href="@{${posts.prevUrl}}">
               <i class="joe-font joe-icon-prev"></i>
             </a>
           </li>
@@ -20,7 +20,7 @@
             <a th:href="${'/page/' + index}" th:text="${index}"></a>
           </li>
           <li class="next" th:classappend="${pageIndex eq totalPages} ? ' disabled':''">
-            <a th:href="@{${posts.nextUrl}}">
+            <a aria-label="下一页" th:href="@{${posts.nextUrl}}">
               <i class="joe-font joe-icon-next"></i>
             </a>
           </li>
@@ -28,7 +28,7 @@
         <!--        页面总数大于7-->
         <ul class="joe_pagination" th:if="${totalPages gt 7}">
           <li class="prev" th:classappend="${1 eq pageIndex} ? ' disabled':''">
-            <a th:href="@{${posts.prevUrl}}">
+            <a aria-label="上一页" th:href="@{${posts.prevUrl}}">
               <i class="joe-font joe-icon-prev"></i>
             </a>
           </li>
@@ -77,7 +77,7 @@
             <a th:href="${'/page/'+totalPages}" th:text="${totalPages}"> </a>
           </li>
           <li class="next" th:classappend="${pageIndex eq totalPages} ? ' disabled':''">
-            <a th:href="@{${posts.nextUrl}}">
+            <a aria-label="下一页" th:href="@{${posts.nextUrl}}">
               <i class="joe-font joe-icon-next"></i>
             </a>
           </li>
@@ -92,7 +92,7 @@
         <!--        页面总数小于等于7-->
         <ul class="joe_pagination" th:if="${(totalPages le 7) && (totalPages gt 0)}">
           <li class="prev" th:classappend="${1 eq pageIndex} ? ' disabled':''">
-            <a th:href="@{${archives.prevUrl}}">
+            <a aria-label="上一页" th:href="@{${archives.prevUrl}}">
               <i class="joe-font joe-icon-prev"></i>
             </a>
           </li>
@@ -103,7 +103,7 @@
             <a th:href="@{/archives/page/} + ${index}" th:text="${index}"></a>
           </li>
           <li class="next" th:classappend="${pageIndex eq totalPages} ? ' disabled':''">
-            <a th:href="@{${archives.nextUrl}}">
+            <a aria-label="下一页" th:href="@{${archives.nextUrl}}">
               <i class="joe-font joe-icon-next"></i>
             </a>
           </li>
@@ -111,7 +111,7 @@
         <!--        页面总数大于7-->
         <ul class="joe_pagination" th:if="${totalPages gt 7}">
           <li class="prev" th:classappend="${1 eq pageIndex} ? ' disabled':''">
-            <a th:href="@{${archives.prevUrl}}">
+            <a aria-label="上一页" th:href="@{${archives.prevUrl}}">
               <i class="joe-font joe-icon-prev"></i>
             </a>
           </li>
@@ -160,7 +160,7 @@
             <a th:href="@{/archives/page/}+${totalPages}" th:text="${totalPages}"> </a>
           </li>
           <li class="next" th:classappend="${pageIndex eq totalPages} ? ' disabled':''">
-            <a th:href="@{${archives.nextUrl}}">
+            <a aria-label="下一页" th:href="@{${archives.nextUrl}}">
               <i class="joe-font joe-icon-next"></i>
             </a>
           </li>
@@ -175,7 +175,7 @@
         <!--        页面总数小于等于7-->
         <ul class="joe_pagination" th:if="${(totalPages le 7) && (totalPages gt 0)}">
           <li class="prev" th:classappend="${1 eq pageIndex} ? ' disabled':''">
-            <a th:href="@{${posts.prevUrl}}">
+            <a aria-label="上一页" th:href="@{${posts.prevUrl}}">
               <i class="joe-font joe-icon-prev"></i>
             </a>
           </li>
@@ -186,7 +186,7 @@
             <a th:href="${category.status.permalink}+'/page/' + ${index}" th:text="${index}"></a>
           </li>
           <li class="next" th:classappend="${pageIndex eq totalPages} ? ' disabled':''">
-            <a th:href="@{${posts.nextUrl}}">
+            <a aria-label="下一页" th:href="@{${posts.nextUrl}}">
               <i class="joe-font joe-icon-next"></i>
             </a>
           </li>
@@ -194,7 +194,7 @@
         <!--        页面总数大于7-->
         <ul class="joe_pagination" th:if="${totalPages gt 7}">
           <li class="prev" th:classappend="${1 eq pageIndex} ? ' disabled':''">
-            <a th:href="@{${posts.prevUrl}}">
+            <a aria-label="上一页" th:href="@{${posts.prevUrl}}">
               <i class="joe-font joe-icon-prev"></i>
             </a>
           </li>
@@ -247,7 +247,7 @@
             </a>
           </li>
           <li class="next" th:classappend="${pageIndex eq totalPages} ? ' disabled':''">
-            <a th:href="@{${posts.nextUrl}}">
+            <a aria-label="下一页" th:href="@{${posts.nextUrl}}">
               <i class="joe-font joe-icon-next"></i>
             </a>
           </li>
@@ -262,7 +262,7 @@
         <!--        页面总数小于等于7-->
         <ul class="joe_pagination" th:if="${(totalPages le 7) && (totalPages gt 0)}">
           <li class="prev" th:classappend="${1 eq pageIndex} ? ' disabled':''">
-            <a th:href="@{${posts.prevUrl}}">
+            <a aria-label="上一页" th:href="@{${posts.prevUrl}}">
               <i class="joe-font joe-icon-prev"></i>
             </a>
           </li>
@@ -273,7 +273,7 @@
             <a th:href="${tag.status.permalink}+'/page/' + ${index}" th:text="${index}"></a>
           </li>
           <li class="next" th:classappend="${pageIndex eq totalPages} ? ' disabled':''">
-            <a th:href="@{${posts.nextUrl}}">
+            <a aria-label="下一页" th:href="@{${posts.nextUrl}}">
               <i class="joe-font joe-icon-next"></i>
             </a>
           </li>
@@ -281,7 +281,7 @@
         <!--        页面总数大于7-->
         <ul class="joe_pagination" th:if="${totalPages gt 7}">
           <li class="prev" th:classappend="${1 eq pageIndex} ? ' disabled':''">
-            <a th:href="@{${posts.prevUrl}}">
+            <a aria-label="上一页" th:href="@{${posts.prevUrl}}">
               <i class="joe-font joe-icon-prev"></i>
             </a>
           </li>
@@ -331,7 +331,7 @@
             </a>
           </li>
           <li class="next" th:classappend="${pageIndex eq totalPages} ? ' disabled':''">
-            <a th:href="@{${posts.nextUrl}}">
+            <a aria-label="下一页" th:href="@{${posts.nextUrl}}">
               <i class="joe-font joe-icon-next"></i>
             </a>
           </li>
@@ -346,7 +346,7 @@
         <!--        页面总数小于等于7-->
         <ul class="joe_pagination" th:if="${(totalPages le 7) && (totalPages gt 0)}">
           <li class="prev" th:classappend="${1 eq pageIndex} ? ' disabled':''">
-            <a th:href="@{${moments.prevUrl}}">
+            <a aria-label="上一页" th:href="@{${moments.prevUrl}}">
               <i class="joe-font joe-icon-prev"></i>
             </a>
           </li>
@@ -357,7 +357,7 @@
             <a th:href="@{/moments}+'/page/'+ ${index}" th:text="${index}"></a>
           </li>
           <li class="next" th:classappend="${pageIndex eq totalPages} ? ' disabled':''">
-            <a th:href="@{${moments.nextUrl}}">
+            <a aria-label="下一页" th:href="@{${moments.nextUrl}}">
               <i class="joe-font joe-icon-next"></i>
             </a>
           </li>
@@ -365,7 +365,7 @@
         <!--        页面总数大于7-->
         <ul class="joe_pagination" th:if="${totalPages gt 7}">
           <li class="prev" th:classappend="${1 eq pageIndex} ? ' disabled':''">
-            <a th:href="@{${moments.prevUrl}}">
+            <a aria-label="上一页" th:href="@{${moments.prevUrl}}">
               <i class="joe-font joe-icon-prev"></i>
             </a>
           </li>
@@ -414,7 +414,7 @@
             <a th:href="@{/moments}+'/page/' + ${totalPages}" th:text="${totalPages}"> </a>
           </li>
           <li class="next" th:classappend="${pageIndex eq totalPages} ? ' disabled':''">
-            <a th:href="@{${moments.nextUrl}}">
+            <a aria-label="下一页" th:href="@{${moments.nextUrl}}">
               <i class="joe-font joe-icon-next"></i>
             </a>
           </li>
@@ -430,7 +430,7 @@
         <!--        页面总数小于等于7-->
         <ul class="joe_pagination" th:if="${(totalPages le 7) && (totalPages gt 0)}">
           <li class="prev" th:classappend="${1 eq pageIndex} ? ' disabled':''">
-            <a th:href="@{${data.prevUrl}}">
+            <a aria-label="上一页" th:href="@{${data.prevUrl}}">
               <i class="joe-font joe-icon-prev"></i>
             </a>
           </li>
@@ -441,7 +441,7 @@
             <a th:href="@{${path}}+'/page/'+ ${index}" th:text="${index}"></a>
           </li>
           <li class="next" th:classappend="${pageIndex eq totalPages} ? ' disabled':''">
-            <a th:href="@{${data.nextUrl}}">
+            <a aria-label="下一页" th:href="@{${data.nextUrl}}">
               <i class="joe-font joe-icon-next"></i>
             </a>
           </li>
@@ -449,7 +449,7 @@
         <!--        页面总数大于7-->
         <ul class="joe_pagination" th:if="${totalPages gt 7}">
           <li class="prev" th:classappend="${1 eq pageIndex} ? ' disabled':''">
-            <a th:href="@{${data.prevUrl}}">
+            <a aria-label="上一页" th:href="@{${data.prevUrl}}">
               <i class="joe-font joe-icon-prev"></i>
             </a>
           </li>
@@ -498,7 +498,7 @@
             <a th:href="@{${path}}+'/page/' + ${totalPages}" th:text="${totalPages}"> </a>
           </li>
           <li class="next" th:classappend="${pageIndex eq totalPages} ? ' disabled':''">
-            <a th:href="@{${data.nextUrl}}">
+            <a aria-label="下一页" th:href="@{${data.nextUrl}}">
               <i class="joe-font joe-icon-next"></i>
             </a>
           </li>
@@ -514,7 +514,7 @@
         <!--        页面总数小于等于7-->
         <ul class="joe_pagination" th:if="${(totalPages le 7) && (totalPages gt 0)}">
           <li class="prev" th:classappend="${1 eq pageIndex} ? ' disabled':''">
-            <a th:href="@{${posts.prevUrl}}">
+            <a aria-label="上一页" th:href="@{${posts.prevUrl}}">
               <i class="joe-font joe-icon-prev"></i>
             </a>
           </li>
@@ -525,7 +525,7 @@
             <a th:href="${author.status.permalink}+'/page/' + ${index}" th:text="${index}"></a>
           </li>
           <li class="next" th:classappend="${pageIndex eq totalPages} ? ' disabled':''">
-            <a th:href="@{${posts.nextUrl}}">
+            <a aria-label="下一页" th:href="@{${posts.nextUrl}}">
               <i class="joe-font joe-icon-next"></i>
             </a>
           </li>
@@ -533,7 +533,7 @@
         <!--        页面总数大于7-->
         <ul class="joe_pagination" th:if="${totalPages gt 7}">
           <li class="prev" th:classappend="${1 eq pageIndex} ? ' disabled':''">
-            <a th:href="@{${posts.prevUrl}}">
+            <a aria-label="上一页" th:href="@{${posts.prevUrl}}">
               <i class="joe-font joe-icon-prev"></i>
             </a>
           </li>
@@ -586,7 +586,7 @@
             </a>
           </li>
           <li class="next" th:classappend="${pageIndex eq totalPages} ? ' disabled':''">
-            <a th:href="@{${posts.nextUrl}}">
+            <a aria-label="下一页" th:href="@{${posts.nextUrl}}">
               <i class="joe-font joe-icon-next"></i>
             </a>
           </li>
