@@ -498,11 +498,16 @@ document.addEventListener("DOMContentLoaded", () => {
 
 					// 下滑到评论区
 					const scrollTop = $comment.offsetTop - $header.offsetHeight - 15;
+					const scrollDuration = window.matchMedia(
+						"(prefers-reduced-motion: reduce)"
+					).matches
+						? 0
+						: 500;
 					$("html,body").animate(
 						{
 							scrollTop,
 						},
-						500
+						scrollDuration
 					);
 				});
 			}

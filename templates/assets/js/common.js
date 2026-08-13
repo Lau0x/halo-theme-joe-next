@@ -298,11 +298,18 @@ const commonContext = {
 		$(document).on("scroll", Utils.throttle(handleScroll, 120));
 		$el.on("click", function (e) {
 			e.stopPropagation();
+			const scrollDuration = window.matchMedia(
+				"(prefers-reduced-motion: reduce)"
+			).matches
+				? 0
+				: ThemeConfig.enable_back2top_smooth
+					? 500
+					: 0;
 			$("html,body").animate(
 				{
 					scrollTop: 0,
 				},
-				ThemeConfig.enable_back2top_smooth ? 500 : 0
+				scrollDuration
 			);
 		});
 	},
@@ -803,16 +810,21 @@ const commonContext = {
 		hash = hash || window.decodeURIComponent(location.hash);
 		if (!hash) return;
 
+		const effectiveDuration = window.matchMedia(
+			"(prefers-reduced-motion: reduce)"
+		).matches
+			? 0
+			: duration;
 		const headerHeight = $(".joe_header").height();
 		const $targetEl = $(hash);
 		if ($targetEl && $targetEl.length > 0) {
 			const scrollTop = $targetEl.offset().top - headerHeight - 15;
-			if (duration > 0) {
+			if (effectiveDuration > 0) {
 				$("html,body").animate(
 					{
 						scrollTop,
 					},
-					duration
+					effectiveDuration
 				);
 			} else {
 				document.documentElement.scrollTop = scrollTop;

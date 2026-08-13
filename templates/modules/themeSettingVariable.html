@@ -41,7 +41,7 @@
         post_index_page_size: /*[[${theme.config.home.enable_index_list_ajax}]]*/ false,
         backdrop: /*[[${theme.config.theme.backdrop}]]*/ 'off',
         favicon: /*[[${theme.config.custom.favicon}]]*/ '',
-        enable_index_list_effect: /*[[${theme.config.home.enable_index_list_effect}]]*/ true,
+        enable_index_list_effect: /*[[${#bools.isTrue(theme.config.home.enable_index_list_effect)}]]*/ false,
         index_list_effect_class: /*[[${theme.config.home.index_list_effect_class}]]*/ 'fadeInUp',
         show_loaded_time: /*[[${theme.config.custom.show_loaded_time}]]*/ false,
         enable_debug: /*[[${theme.config.other.enable_debug}]]*/ false,
@@ -68,8 +68,8 @@
         copy_right_text: /*[[${theme.config.post.copy_right_text}]]*/ '',
         offscreen_title_leave: /*[[${theme.config.theme.offscreen_title_leave}]]*/ '',
         offscreen_title_back: /*[[${theme.config.theme.offscreen_title_back}]]*/ '',
-        enable_journal_effect: /*[[${theme.config.journals.enable_journal_effect}]]*/ true,
-        enable_friend_effect: /*[[${theme.config.friends.enable_friend_effect}]]*/ true,
+        enable_journal_effect: /*[[${#bools.isTrue(theme.config.journals.enable_journal_effect)}]]*/ false,
+        enable_friend_effect: /*[[${#bools.isTrue(theme.config.friends.enable_friend_effect)}]]*/ false,
         // prettier-ignore
         journal_list_effect_class: /*[[${theme.config.journals.journal_list_effect_class}]]*/ 'fadeInUp',
         friend_list_effect_class:

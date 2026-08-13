@@ -2,7 +2,7 @@
 <html
   th:lang="${#locale.toLanguageTag}"
   xmlns:th="http://www.thymeleaf.org"
-  th:replace="~{modules/layout :: html(title = ${tag.spec.displayName ?: '作者归档'}+'-'+${site.title},htmlType = author,header = null,leftSidebar = true,content = ~{::content}, head = null, footer = null)}"
+  th:replace="~{modules/layout :: html(title = ${author.spec.displayName ?: '作者归档'}+'-'+${site.title},htmlType = author,header = null,leftSidebar = true,content = ~{::content}, head = null, footer = null)}"
 >
   <th:block th:fragment="content">
     <body>

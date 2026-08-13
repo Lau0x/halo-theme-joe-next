@@ -6,17 +6,22 @@ const homeContext = {
 			ThemeConfig.enable_banner &&
 			$(".joe_index__banner .swiper").length !== 0
 		) {
+			const prefersReducedMotion = window.matchMedia(
+				'(prefers-reduced-motion: reduce)'
+			).matches;
 
 			new Swiper('.swiper', {
 				direction: ThemeConfig.banner_direction, // 垂直切换选项
 				loop: ThemeConfig.enable_banner_loop, // 循环模式选项
 				effect: ThemeConfig.banner_effect,//Slide的切换效果
 				keyboard: false,
-				speed: ThemeConfig.banner_speed,
+				speed: prefersReducedMotion ? 0 : ThemeConfig.banner_speed,
 				mousewheel: false,
 				grabCursor: ThemeConfig.enable_banner_handle,
 				allowTouchMove: ThemeConfig.enable_banner_handle,
-				autoplay: ThemeConfig.enable_banner_autoplay
+				autoplay: prefersReducedMotion
+					? false
+					: ThemeConfig.enable_banner_autoplay
 					? {
 						delay: ThemeConfig.banner_delay,
 						disableOnInteraction: false,
@@ -332,7 +337,9 @@ const homeContext = {
 							const scrollTop = lastItemTop - $headerHeight; // Adjust the value as needed
 							window.scrollTo({
 								top: scrollTop,
-								behavior: 'smooth'
+								behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches
+									? 'auto'
+									: 'smooth'
 							});
 						}
 
@@ -387,7 +394,9 @@ const homeContext = {
 
 			window.scrollTo({
 				top: targetPosition,
-				behavior: 'smooth'
+				behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches
+					? 'auto'
+					: 'smooth'
 			});
 		});
 	},

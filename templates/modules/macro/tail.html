@@ -13,13 +13,13 @@
     ></script>
     <!--
       MED-3 v1.6.10: 按页面类型条件加载 JS lib, 减少不需要该 lib 的页面下载成本.
-      wowjs: 只在 index/journals/friends/photos (滚动淡入动画页) 加载 · ~17KB
+      wowjs: 只在 journals/friends/index 对应动画开关启用时加载 · ~17KB
       fancybox: 只在 post/photos/journals/sheet (有图片 lightbox 可能) 加载 · ~84KB
       clipboard: 只在 post/journals/sheet (代码块复制 + 文章分享链接复制) 加载 · ~11KB
       qmsg / lazysizes 全局保留: 任何页面都可能用 toast 消息 + lazy image 加载.
     -->
     <th:block
-      th:if="${htmlType == 'index' or htmlType == 'journals' or htmlType == 'friends' or htmlType == 'photos'}"
+      th:if="${(htmlType == 'journals' and #bools.isTrue(theme.config.journals.enable_journal_effect)) or (htmlType == 'friends' and #bools.isTrue(theme.config.friends.enable_friend_effect)) or (htmlType == 'index' and #bools.isTrue(theme.config.home.enable_index_list_effect))}"
     >
       <script defer th:src="${source_link+'/assets/lib/wowjs/wow.min.js'}"></script>
     </th:block>

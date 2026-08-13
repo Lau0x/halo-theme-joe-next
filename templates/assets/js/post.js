@@ -280,7 +280,9 @@ const postContext = {
 			ignoreSelector: ".js-toc-ignore",
 			headingSelector: "h1,h2,h3,h4,h5,h6",
 			collapseDepth: +(PageAttrs.metas_toc_depth || ThemeConfig.toc_depth || 0),
-			scrollSmooth: true,
+			scrollSmooth: !window.matchMedia(
+				"(prefers-reduced-motion: reduce)"
+			).matches,
 			includeTitleTags: true,
 			// scrollSmoothDuration: 400,
 			hasInnerContainers: false,
