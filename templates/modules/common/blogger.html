@@ -28,6 +28,8 @@
                  缓存自动失效。对已带 query 的 URL 用 & 连接避免破坏原 query。
           -->
           <img
+            width="75"
+            height="75"
             class="avatar lazyload"
             th:with="avatarRaw=${theme.config.blogger.avatar ?: (theme.config.blogger.default_avatar ?: '/themes/theme-Joe3/assets/img/transparent-placeholder.png')}"
             th:data-src="${avatarRaw + (#strings.contains(avatarRaw, '?') ? '&' : '?') + 'v=' + theme.spec.version}"
@@ -49,6 +51,8 @@
           -->
           <th:block th:if="${theme.config.blogger.avatar_frame != '0'}">
             <img
+              width="75"
+              height="75"
               th:class="'avatar_frame '+${theme.config.blogger.avatar_frame}"
               th:src="@{/assets/frame/__${theme.config.blogger.avatar_frame}__.png}"
               alt="挂架"
@@ -66,7 +70,13 @@
           [[${theme.config.blogger.nickname ?: site.title}]]
 
           <th:block th:if="${theme.config.blogger.enable_blogger_level}">
-            <img class="level" th:src="@{/assets/svg/level_1.svg}" alt="博主等级" />
+            <img
+              width="24"
+              height="24"
+              class="level"
+              th:src="@{/assets/svg/level_1.svg}"
+              alt="博主等级"
+            />
           </th:block>
         </a>
         <th:block th:if="${theme.config.blogger.motto != ''}">

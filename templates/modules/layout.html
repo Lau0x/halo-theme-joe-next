@@ -186,6 +186,11 @@
 
     <th:block th:replace="~{modules/config :: config}" />
     <th:block th:replace="~{modules/link :: links}" />
+    <th:block
+      th:with="source_link=${(#strings.trim(theme.config.basic.source_link) !='' && theme.config.basic.enable_source_link)? theme.config.basic.source_link : '/themes/theme-Joe3'}"
+    >
+      <script th:src="${source_link+'/assets/lib/jquery@3.7.1/jquery.min.js'}"></script>
+    </th:block>
   </head>
   <!-- /OG -->
   <th:block th:replace="${content}"></th:block>

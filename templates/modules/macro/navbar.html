@@ -227,7 +227,13 @@
                 rel="noopener noreferrer nofollow"
                 >[[${theme.config.blogger.name ?: site.title}]]
                 <th:block th:if="${theme.config.blogger.enable_blogger_level}">
-                  <img class="level" th:src="@{/assets/svg/level_1.svg}" alt="博主等级" />
+                  <img
+                    width="23"
+                    height="23"
+                    class="level"
+                    th:src="@{/assets/svg/level_1.svg}"
+                    alt="博主等级"
+                  />
                 </th:block>
               </a>
               <p class="motto joe_motto">[[${theme.config.blogger.motto}]]</p>

@@ -20,19 +20,20 @@
   "devDependencies": {
     "@halo-dev/theme-package-cli": "^1.1.1",
     "husky": "^9.1.7",
-    "js-yaml": "^4.2.0",
-    "less": "^4.6.7",
+    "js-yaml": "4.3.1",
+    "less": "4.8.1",
     "lint-staged": "^15.5.2",
-    "postcss": "^8.5.16",
+    "postcss": "8.5.26",
     "prettier": "^3.9.5",
     "rolldown": "1.0.0-beta.58",
     "rollup-plugin-postcss": "^4.0.2"
   },
   "pnpm": {
     "overrides": {
-      "brace-expansion@>=2.0.0 <2.1.2": "2.1.2",
+      "brace-expansion@>=2.0.0 <2.1.4": "2.1.4",
+      "nanoid@>=3.0.0 <3.3.18": "3.3.18",
       "picomatch@<2.3.2": "2.3.2",
-      "postcss@<8.5.10": "8.5.16",
+      "postcss@>=8.0.0 <8.5.26": "8.5.26",
       "svgo@>=1.0.0 <2.8.3": "2.8.3",
       "yaml@<1.10.3": "1.10.3",
       "yaml@>=2.0.0 <2.8.3": "2.8.3"

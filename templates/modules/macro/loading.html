@@ -3,10 +3,22 @@
   <th:block th:fragment="loading">
     <div class="joe_loading" role="status" aria-label="加载中">
       <th:block th:if="${htmlType == 'photos'}">
-        <img th:src="@{/assets/svg/loading-ball.svg}" alt="" aria-hidden="true" />
+        <img
+          width="120"
+          height="30"
+          th:src="@{/assets/svg/loading-ball.svg}"
+          alt=""
+          aria-hidden="true"
+        />
       </th:block>
       <th:block th:if="${htmlType != 'photos'}">
-        <img th:src="@{/assets/svg/loading-ball.svg}" alt="" aria-hidden="true" />
+        <img
+          width="120"
+          height="30"
+          th:src="@{/assets/svg/loading-ball.svg}"
+          alt=""
+          aria-hidden="true"
+        />
       </th:block>
     </div>
   </th:block>

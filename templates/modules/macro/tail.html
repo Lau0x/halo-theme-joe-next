@@ -5,8 +5,7 @@
     th:with="source_link=${(#strings.trim(theme.config.basic.source_link) !='' && theme.config.basic.enable_source_link)? theme.config.basic.source_link : '/themes/theme-Joe3'}"
   >
     <!--    ===== 引入脚本 start ===== -->
-    <!-- 所有外部主题脚本统一 defer，并保持 jQuery 第一，禁止只给 jQuery 单独加 defer。 -->
-    <script defer th:src="${source_link+'/assets/lib/jquery@3.7.1/jquery.min.js'}"></script>
+    <!-- jQuery 在 head 同步加载以兼容正文插件；其余外部主题脚本统一 defer。 -->
     <script
       defer
       th:if="${theme.config.blogger.enable_strips}"

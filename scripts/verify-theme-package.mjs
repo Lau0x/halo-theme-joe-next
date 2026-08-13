@@ -64,6 +64,75 @@ if (!changelog.includes(`## [${version}]`)) {
   throw new Error(`CHANGELOG.md has no ${version} release section`);
 }
 
+const configScriptIds = {
+  'templates/modules/themeSettingVariable.html': 'theme-setting-variable',
+  'templates/modules/postMetaVariable.html': 'post-meta-variable',
+  'templates/modules/pageMetaVariable.html': 'page-meta-variable',
+  'templates/modules/config.html': 'theme-config-runtime',
+};
+const templateRoot = resolve('templates');
+const htmlTemplates = readdirSync(templateRoot, { recursive: true })
+  .filter((path) => path.endsWith('.html'))
+  .map((path) => ({ path, source: readFileSync(resolve(templateRoot, path), 'utf8') }));
+if (htmlTemplates.some(({ source }) => /id\s*=\s*(["'])theme-config-getter\1/.test(source))) {
+  throw new Error('templates: legacy duplicate id theme-config-getter must not be present');
+}
+const seenConfigScriptIds = new Set();
+for (const [path, id] of Object.entries(configScriptIds)) {
+  const template = readFileSync(resolve(path), 'utf8');
+  if (!template.includes(`id="${id}"`)) {
+    throw new Error(`${path}: expected config script id ${id}`);
+  }
+  if (template.includes('id="theme-config-getter"')) {
+    throw new Error(`${path}: legacy duplicate id theme-config-getter must not be present`);
+  }
+  if (seenConfigScriptIds.has(id)) {
+    throw new Error(`${path}: duplicate config script id ${id}`);
+  }
+  const globalCount = htmlTemplates.reduce(
+    (count, { source }) =>
+      count + (source.match(new RegExp(String.raw`id\s*=\s*(["'])${id}\1`, 'g'))?.length ?? 0),
+    0
+  );
+  if (globalCount !== 1) {
+    throw new Error(`templates: expected exactly one config script id ${id}, found ${globalCount}`);
+  }
+  seenConfigScriptIds.add(id);
+}
+
+const commonScriptPath = 'templates/assets/js/common.js';
+const commonScript = readFileSync(resolve(commonScriptPath), 'utf8');
+if (commonScript.includes('#theme-config-getter')) {
+  throw new Error(
+    `${commonScriptPath}: legacy config script id theme-config-getter must not be referenced`
+  );
+}
+const cleanMethod = commonScript.match(
+  /clean\(\)\s*\{([\s\S]*?)commonContext\.loadingBar\.hide\(\);[\s\S]*?\n\t\},/
+)?.[0];
+if (!cleanMethod) {
+  throw new Error(`${commonScriptPath}: clean method could not be verified`);
+}
+for (const id of Object.values(configScriptIds)) {
+  const cleanupPattern = new RegExp(String.raw`\$\((["'])[^"']*#${id}[^"']*\1\)\.remove\(\);`);
+  if (!cleanupPattern.test(cleanMethod)) {
+    throw new Error(`${commonScriptPath}: clean method must remove #${id}`);
+  }
+}
+
+for (const path of [
+  'templates/modules/post_operate.html',
+  'templates/modules/post_operate_aside.html',
+]) {
+  const template = readFileSync(resolve(path), 'utf8');
+  if (template.includes('id="share_to_weixin"')) {
+    throw new Error(`${path}: share_to_weixin must be a reusable class, not a duplicate id`);
+  }
+  if (!template.includes('class="share_to_weixin"')) {
+    throw new Error(`${path}: share_to_weixin class is required`);
+  }
+}
+
 const visibilityGuards = {
   'templates/archives.html': 3,
   'templates/moment.html': 1,
@@ -91,20 +160,40 @@ for (const [path, minimumCount] of Object.entries(visibilityGuards)) {
 }
 
 const layout = readFileSync(resolve('templates/modules/layout.html'), 'utf8');
-if (layout.includes('jquery@3.7.1')) {
-  throw new Error('templates/modules/layout.html: jQuery must not block the document head');
+const layoutExternalScripts = [...layout.matchAll(/<script[^>]+(?:th:src|src)=[^>]+>/g)].map(
+  (match) => match[0]
+);
+const jqueryScript = layoutExternalScripts.find((script) => script.includes('jquery@3.7.1'));
+if (!jqueryScript) {
+  throw new Error('templates/modules/layout.html: synchronous jQuery script tag not found');
+}
+const globalJqueryScripts = htmlTemplates.flatMap(({ path, source }) =>
+  [...source.matchAll(/<script[^>]+(?:th:src|src)=[^>]+>/g)]
+    .map((match) => match[0])
+    .filter((script) => script.includes('jquery@3.7.1'))
+    .map((script) => ({ path, script }))
+);
+if (
+  globalJqueryScripts.length !== 1 ||
+  globalJqueryScripts[0].path !== 'modules/layout.html' ||
+  globalJqueryScripts[0].script !== jqueryScript
+) {
+  throw new Error(
+    `templates: expected one jQuery 3.7.1 script in modules/layout.html, found ${globalJqueryScripts.length}`
+  );
+}
+if (/\bdefer\b|\basync\b/.test(jqueryScript)) {
+  throw new Error(
+    'templates/modules/layout.html: jQuery must load synchronously before content plugin scripts'
+  );
 }
 
 const tail = readFileSync(resolve('templates/modules/macro/tail.html'), 'utf8');
 const externalScripts = [...tail.matchAll(/<script[^>]+(?:th:src|src)=[^>]+>/g)].map(
   (match) => match[0]
 );
-const jqueryScript = externalScripts.find((script) => script.includes('jquery@3.7.1'));
-if (!jqueryScript) {
-  throw new Error('templates/modules/macro/tail.html: jQuery script tag not found');
-}
-if (externalScripts[0] !== jqueryScript) {
-  throw new Error('templates/modules/macro/tail.html: jQuery must load before all theme scripts');
+if (externalScripts.some((script) => script.includes('jquery@3.7.1'))) {
+  throw new Error('templates/modules/macro/tail.html: jQuery must not be loaded twice');
 }
 const nonDeferredScripts = externalScripts.filter((script) => !/\bdefer\b/.test(script));
 if (nonDeferredScripts.length > 0) {
@@ -120,11 +209,8 @@ if (blogger.includes('assets/effect/bg/strips.js')) {
 const stripsScript = externalScripts.find((script) =>
   script.includes('assets/effect/bg/strips.js')
 );
-if (
-  !stripsScript ||
-  externalScripts.indexOf(stripsScript) < externalScripts.indexOf(jqueryScript)
-) {
-  throw new Error('templates/modules/macro/tail.html: strips.js must load after jQuery');
+if (!stripsScript) {
+  throw new Error('templates/modules/macro/tail.html: strips.js script tag not found');
 }
 
 const hotCategory = readFileSync(resolve('templates/modules/macro/hot_category.html'), 'utf8');
@@ -145,6 +231,15 @@ for (const file of readdirSync(sourceJsDir).filter((name) => name.endsWith('.js'
 }
 
 const globalStyles = readFileSync(resolve('templates/assets/css/global.less'), 'utf8');
+const postStyles = readFileSync(resolve('templates/assets/css/post.less'), 'utf8');
+for (const [path, styles] of [
+  ['templates/assets/css/global.less', globalStyles],
+  ['templates/assets/css/post.less', postStyles],
+]) {
+  if (styles.includes('#share_to_weixin')) {
+    throw new Error(`${path}: share_to_weixin selector must use a reusable class`);
+  }
+}
 if (/data:image\/[a-z+.-]+;base64,[A-Za-z0-9+/=]{50000,}/.test(globalStyles)) {
   throw new Error(
     'templates/assets/css/global.less: oversized inline image must be a static asset'

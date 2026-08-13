@@ -157,9 +157,9 @@ sed -n '/^## \[/,/^## \[/p' CHANGELOG.md | head -120
 
 **根因**：HTML5 规范里 body 内的 `<script src>` 在 parse 到达时**同步执行**，永远早于 `<head>` defer 完成。所以只给 head jQuery 加 defer = `$ is not defined`。
 
-**当前实现**：jQuery 是 `tail.html` 中第一个外部主题脚本，且 tail 内所有外部主题脚本统一使用 `defer`。这样既不阻塞首屏 HTML 解析，也利用 defer 的文档顺序保证 `common.min.js` / `journals.min.js` / `photos.min.js` 等依赖在 jQuery 后执行。`verify-theme-package.mjs` 会守住这三点：不在 head、所有外部主题脚本都带 defer、jQuery 永远排第一。
+**当前实现**：jQuery 在 `layout.html` 的 head 中同步加载一次，其余外部主题脚本在 `tail.html` 统一使用 `defer`。原因是 Halo 正文渲染插件可能把同步脚本直接插入文章内容区；如果 jQuery 仍在页尾 defer，这些插件会先执行并报 `$ is not defined`。`verify-theme-package.mjs` 会守住 jQuery 头部同步且只加载一次、tail 外部脚本全部 defer。
 
-**后续纪律**：新增外部主题脚本也必须使用 `defer`，并按依赖顺序放置；禁止只移动或单独修改 jQuery 的加载属性。
+**后续纪律**：新增外部主题脚本必须使用 `defer`，并按依赖顺序放置；禁止把 jQuery 移回 tail、添加 `defer`，或重复加载。
 
 ### 5.3 CSS Grid 多列布局一律用 `minmax(0, 1fr)`
 
@@ -319,7 +319,7 @@ CHANGELOG.md                             # Keep-a-Changelog
 
 ### 独立 PR · 改动大需生产验证
 
-- **lib/ 进一步裁剪**：待核查 `katex@0.13.18` 2.3MB / `pdfjs` 6.9MB / `halo-comment` 8.2MB 是否还在用
+- **资源进一步裁剪**：当前 `pdfjs` 约 5.9MB、`frame` 约 5.0MB、`widget` 约 2.2MB；先评估 PNG 无损压缩，GIF 转 WebP 与 PDF.js 裁剪需独立 RC 回归
 - **AdSense 手动 slot 模式**：当前只有 Auto Ads
 - **aside.html / aside_post.html 的 switch 块抽 fragment 复用**
 

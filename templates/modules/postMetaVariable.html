@@ -1,7 +1,7 @@
 <!doctype html>
 <html th:lang="${#locale.toLanguageTag}" xmlns:th="https://www.thymeleaf.org">
   <th:block th:fragment="postSetting">
-    <script th:inline="javascript" id="theme-config-getter">
+    <script th:inline="javascript" id="post-meta-variable">
       const PageAttrs = {
         metas_enable_read_limit: /*[[${#annotations.getOrDefault(post, 'enable_read_limit', 'false')}]]*/ false,
         metas_enable_page_meta: /*[[${#annotations.getOrDefault(post, 'enable_page_meta','true')}]]*/ true,
