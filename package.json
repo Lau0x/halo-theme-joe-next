@@ -24,7 +24,7 @@
     "less": "4.8.1",
     "lint-staged": "^15.5.2",
     "postcss": "8.5.26",
-    "prettier": "^3.9.5",
+    "prettier": "^3.9.6",
     "rolldown": "1.0.0-beta.58",
     "rollup-plugin-postcss": "^4.0.2"
   },
