@@ -13,11 +13,19 @@ const commonContext = {
 		const $html = $("html");
 		const $icon_light = $(".mode-light");
 		const $icon_dark = $(".mode-dark");
+		const $modeButtons = $(".joe_action_item.mode");
 		let local_theme = localStorage.getItem("data-mode");
+		const syncModeButton = (theme) => {
+			const isDark = theme === "dark";
+			$modeButtons
+				.attr("aria-pressed", String(isDark))
+				.attr("title", isDark ? "切换到浅色模式" : "切换到深色模式");
+		};
 
 		// 图标状态
 		$icon_light[`${local_theme === "light" ? "remove" : "add"}Class`]("active");
 		$icon_dark[`${local_theme === "light" ? "add" : "remove"}Class`]("active");
+		syncModeButton(local_theme || "light");
 
 		// 手动切换
 		$(".joe_action_item.mode").on("click", function (e) {
@@ -41,6 +49,7 @@ const commonContext = {
 				$html.attr("data-mode", theme);
 				$html.attr("data-color-scheme", theme);
 				localStorage.setItem("data-mode", theme);
+				syncModeButton(theme);
 				commonContext.initCommentTheme();
 			} catch (err) {
 				console.error(err);
@@ -713,24 +722,62 @@ const commonContext = {
 	},
 	/* 移动端侧边栏菜单手风琴 */
 	sideMenuMobile() {
+		const $panels = $(".joe_header__slideout-menu .panel");
+		const accordionDuration = window.matchMedia(
+			"(prefers-reduced-motion: reduce)"
+		).matches
+			? 0
+			: "fast";
+		const syncPanelState = ($panel, expanded) => {
+			$panel.attr("aria-expanded", String(expanded));
+			const label = $panel.attr("data-panel-label");
+			if (label) {
+				const actionLabel = `${expanded ? "收起" : "展开"}${label}子菜单`;
+				$panel.attr("aria-label", actionLabel).attr("title", actionLabel);
+			}
+		};
+		$panels.each(function (index) {
+			const $panel = $(this);
+			const $body = $panel.closest("li").children(".panel-body").first();
+			if (!$body.length) return;
+			const bodyId = $body.attr("id") || `joe-slideout-panel-${index}`;
+			$body.attr("id", bodyId);
+			$panel.attr("aria-controls", bodyId);
+			syncPanelState($panel, $body.is(":visible"));
+		});
 		$(".joe_header__slideout-menu .current")
 			.parents(".panel-body")
 			.show()
-			.siblings(".panel")
-			.addClass("in");
-		$(".joe_header__slideout-menu .panel").on("click", function (e) {
+			.each(function () {
+				const $body = $(this);
+				const $panel = $body.siblings(".panel").add($body.siblings(".link").find(".panel"));
+				$panel.addClass("in");
+				$panel.each(function () {
+					syncPanelState($(this), true);
+				});
+			});
+		$panels.on("click", function (e) {
 			e.stopPropagation();
 			const $this = $(this);
-			const panelBox = $this.parent().parent();
+			const panelBox = $this.closest("li").parent();
+			const panelBody = $(`#${$this.attr("aria-controls")}`);
 			/* 清除全部内容 */
-			panelBox.find(".panel").not($this).removeClass("in");
+			panelBox
+				.find(".panel")
+				.not($this)
+				.removeClass("in")
+				.each(function () {
+					syncPanelState($(this), false);
+				});
 			panelBox
 				.find(".panel-body")
-				.not($this.siblings(".panel-body"))
+				.not(panelBody)
 				.stop()
-				.hide("fast");
+				.hide(accordionDuration);
 			/* 激活当前的内容 */
-			$this.toggleClass("in").siblings(".panel-body").stop().toggle("fast");
+			$this.toggleClass("in");
+			syncPanelState($this, $this.hasClass("in"));
+			panelBody.stop().toggle(accordionDuration);
 		});
 	},
 	/* 头部滚动 */
@@ -791,9 +838,16 @@ const commonContext = {
 			const key = e.keyCode || e.charCode;
 			if (key === 32) {
 				if (
-					["text", "input", "textarea", "halo-comment", "halo-comment", "comment-widget"].includes(
-						elm.tagName.toLowerCase()
-					)
+					elm.isContentEditable ||
+					[
+						"text",
+						"input",
+						"textarea",
+						"button",
+						"select",
+						"halo-comment",
+						"comment-widget",
+					].includes(elm.tagName.toLowerCase())
 				) {
 					return;
 				}

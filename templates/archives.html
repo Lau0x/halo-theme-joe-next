@@ -84,23 +84,31 @@
                       class="joe_archives-timelist"
                       th:with="allArchives = ${postFinder.archives(1,9999)}"
                     >
-                      <th:block th:each="archive : ${allArchives.items}">
+                      <th:block th:each="archive, archiveStat : ${allArchives.items}">
                         <th:block
                           th:if="${theme.config.archives.archives_timeline_metric == 'month'}"
-                          th:each="month : ${archive.months}"
+                          th:each="month, monthStat : ${archive.months}"
                         >
                           <li class="item">
                             <div class="wrapper">
-                              <div class="panel in">
+                              <button
+                                type="button"
+                                class="panel in"
+                                aria-expanded="true"
+                                th:attr="aria-controls=|archive-panel-${archiveStat.index}-${monthStat.index}|"
+                              >
                                 [[${archive.year}]] 年
                                 <th:block
                                   th:if="${theme.config.archives.archives_timeline_metric == 'month'}"
                                 >
                                   [[${month.month}]] 月
                                 </th:block>
-                                <i class="joe-font joe-icon-arrow-down"></i>
-                              </div>
-                              <ol class="panel-body">
+                                <i class="joe-font joe-icon-arrow-down" aria-hidden="true"></i>
+                              </button>
+                              <ol
+                                class="panel-body"
+                                th:id="|archive-panel-${archiveStat.index}-${monthStat.index}|"
+                              >
                                 <li
                                   th:each="post : ${month.posts}"
                                   th:if="${post.spec.visible != null and post.spec.visible.name == 'PUBLIC'}"
@@ -120,15 +128,23 @@
                         </th:block>
                         <th:block
                           th:if="${theme.config.archives.archives_timeline_metric == 'year'}"
-                          th:each="month : ${archive.months}"
+                          th:each="month, monthStat : ${archive.months}"
                         >
                           <li class="item">
                             <div class="wrapper">
-                              <div class="panel in">
+                              <button
+                                type="button"
+                                class="panel in"
+                                aria-expanded="true"
+                                th:attr="aria-controls=|archive-panel-${archiveStat.index}-${monthStat.index}|"
+                              >
                                 [[${archive.year}]] 年
-                                <i class="joe-font joe-icon-arrow-down"></i>
-                              </div>
-                              <ol class="panel-body">
+                                <i class="joe-font joe-icon-arrow-down" aria-hidden="true"></i>
+                              </button>
+                              <ol
+                                class="panel-body"
+                                th:id="|archive-panel-${archiveStat.index}-${monthStat.index}|"
+                              >
                                 <th:block
                                   th:if="${theme.config.archives.archives_timeline_metric == 'year'}"
                                   th:each="month : ${archive.months}"

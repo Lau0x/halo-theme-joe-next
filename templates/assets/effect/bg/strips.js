@@ -72,12 +72,15 @@
   }
 
   function SetGlobals() {
-    (canvas1 = document.getElementById("canvas-strips")),
-      (ctx = canvas1.getContext("2d")),
-      (W = window.innerWidth),
-      (H = window.innerHeight);
+    canvas1 = document.getElementById("canvas-strips");
+    if (!canvas1) return false;
+    ctx = canvas1.getContext("2d");
+    if (!ctx) return false;
+    W = window.innerWidth;
+    H = window.innerHeight;
     // (canvas1.width = W),
     // (canvas1.height = H);
+    return true;
   }
 
   function InitializeConfetti() {
@@ -184,14 +187,14 @@
       }, 100));
   }
   $(document).ready(function () {
-    SetGlobals(),
-      InitializeButton(),
-      // InitializeConfetti(),
-      $(window).resize(function () {
-        (W = window.innerWidth), (H = window.innerHeight);
-        // (canvas1.width = W),
-        // (canvas1.height = H);
-      });
+    if (!SetGlobals()) return;
+    InitializeButton();
+    // InitializeConfetti(),
+    $(window).resize(function () {
+      (W = window.innerWidth), (H = window.innerHeight);
+      // (canvas1.width = W),
+      // (canvas1.height = H);
+    });
   }),
     (window.requestAnimFrame =
       window.requestAnimationFrame ||

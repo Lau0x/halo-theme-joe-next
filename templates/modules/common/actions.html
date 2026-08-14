@@ -3,7 +3,12 @@
   <th:block th:fragment="actions">
     <div class="joe_action">
       <th:block th:if="${theme.config.links.enable_links_random} and ${htmlType} == 'links'">
-        <div class="joe_action_item random">
+        <button
+          type="button"
+          class="joe_action_item random"
+          aria-label="随机访问一个友链"
+          title="随机访问一个友链"
+        >
           <svg
             t="1726158438632"
             class="icon"
@@ -23,10 +28,16 @@
               p-id="6115"
             ></path>
           </svg>
-        </div>
+        </button>
       </th:block>
       <th:block th:if="${theme.config.basic.theme_mode == 'user'}">
-        <div class="joe_action_item mode">
+        <button
+          type="button"
+          class="joe_action_item mode"
+          aria-label="深色模式"
+          aria-pressed="false"
+          title="切换到深色模式"
+        >
           <svg
             class="mode-light"
             height="25"
@@ -52,25 +63,35 @@
               d="M340.48 567.808l-23.552-70.144-70.144-23.552 70.144-23.552 23.552-70.144 23.552 70.144 70.144 23.552-70.144 23.552-23.552 70.144zM168.96 361.472l-30.208-91.136-91.648-30.208 91.136-30.208 30.72-91.648 30.208 91.136 91.136 30.208-91.136 30.208-30.208 91.648z"
             />
           </svg>
-        </div>
+        </button>
       </th:block>
       <th:block th:if="${theme.config.theme.enable_back2top}">
-        <div class="joe_action_item back2top">
+        <button
+          type="button"
+          class="joe_action_item back2top"
+          aria-label="返回顶部"
+          title="返回顶部"
+        >
           <svg height="25" viewBox="0 0 1024 1024" width="25" xmlns="http://www.w3.org/2000/svg">
             <path
               d="M725.902 498.916c18.205-251.45-93.298-410.738-205.369-475.592l-6.257-3.982-6.258 3.414c-111.502 64.853-224.711 224.142-204.8 475.59-55.751 53.476-80.214 116.623-80.214 204.8v15.36l179.2-35.27c11.378 40.39 58.596 69.973 113.21 69.973 54.613 0 101.262-29.582 112.64-68.836l180.337 36.41v-15.36c-.569-89.885-25.031-153.6-82.489-206.507zM571.733 392.533c-33.564 31.29-87.04 28.445-118.329-5.12s-28.444-87.04 5.12-117.76c33.565-31.289 87.04-28.444 118.33 5.12s28.444 86.471-5.12 117.76zm-56.32 368.64c-35.84 0-64.284 29.014-64.284 64.285 0 35.84 54.044 182.613 64.284 182.613s64.285-146.773 64.285-182.613c0-35.271-29.014-64.285-64.285-64.285z"
             />
           </svg>
-        </div>
+        </button>
       </th:block>
     </div>
   </th:block>
   <th:block th:fragment="actions_edit(contributor)">
     <div class="joe_action">
       <th:block th:if="${theme.config.post.enable_mobile_toc}">
-        <div class="joe_action_item toc">
-          <i class="jiewen joe-icon-mulu" title="文章目录"></i>
-        </div>
+        <button
+          type="button"
+          class="joe_action_item toc"
+          aria-label="打开文章目录"
+          title="打开文章目录"
+        >
+          <i class="jiewen joe-icon-mulu" aria-hidden="true"></i>
+        </button>
       </th:block>
       <th:block
         th:if="${theme.config.post.enable_edit} and ${htmlType} == 'post' or ${htmlType} == 'sheet'"
@@ -107,7 +128,13 @@
         </th:block>
       </th:block>
       <th:block th:if="${theme.config.basic.theme_mode == 'user'}">
-        <div class="joe_action_item mode">
+        <button
+          type="button"
+          class="joe_action_item mode"
+          aria-label="深色模式"
+          aria-pressed="false"
+          title="切换到深色模式"
+        >
           <svg
             class="mode-light"
             height="25"
@@ -133,16 +160,21 @@
               d="M340.48 567.808l-23.552-70.144-70.144-23.552 70.144-23.552 23.552-70.144 23.552 70.144 70.144 23.552-70.144 23.552-23.552 70.144zM168.96 361.472l-30.208-91.136-91.648-30.208 91.136-30.208 30.72-91.648 30.208 91.136 91.136 30.208-91.136 30.208-30.208 91.648z"
             />
           </svg>
-        </div>
+        </button>
       </th:block>
       <th:block th:if="${theme.config.theme.enable_back2top}">
-        <div class="joe_action_item back2top">
+        <button
+          type="button"
+          class="joe_action_item back2top"
+          aria-label="返回顶部"
+          title="返回顶部"
+        >
           <svg height="25" viewBox="0 0 1024 1024" width="25" xmlns="http://www.w3.org/2000/svg">
             <path
               d="M725.902 498.916c18.205-251.45-93.298-410.738-205.369-475.592l-6.257-3.982-6.258 3.414c-111.502 64.853-224.711 224.142-204.8 475.59-55.751 53.476-80.214 116.623-80.214 204.8v15.36l179.2-35.27c11.378 40.39 58.596 69.973 113.21 69.973 54.613 0 101.262-29.582 112.64-68.836l180.337 36.41v-15.36c-.569-89.885-25.031-153.6-82.489-206.507zM571.733 392.533c-33.564 31.29-87.04 28.445-118.329-5.12s-28.444-87.04 5.12-117.76c33.565-31.289 87.04-28.444 118.33 5.12s28.444 86.471-5.12 117.76zm-56.32 368.64c-35.84 0-64.284 29.014-64.284 64.285 0 35.84 54.044 182.613 64.284 182.613s64.285-146.773 64.285-182.613c0-35.271-29.014-64.285-64.285-64.285z"
             />
           </svg>
-        </div>
+        </button>
       </th:block>
     </div>
   </th:block>

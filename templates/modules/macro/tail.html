@@ -8,8 +8,8 @@
     <!-- jQuery 在 head 同步加载以兼容正文插件；其余外部主题脚本统一 defer。 -->
     <script
       defer
-      th:if="${theme.config.blogger.enable_strips}"
-      th:src="${source_link+'/assets/effect/bg/strips.js'}"
+      th:if="${#bools.isTrue(theme.config.blogger.enable_strips)}"
+      th:src="${source_link+'/assets/effect/bg/strips.js?v='+theme.spec.version}"
     ></script>
     <!--
       MED-3 v1.6.10: 按页面类型条件加载 JS lib, 减少不需要该 lib 的页面下载成本.

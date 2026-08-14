@@ -295,10 +295,16 @@
           </ul>
           <ul class="joe_header__slideout-menu panel-box">
             <li>
-              <a class="link panel in" href="#" rel="nofollow">
+              <button
+                type="button"
+                class="link panel in"
+                data-panel-label="栏目"
+                aria-label="收起栏目子菜单"
+                aria-expanded="true"
+              >
                 <span>栏目</span>
-                <i class="joe-font joe-icon-arrow-right"></i>
-              </a>
+                <i class="joe-font joe-icon-arrow-right" aria-hidden="true"></i>
+              </button>
               <ul class="slides panel-body panel-box panel-side-menu" style="display: block">
                 <th:block th:if="${#lists.isEmpty(theme.config.navbar.menu)}">
                   <th:block th:with="menu = ${menuFinder.getPrimary()}">
@@ -317,7 +323,7 @@
                       </th:block>
                       <th:block th:if="${not #lists.isEmpty(menuItem.children)}">
                         <li>
-                          <div class="link panel">
+                          <div class="link">
                             <a
                               th:href="@{${menuItem.status.href}}"
                               th:target="${menuItem.spec.target?.value}"
@@ -325,7 +331,14 @@
                               th:title="${menuItem.status.displayName}"
                               >[[${menuItem.status.displayName}]]</a
                             >
-                            <i class="joe-font joe-icon-arrow-right"></i>
+                            <button
+                              type="button"
+                              class="panel panel-toggle"
+                              aria-expanded="false"
+                              th:attr="data-panel-label=${menuItem.status.displayName},aria-label=|展开${menuItem.status.displayName}子菜单|,title=|展开${menuItem.status.displayName}子菜单|"
+                            >
+                              <i class="joe-font joe-icon-arrow-right" aria-hidden="true"></i>
+                            </button>
                           </div>
                           <ul class="slides panel-body">
                             <th:block th:each="childMenu : ${menuItem.children}">
@@ -343,7 +356,7 @@
                               </th:block>
                               <th:block th:if="${not #lists.isEmpty(childMenu.children)}">
                                 <li>
-                                  <div class="link panel">
+                                  <div class="link">
                                     <a
                                       th:href="@{${childMenu.status.href}}"
                                       th:target="${childMenu.spec.target?.value}"
@@ -351,7 +364,17 @@
                                       th:title="${childMenu.status.displayName}"
                                       >[[${childMenu.status.displayName}]]</a
                                     >
-                                    <i class="joe-font joe-icon-arrow-right"></i>
+                                    <button
+                                      type="button"
+                                      class="panel panel-toggle"
+                                      aria-expanded="false"
+                                      th:attr="data-panel-label=${childMenu.status.displayName},aria-label=|展开${childMenu.status.displayName}子菜单|,title=|展开${childMenu.status.displayName}子菜单|"
+                                    >
+                                      <i
+                                        class="joe-font joe-icon-arrow-right"
+                                        aria-hidden="true"
+                                      ></i>
+                                    </button>
                                   </div>
 
                                   <ul class="slides panel-body">
@@ -395,7 +418,7 @@
                         </th:block>
                         <th:block th:if="${not #lists.isEmpty(menuItem.children)}">
                           <li>
-                            <div class="link panel">
+                            <div class="link">
                               <a
                                 th:href="@{${menuItem.status.href}}"
                                 th:target="${menuItem.spec.target?.value}"
@@ -403,7 +426,14 @@
                                 th:title="${menuItem.status.displayName}"
                                 >[[${menuItem.status.displayName}]]</a
                               >
-                              <i class="joe-font joe-icon-arrow-right"></i>
+                              <button
+                                type="button"
+                                class="panel panel-toggle"
+                                aria-expanded="false"
+                                th:attr="data-panel-label=${menuItem.status.displayName},aria-label=|展开${menuItem.status.displayName}子菜单|,title=|展开${menuItem.status.displayName}子菜单|"
+                              >
+                                <i class="joe-font joe-icon-arrow-right" aria-hidden="true"></i>
+                              </button>
                             </div>
                             <ul class="slides panel-body">
                               <th:block th:each="childMenu : ${menuItem.children}">
@@ -421,7 +451,7 @@
                                 </th:block>
                                 <th:block th:if="${not #lists.isEmpty(childMenu.children)}">
                                   <li>
-                                    <div class="link panel">
+                                    <div class="link">
                                       <a
                                         th:href="@{${childMenu.status.href}}"
                                         th:target="${childMenu.spec.target?.value}"
@@ -429,7 +459,17 @@
                                         th:title="${childMenu.status.displayName}"
                                         >[[${childMenu.status.displayName}]]</a
                                       >
-                                      <i class="joe-font joe-icon-arrow-right"></i>
+                                      <button
+                                        type="button"
+                                        class="panel panel-toggle"
+                                        aria-expanded="false"
+                                        th:attr="data-panel-label=${childMenu.status.displayName},aria-label=|展开${childMenu.status.displayName}子菜单|,title=|展开${childMenu.status.displayName}子菜单|"
+                                      >
+                                        <i
+                                          class="joe-font joe-icon-arrow-right"
+                                          aria-hidden="true"
+                                        ></i>
+                                      </button>
                                     </div>
 
                                     <ul class="slides panel-body">

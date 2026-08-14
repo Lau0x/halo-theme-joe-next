@@ -110,9 +110,17 @@ $(document).ready(function () {
         observerForLoading.observe(loadingIndicator);
     }
 
-    $('.joe_photos__filter li').on('click', function () {
+    $('.joe_photos__filter button').on('click', function () {
         const filterValue = $(this).attr('data-sjslink');
-        $(this).addClass('active').siblings().removeClass('active');
+        const $button = $(this);
+        const $item = $button.closest('li');
+        $button.attr('aria-pressed', 'true');
+        $item
+            .addClass('active')
+            .siblings()
+            .removeClass('active')
+            .find('button')
+            .attr('aria-pressed', 'false');
         $grid.isotope({
             filter: function () {
                 const sjselValue = $(this).attr('data-sjsel');

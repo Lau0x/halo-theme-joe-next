@@ -45,11 +45,11 @@
             <a th:href="${'/page/' + index}" th:text="${index}"></a>
           </li>
           <li th:if="${pageIndex le 4}">
-            <a href="#">...</a>
+            <span aria-hidden="true">...</span>
           </li>
           <!-- 最后一页与当前页面之差小于等于3 -->
           <li th:if="${totalPages - pageIndex le 3}">
-            <a href="#">...</a>
+            <span aria-hidden="true">...</span>
           </li>
           <li
             th:classappend="${index eq pageIndex} ? 'active':''"
@@ -60,7 +60,7 @@
           </li>
           <!-- 最后一页与当前页面之差大于3 且当前页面大于4 -->
           <li th:if="${(pageIndex gt 4) && (totalPages - pageIndex gt 3)}">
-            <a href="#">...</a>
+            <span aria-hidden="true">...</span>
           </li>
           <li
             th:each="index : ${#numbers.sequence(pageIndex - 1,pageIndex + 1)}"
@@ -70,7 +70,7 @@
             <a th:href="${'/page/' + index}" th:text="${index}"> </a>
           </li>
           <li th:if="${(pageIndex gt 4) && (totalPages - pageIndex gt 3)}">
-            <a href="#">...</a>
+            <span aria-hidden="true">...</span>
           </li>
           <!-- 尾页 -->
           <li th:classappend="${totalPages eq pageIndex} ? 'active':''">
@@ -128,11 +128,11 @@
             <a th:href="@{/archives/page/} + ${index}" th:text="${index}"></a>
           </li>
           <li th:if="${pageIndex le 4}">
-            <a href="#">...</a>
+            <span aria-hidden="true">...</span>
           </li>
           <!-- 最后一页与当前页面之差小于等于3 -->
           <li th:if="${totalPages - pageIndex le 3}">
-            <a href="#">...</a>
+            <span aria-hidden="true">...</span>
           </li>
           <li
             th:classappend="${index eq pageIndex} ? 'active':''"
@@ -143,7 +143,7 @@
           </li>
           <!-- 最后一页与当前页面之差大于3 且当前页面大于4 -->
           <li th:if="${(pageIndex gt 4) && (totalPages - pageIndex gt 3)}">
-            <a href="#">...</a>
+            <span aria-hidden="true">...</span>
           </li>
           <li
             th:each="index : ${#numbers.sequence(pageIndex - 1,pageIndex + 1)}"
@@ -153,7 +153,7 @@
             <a th:href="@{/archives/page/} + ${index}" th:text="${index}"> </a>
           </li>
           <li th:if="${(pageIndex gt 4) && (totalPages - pageIndex gt 3)}">
-            <a href="#">...</a>
+            <span aria-hidden="true">...</span>
           </li>
           <!-- 尾页 -->
           <li th:classappend="${totalPages eq pageIndex} ? 'active':''">
@@ -211,11 +211,11 @@
             <a th:href="${category.status.permalink}+'/page/' + ${index}" th:text="${index}"></a>
           </li>
           <li th:if="${pageIndex le 4}">
-            <a href="#">...</a>
+            <span aria-hidden="true">...</span>
           </li>
           <!-- 最后一页与当前页面之差小于等于3 -->
           <li th:if="${totalPages - pageIndex le 3}">
-            <a href="#">...</a>
+            <span aria-hidden="true">...</span>
           </li>
           <li
             th:classappend="${index eq pageIndex} ? 'active':''"
@@ -226,7 +226,7 @@
           </li>
           <!-- 最后一页与当前页面之差大于3 且当前页面大于4 -->
           <li th:if="${(pageIndex gt 4) && (totalPages - pageIndex gt 3)}">
-            <a href="#">...</a>
+            <span aria-hidden="true">...</span>
           </li>
           <li
             th:each="index : ${#numbers.sequence(pageIndex - 1,pageIndex + 1)}"
@@ -236,7 +236,7 @@
             <a th:href="${category.status.permalink}+'/page/' + ${index}" th:text="${index}"> </a>
           </li>
           <li th:if="${(pageIndex gt 4) && (totalPages - pageIndex gt 3)}">
-            <a href="#">...</a>
+            <span aria-hidden="true">...</span>
           </li>
           <!-- 尾页 -->
           <li th:classappend="${totalPages eq pageIndex} ? 'active':''">
@@ -298,11 +298,11 @@
             <a th:href="${tag.status.permalink}+'/page/' + ${index}" th:text="${index}"></a>
           </li>
           <li th:if="${pageIndex le 4}">
-            <a href="#">...</a>
+            <span aria-hidden="true">...</span>
           </li>
           <!-- 最后一页与当前页面之差小于等于3 -->
           <li th:if="${totalPages - pageIndex le 3}">
-            <a href="#">...</a>
+            <span aria-hidden="true">...</span>
           </li>
           <li
             th:classappend="${index eq pageIndex} ? 'active':''"
@@ -313,7 +313,7 @@
           </li>
           <!-- 最后一页与当前页面之差大于3 且当前页面大于4 -->
           <li th:if="${(pageIndex gt 4) && (totalPages - pageIndex gt 3)}">
-            <a href="#">...</a>
+            <span aria-hidden="true">...</span>
           </li>
           <li
             th:each="index : ${#numbers.sequence(pageIndex - 1,pageIndex + 1)}"
@@ -323,7 +323,7 @@
             <a th:href="${tag.status.permalink}+'/page/' + ${index}" th:text="${index}"> </a>
           </li>
           <li th:if="${(pageIndex gt 4) && (totalPages - pageIndex gt 3)}">
-            <a href="#">...</a>
+            <span aria-hidden="true">...</span>
           </li>
           <!-- 尾页 -->
           <li th:classappend="${totalPages eq pageIndex} ? 'active':''">
@@ -382,11 +382,11 @@
             <a th:href="@{/moments}+'/page/' + ${index}" th:text="${index}"></a>
           </li>
           <li th:if="${pageIndex le 4}">
-            <a href="#">...</a>
+            <span aria-hidden="true">...</span>
           </li>
           <!-- 最后一页与当前页面之差小于等于3 -->
           <li th:if="${totalPages - pageIndex le 3}">
-            <a href="#">...</a>
+            <span aria-hidden="true">...</span>
           </li>
           <li
             th:classappend="${index eq pageIndex} ? 'active':''"
@@ -397,7 +397,7 @@
           </li>
           <!-- 最后一页与当前页面之差大于3 且当前页面大于4 -->
           <li th:if="${(pageIndex gt 4) && (totalPages - pageIndex gt 3)}">
-            <a href="#">...</a>
+            <span aria-hidden="true">...</span>
           </li>
           <li
             th:each="index : ${#numbers.sequence(pageIndex - 1,pageIndex + 1)}"
@@ -407,7 +407,7 @@
             <a th:href="@{/moments}+'/page/' + ${index}" th:text="${index}"> </a>
           </li>
           <li th:if="${(pageIndex gt 4) && (totalPages - pageIndex gt 3)}">
-            <a href="#">...</a>
+            <span aria-hidden="true">...</span>
           </li>
           <!-- 尾页 -->
           <li th:classappend="${totalPages eq pageIndex} ? 'active':''">
@@ -466,11 +466,11 @@
             <a th:href="@{${path}}+'/page/' + ${index}" th:text="${index}"></a>
           </li>
           <li th:if="${pageIndex le 4}">
-            <a href="#">...</a>
+            <span aria-hidden="true">...</span>
           </li>
           <!-- 最后一页与当前页面之差小于等于3 -->
           <li th:if="${totalPages - pageIndex le 3}">
-            <a href="#">...</a>
+            <span aria-hidden="true">...</span>
           </li>
           <li
             th:classappend="${index eq pageIndex} ? 'active':''"
@@ -481,7 +481,7 @@
           </li>
           <!-- 最后一页与当前页面之差大于3 且当前页面大于4 -->
           <li th:if="${(pageIndex gt 4) && (totalPages - pageIndex gt 3)}">
-            <a href="#">...</a>
+            <span aria-hidden="true">...</span>
           </li>
           <li
             th:each="index : ${#numbers.sequence(pageIndex - 1,pageIndex + 1)}"
@@ -491,7 +491,7 @@
             <a th:href="@{${path}}+'/page/' + ${index}" th:text="${index}"> </a>
           </li>
           <li th:if="${(pageIndex gt 4) && (totalPages - pageIndex gt 3)}">
-            <a href="#">...</a>
+            <span aria-hidden="true">...</span>
           </li>
           <!-- 尾页 -->
           <li th:classappend="${totalPages eq pageIndex} ? 'active':''">
@@ -550,11 +550,11 @@
             <a th:href="${author.status.permalink}+'/page/' + ${index}" th:text="${index}"></a>
           </li>
           <li th:if="${pageIndex le 4}">
-            <a href="#">...</a>
+            <span aria-hidden="true">...</span>
           </li>
           <!-- 最后一页与当前页面之差小于等于3 -->
           <li th:if="${totalPages - pageIndex le 3}">
-            <a href="#">...</a>
+            <span aria-hidden="true">...</span>
           </li>
           <li
             th:classappend="${index eq pageIndex} ? 'active':''"
@@ -565,7 +565,7 @@
           </li>
           <!-- 最后一页与当前页面之差大于3 且当前页面大于4 -->
           <li th:if="${(pageIndex gt 4) && (totalPages - pageIndex gt 3)}">
-            <a href="#">...</a>
+            <span aria-hidden="true">...</span>
           </li>
           <li
             th:classappend="${index eq pageIndex} ? 'active':''"
@@ -575,7 +575,7 @@
             <a th:href="${author.status.permalink}+'/page/' + ${index}" th:text="${index}"> </a>
           </li>
           <li th:if="${(pageIndex gt 4) && (totalPages - pageIndex gt 3)}">
-            <a href="#">...</a>
+            <span aria-hidden="true">...</span>
           </li>
           <!-- 尾页 -->
           <li th:classappend="${totalPages eq pageIndex} ? 'active':''">

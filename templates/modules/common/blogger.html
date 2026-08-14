@@ -239,7 +239,7 @@
           </div>
         </th:block>
       </th:block>
-      <th:block th:if="${theme.config.blogger.enable_strips}">
+      <th:block th:if="${#bools.isTrue(theme.config.blogger.enable_strips)}">
         <canvas id="canvas-strips" width="300" height="340"></canvas>
         <script
           th:inline="javascript"
