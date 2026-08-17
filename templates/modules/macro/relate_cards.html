@@ -44,7 +44,7 @@
                       height="900"
                       class="lazyload"
                       th:data-src="${cardCover}"
-                      th:src="${theme.config.home.lazyload_thumbnail}"
+                      th:src="${theme.config.home.lazyload_thumbnail == '/themes/theme-Joe3/assets/img/lazyload.gif' ? theme.config.home.lazyload_thumbnail + '?v=' + theme.spec.version : theme.config.home.lazyload_thumbnail}"
                       th:alt="${recommendPost.spec.title}"
                       onerror="Joe.errorImg(this, 'HomeErrImg')"
                     />
@@ -91,7 +91,7 @@
                       height="900"
                       class="lazyload"
                       th:data-src="${cardCover}"
-                      th:src="${theme.config.home.lazyload_thumbnail}"
+                      th:src="${theme.config.home.lazyload_thumbnail == '/themes/theme-Joe3/assets/img/lazyload.gif' ? theme.config.home.lazyload_thumbnail + '?v=' + theme.spec.version : theme.config.home.lazyload_thumbnail}"
                       th:alt="${recommendPost.spec.title}"
                       onerror="Joe.errorImg(this, 'HomeErrImg')"
                     />

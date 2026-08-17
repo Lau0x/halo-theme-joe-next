@@ -20,7 +20,7 @@
           class="omit lazyload"
           width="100%"
           th:data-src="${ads_img}"
-          th:src="${theme.config.home.lazyload_thumbnail}"
+          th:src="${theme.config.home.lazyload_thumbnail == '/themes/theme-Joe3/assets/img/lazyload.gif' ? theme.config.home.lazyload_thumbnail + '?v=' + theme.spec.version : theme.config.home.lazyload_thumbnail}"
           alt=""
           onerror="Joe.errorImg(this)"
         />

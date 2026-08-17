@@ -1,7 +1,9 @@
 import { execFileSync } from 'node:child_process';
+import { createHash } from 'node:crypto';
 import { existsSync, readFileSync, readdirSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { load as parseYaml } from 'js-yaml';
+import { parseAst } from 'rolldown/parseAst';
 
 const expectedIdentity = {
   'metadata.name': 'theme-Joe3',
@@ -324,6 +326,7 @@ const option = (name) => {
   const value = args[index + 1];
   return value && !value.startsWith('--') ? value : true;
 };
+const zipOption = option('--zip');
 
 const readField = (document, path) =>
   path.split('.').reduce((value, key) => value?.[key], document);
@@ -397,16 +400,356 @@ for (const [path, id] of Object.entries(configScriptIds)) {
 
 const commonScriptPath = 'templates/assets/js/common.js';
 const commonScript = readFileSync(resolve(commonScriptPath), 'utf8');
+const commonMinScriptPath = 'templates/assets/js/min/common.min.js';
+const sourceCommonMinScript = existsSync(resolve(commonMinScriptPath))
+  ? readFileSync(resolve(commonMinScriptPath))
+  : null;
+if (zipOption && sourceCommonMinScript == null) {
+  throw new Error(
+    `${commonMinScriptPath}: browser bundle must be built before package verification`
+  );
+}
+const utilsMinScriptPath = 'templates/assets/js/min/utils.min.js';
+const sourceUtilsMinScript = existsSync(resolve(utilsMinScriptPath))
+  ? readFileSync(resolve(utilsMinScriptPath))
+  : null;
+if (zipOption && sourceUtilsMinScript == null) {
+  throw new Error(
+    `${utilsMinScriptPath}: browser bundle must be built before package verification`
+  );
+}
+const beautyMinScriptPath = 'templates/assets/js/min/beauty.min.js';
+const sourceBeautyMinScript = existsSync(resolve(beautyMinScriptPath))
+  ? readFileSync(resolve(beautyMinScriptPath))
+  : null;
+if (zipOption && sourceBeautyMinScript == null) {
+  throw new Error(
+    `${beautyMinScriptPath}: browser bundle must be built before package verification`
+  );
+}
 const archivesScriptPath = 'templates/assets/js/archives.js';
 const archivesScript = readFileSync(resolve(archivesScriptPath), 'utf8');
 const photosScriptPath = 'templates/assets/js/photos.js';
 const photosScript = readFileSync(resolve(photosScriptPath), 'utf8');
 const customScriptPath = 'templates/assets/js/custom.js';
 const customScript = readFileSync(resolve(customScriptPath), 'utf8');
+const customMinScriptPath = 'templates/assets/js/min/custom.min.js';
+const sourceCustomMinScript = existsSync(resolve(customMinScriptPath))
+  ? readFileSync(resolve(customMinScriptPath))
+  : null;
+if (zipOption && sourceCustomMinScript == null) {
+  throw new Error(
+    `${customMinScriptPath}: browser bundle must be built before package verification`
+  );
+}
+const walkEffectAst = (node, visitor) => {
+  if (node == null || typeof node !== 'object') return;
+  if (Array.isArray(node)) {
+    for (const item of node) walkEffectAst(item, visitor);
+    return;
+  }
+  if (typeof node.type === 'string') visitor(node);
+  for (const value of Object.values(node)) walkEffectAst(value, visitor);
+};
+const readEffectPropertyName = (node) => {
+  if (node?.type === 'Identifier') return node.name;
+  if (node?.type === 'Literal' && typeof node.value === 'string') return node.value;
+  return null;
+};
+const readEffectStaticString = (node) => {
+  if (node?.type === 'Literal' && typeof node.value === 'string') return node.value;
+  if (
+    node?.type === 'TemplateLiteral' &&
+    node.expressions?.length === 0 &&
+    node.quasis?.length === 1
+  ) {
+    return node.quasis[0].value?.cooked ?? node.quasis[0].value?.raw ?? null;
+  }
+  return null;
+};
+const isEffectMember = (node, object, property) =>
+  node?.type === 'MemberExpression' &&
+  !node.computed &&
+  node.object?.type === 'Identifier' &&
+  node.object.name === object &&
+  node.property?.type === 'Identifier' &&
+  node.property.name === property;
+const flattenEffectOr = (node) =>
+  node?.type === 'LogicalExpression' && node.operator === '||'
+    ? [...flattenEffectOr(node.left), ...flattenEffectOr(node.right)]
+    : [node];
+const isEffectCacheTrue = (node) =>
+  node?.type === 'Literal' && node.value === true
+    ? true
+    : node?.type === 'UnaryExpression' &&
+      node.operator === '!' &&
+      node.argument?.type === 'Literal' &&
+      node.argument.value === 0;
+const validateOptionalEffectLoaders = (script, label) => {
+  const ast = parseAst(script, { sourceType: 'script' }, label);
+  const policies = [
+    {
+      method: 'loadMouseEffect',
+      resource: 'cursor',
+      setting: 'cursor_effect',
+    },
+    {
+      method: 'loadBackdropEffect',
+      resource: 'backdrop',
+      setting: 'backdrop',
+    },
+  ];
+  for (const { method, resource, setting } of policies) {
+    const methodProperties = [];
+    walkEffectAst(ast, (node) => {
+      if (
+        node.type === 'Property' &&
+        readEffectPropertyName(node.key) === method &&
+        node.value?.type === 'FunctionExpression'
+      ) {
+        methodProperties.push(node);
+      }
+    });
+    const methodProperty = methodProperties.length === 1 ? methodProperties[0] : null;
+    const ajaxCalls = [];
+    walkEffectAst(methodProperty?.value?.body, (node) => {
+      if (node.type === 'CallExpression' && isEffectMember(node.callee, '$', 'ajax')) {
+        ajaxCalls.push(node);
+      }
+    });
+    const ajaxCall = ajaxCalls.length === 1 ? ajaxCalls[0] : null;
+    const options = ajaxCall?.arguments?.length === 1 ? ajaxCall.arguments[0] : null;
+    const optionProperties =
+      options?.type === 'ObjectExpression' &&
+      options.properties.every(({ type }) => type === 'Property')
+        ? new Map(
+            options.properties.map((property) => [readEffectPropertyName(property.key), property])
+          )
+        : new Map();
+    const url = optionProperties.get('url')?.value;
+    const expectedUrlQuasis = ['', `/assets/effect/${resource}/`, '.js?v=', ''];
+    const actualUrlQuasis =
+      url?.type === 'TemplateLiteral'
+        ? url.quasis.map(({ value }) => value?.cooked ?? value?.raw ?? null)
+        : [];
+    const urlIsExact =
+      url?.type === 'TemplateLiteral' &&
+      actualUrlQuasis.join('\n') === expectedUrlQuasis.join('\n') &&
+      url.expressions?.length === 3 &&
+      isEffectMember(url.expressions[0], 'ThemeConfig', 'BASE_RES_URL') &&
+      isEffectMember(url.expressions[1], 'ThemeConfig', setting) &&
+      isEffectMember(url.expressions[2], 'ThemeConfig', 'version');
+    const guardNodes = [
+      (node) => isEffectMember(node, 'Joe', 'isMobile'),
+      (node) => isEffectMember(node, 'ThemeConfig', 'enable_clean_mode'),
+      (node) =>
+        node?.type === 'BinaryExpression' &&
+        node.operator === '===' &&
+        isEffectMember(node.left, 'ThemeConfig', setting) &&
+        readEffectStaticString(node.right) === 'off',
+    ];
+    const guardsMatch = (nodes) =>
+      nodes.length === guardNodes.length && nodes.every((node, index) => guardNodes[index](node));
+    const body = methodProperty?.value?.body;
+    const sourceGuardShape =
+      body?.type === 'BlockStatement' &&
+      body.body?.length === 2 &&
+      body.body[0]?.type === 'IfStatement' &&
+      guardsMatch(flattenEffectOr(body.body[0].test)) &&
+      body.body[0].consequent?.type === 'ReturnStatement' &&
+      body.body[0].alternate == null &&
+      body.body[1]?.type === 'ExpressionStatement' &&
+      body.body[1].expression === ajaxCall;
+    const minifiedGuardNodes =
+      body?.type === 'BlockStatement' &&
+      body.body?.length === 1 &&
+      body.body[0]?.type === 'ExpressionStatement'
+        ? flattenEffectOr(body.body[0].expression)
+        : [];
+    const minifiedGuardShape =
+      minifiedGuardNodes.length === 4 &&
+      guardsMatch(minifiedGuardNodes.slice(0, 3)) &&
+      minifiedGuardNodes[3] === ajaxCall;
+    if (
+      methodProperties.length !== 1 ||
+      ajaxCalls.length !== 1 ||
+      options?.type !== 'ObjectExpression' ||
+      options.properties.length !== 3 ||
+      optionProperties.size !== 3 ||
+      !urlIsExact ||
+      readEffectStaticString(optionProperties.get('dataType')?.value) !== 'script' ||
+      !isEffectCacheTrue(optionProperties.get('cache')?.value) ||
+      (!sourceGuardShape && !minifiedGuardShape)
+    ) {
+      throw new Error(
+        `${label}: ${method} must guard and execute one cached jQuery script AJAX call with the exact versioned ${resource} URL`
+      );
+    }
+  }
+};
+validateOptionalEffectLoaders(commonScript, commonScriptPath);
+if (sourceCommonMinScript != null) {
+  validateOptionalEffectLoaders(sourceCommonMinScript.toString('utf8'), commonMinScriptPath);
+}
+const isLoadingBarEnabled = (node) => isEffectMember(node, 'ThemeConfig', 'enable_loading_bar');
+const isNprogressCall = (node, method) =>
+  node?.type === 'CallExpression' && isEffectMember(node.callee, 'NProgress', method);
+const validateLoadingBarController = (script, label) => {
+  const ast = parseAst(script, { sourceType: 'script' }, label);
+  const loadingBarProperties = [];
+  walkEffectAst(ast, (node) => {
+    if (
+      node.type === 'Property' &&
+      readEffectPropertyName(node.key) === 'loadingBar' &&
+      node.value?.type === 'ObjectExpression'
+    ) {
+      loadingBarProperties.push(node);
+    }
+  });
+  const loadingBarProperty = loadingBarProperties.length === 1 ? loadingBarProperties[0] : null;
+  const loadingBarMethods = loadingBarProperty?.value?.properties ?? [];
+  const showProperty = loadingBarMethods[0];
+  const hideProperty = loadingBarMethods[1];
+  const methodsAreExact =
+    loadingBarMethods.length === 2 &&
+    readEffectPropertyName(showProperty?.key) === 'show' &&
+    readEffectPropertyName(hideProperty?.key) === 'hide' &&
+    [showProperty, hideProperty].every(
+      (property) =>
+        property?.value?.type === 'FunctionExpression' &&
+        property.value.params?.length === 0 &&
+        property.value.async === false &&
+        property.value.generator === false
+    );
+  const showCalls = [];
+  const hideCalls = [];
+  walkEffectAst(showProperty?.value?.body, (node) => {
+    if (isNprogressCall(node, 'configure') || isNprogressCall(node, 'start')) showCalls.push(node);
+  });
+  walkEffectAst(hideProperty?.value?.body, (node) => {
+    if (isNprogressCall(node, 'done')) hideCalls.push(node);
+  });
+  const configureCall = showCalls.find((node) => isNprogressCall(node, 'configure'));
+  const startCall = showCalls.find((node) => isNprogressCall(node, 'start'));
+  const doneCall = hideCalls.find((node) => isNprogressCall(node, 'done'));
+  const configureIsExact =
+    configureCall?.arguments?.length === 1 &&
+    configureCall.arguments[0]?.type === 'ObjectExpression';
+  const startIsExact = startCall?.arguments?.length === 0;
+  const doneIsExact = doneCall?.arguments?.length === 1 && isEffectCacheTrue(doneCall.arguments[0]);
+  const showBody = showProperty?.value?.body;
+  const hideBody = hideProperty?.value?.body;
+  const sourceShowGuard = showBody?.body?.[0];
+  const sourceHideGuard = hideBody?.body?.[0];
+  const sourceGuardIsExact = (statement) =>
+    statement?.type === 'IfStatement' &&
+    statement.test?.type === 'UnaryExpression' &&
+    statement.test.operator === '!' &&
+    isLoadingBarEnabled(statement.test.argument) &&
+    statement.consequent?.type === 'ReturnStatement' &&
+    statement.consequent.argument == null &&
+    statement.alternate == null;
+  const sourceShape =
+    showBody?.type === 'BlockStatement' &&
+    showBody.body?.length === 3 &&
+    sourceGuardIsExact(sourceShowGuard) &&
+    showBody.body[1]?.type === 'ExpressionStatement' &&
+    showBody.body[1].expression === configureCall &&
+    showBody.body[2]?.type === 'ExpressionStatement' &&
+    showBody.body[2].expression === startCall &&
+    hideBody?.type === 'BlockStatement' &&
+    hideBody.body?.length === 2 &&
+    sourceGuardIsExact(sourceHideGuard) &&
+    hideBody.body[1]?.type === 'ExpressionStatement' &&
+    hideBody.body[1].expression === doneCall;
+  const minifiedShowExpression = showBody?.body?.[0]?.expression;
+  const minifiedShowSequence = minifiedShowExpression?.right;
+  const minifiedHideExpression = hideBody?.body?.[0]?.expression;
+  const minifiedShape =
+    showBody?.type === 'BlockStatement' &&
+    showBody.body?.length === 1 &&
+    showBody.body[0]?.type === 'ExpressionStatement' &&
+    minifiedShowExpression?.type === 'LogicalExpression' &&
+    minifiedShowExpression.operator === '&&' &&
+    isLoadingBarEnabled(minifiedShowExpression.left) &&
+    minifiedShowSequence?.type === 'SequenceExpression' &&
+    minifiedShowSequence.expressions?.length === 2 &&
+    minifiedShowSequence.expressions[0] === configureCall &&
+    minifiedShowSequence.expressions[1] === startCall &&
+    hideBody?.type === 'BlockStatement' &&
+    hideBody.body?.length === 1 &&
+    hideBody.body[0]?.type === 'ExpressionStatement' &&
+    minifiedHideExpression?.type === 'LogicalExpression' &&
+    minifiedHideExpression.operator === '&&' &&
+    isLoadingBarEnabled(minifiedHideExpression.left) &&
+    minifiedHideExpression.right === doneCall;
+  const contextObjectDeclarators = [];
+  walkEffectAst(ast, (node) => {
+    if (
+      node.type === 'VariableDeclarator' &&
+      node.id?.type === 'Identifier' &&
+      node.init?.type === 'ObjectExpression' &&
+      node.init.properties?.includes(loadingBarProperty)
+    ) {
+      contextObjectDeclarators.push(node);
+    }
+  });
+  const contextDeclarator =
+    contextObjectDeclarators.length === 1 ? contextObjectDeclarators[0] : null;
+  const contextName = contextDeclarator?.id?.name;
+  const runtimeCalls = { show: [], hide: [] };
+  walkEffectAst(ast, (node) => {
+    if (node.type !== 'CallExpression' || node.callee?.type !== 'MemberExpression') return;
+    const method = readEffectPropertyName(node.callee.property);
+    const loadingBarMember = node.callee.object;
+    if (
+      (method === 'show' || method === 'hide') &&
+      loadingBarMember?.type === 'MemberExpression' &&
+      !loadingBarMember.computed &&
+      readEffectPropertyName(loadingBarMember.property) === 'loadingBar' &&
+      loadingBarMember.object?.type === 'Identifier' &&
+      loadingBarMember.object.name === contextName
+    ) {
+      runtimeCalls[method].push(node);
+    }
+  });
+  const runtimeCallsAreExact =
+    contextObjectDeclarators.length === 1 &&
+    runtimeCalls.show.length === 1 &&
+    runtimeCalls.hide.length === 1 &&
+    runtimeCalls.show[0].arguments?.length === 0 &&
+    runtimeCalls.hide[0].arguments?.length === 0;
+  if (
+    loadingBarProperties.length !== 1 ||
+    !methodsAreExact ||
+    showCalls.length !== 2 ||
+    hideCalls.length !== 1 ||
+    !configureIsExact ||
+    !startIsExact ||
+    !doneIsExact ||
+    (!sourceShape && !minifiedShape) ||
+    !runtimeCallsAreExact
+  ) {
+    throw new Error(
+      `${label}: loadingBar must define guarded show/configure/start and hide/done controllers with one real runtime call each`
+    );
+  }
+};
+validateLoadingBarController(commonScript, commonScriptPath);
+if (sourceCommonMinScript != null) {
+  validateLoadingBarController(sourceCommonMinScript.toString('utf8'), commonMinScriptPath);
+}
 const indexScriptPath = 'templates/assets/js/index.js';
 const indexScript = readFileSync(resolve(indexScriptPath), 'utf8');
 const postScriptPath = 'templates/assets/js/post.js';
 const postScript = readFileSync(resolve(postScriptPath), 'utf8');
+const postMinScriptPath = 'templates/assets/js/min/post.min.js';
+const sourcePostMinScript = existsSync(resolve(postMinScriptPath))
+  ? readFileSync(resolve(postMinScriptPath))
+  : null;
+if (zipOption && sourcePostMinScript == null) {
+  throw new Error(`${postMinScriptPath}: browser bundle must be built before package verification`);
+}
 if (commonScript.includes('#theme-config-getter')) {
   throw new Error(
     `${commonScriptPath}: legacy config script id theme-config-getter must not be referenced`
@@ -462,35 +805,6 @@ for (const [path, minimumCount] of Object.entries(visibilityGuards)) {
       `${path}: expected at least ${minimumCount} PUBLIC visibility guards, found ${count}`
     );
   }
-}
-
-const layout = readFileSync(resolve('templates/modules/layout.html'), 'utf8');
-const layoutExternalScripts = [...layout.matchAll(/<script[^>]+(?:th:src|src)=[^>]+>/g)].map(
-  (match) => match[0]
-);
-const jqueryScript = layoutExternalScripts.find((script) => script.includes('jquery@3.7.1'));
-if (!jqueryScript) {
-  throw new Error('templates/modules/layout.html: synchronous jQuery script tag not found');
-}
-const globalJqueryScripts = htmlTemplates.flatMap(({ path, source }) =>
-  [...source.matchAll(/<script[^>]+(?:th:src|src)=[^>]+>/g)]
-    .map((match) => match[0])
-    .filter((script) => script.includes('jquery@3.7.1'))
-    .map((script) => ({ path, script }))
-);
-if (
-  globalJqueryScripts.length !== 1 ||
-  globalJqueryScripts[0].path !== 'modules/layout.html' ||
-  globalJqueryScripts[0].script !== jqueryScript
-) {
-  throw new Error(
-    `templates: expected one jQuery 3.7.1 script in modules/layout.html, found ${globalJqueryScripts.length}`
-  );
-}
-if (/\bdefer\b|\basync\b/.test(jqueryScript)) {
-  throw new Error(
-    'templates/modules/layout.html: jQuery must load synchronously before content plugin scripts'
-  );
 }
 
 const tail = readFileSync(resolve('templates/modules/macro/tail.html'), 'utf8');
@@ -694,21 +1008,1310 @@ for (const [property, configPath] of animationSettings) {
     );
   }
 }
-const externalScripts = [...tail.matchAll(/<script[^>]+(?:th:src|src)=[^>]+>/g)].map(
-  (match) => match[0]
+const preserveMarkupOffsets = (value) => ' '.repeat(value.length);
+const isSelfClosingTag = (tag) => /\/\s*>$/.test(tag);
+const readMarkupTagAt = (source, start) => {
+  let quote = null;
+  let end = start + 1;
+  for (; end < source.length; end += 1) {
+    const character = source[end];
+    if (quote == null && (character === '"' || character === "'")) quote = character;
+    else if (character === quote) quote = null;
+    else if (quote == null && character === '>') break;
+  }
+  if (end === source.length) return null;
+  const tag = source.slice(start, end + 1);
+  const identity = /^<\s*(\/?)\s*([A-Za-z][\w:-]*)\b/.exec(tag);
+  if (identity == null) return null;
+  return {
+    closing: identity[1] === '/',
+    end: end + 1,
+    name: identity[2].toLowerCase(),
+    start,
+    tag,
+  };
+};
+const analyzeMarkupActivity = (source) => {
+  const commentRanges = [];
+  const rawTextBodies = [];
+  const rawTextElementNames = new Set(['script', 'style', 'textarea', 'title']);
+  let cursor = 0;
+  while (cursor < source.length) {
+    const start = source.indexOf('<', cursor);
+    if (start === -1) break;
+    if (source.startsWith('<!--', start)) {
+      const commentEnd = source.indexOf('-->', start + 4);
+      const end = commentEnd === -1 ? source.length : commentEnd + 3;
+      commentRanges.push([start, end]);
+      cursor = end;
+      continue;
+    }
+    const token = readMarkupTagAt(source, start);
+    if (token == null) {
+      cursor = start + 1;
+      continue;
+    }
+    cursor = token.end;
+    if (
+      !rawTextElementNames.has(token.name) ||
+      token.closing ||
+      (token.name !== 'script' && isSelfClosingTag(token.tag))
+    ) {
+      continue;
+    }
+    const closingPattern = new RegExp(`<\\/${token.name}\\s*>`, 'gi');
+    closingPattern.lastIndex = token.end;
+    const closing = closingPattern.exec(source);
+    if (closing == null) continue;
+    rawTextBodies.push({
+      bodyEnd: closing.index,
+      bodyStart: token.end,
+      name: token.name,
+      openingTag: token.tag,
+    });
+    cursor = closing.index + closing[0].length;
+  }
+  return { commentRanges, rawTextBodies };
+};
+const maskRanges = (source, ranges) => {
+  let masked = '';
+  let cursor = 0;
+  for (const [start, end] of ranges) {
+    masked += source.slice(cursor, start);
+    masked += preserveMarkupOffsets(source.slice(start, end));
+    cursor = end;
+  }
+  return masked + source.slice(cursor);
+};
+const maskInactiveMarkup = (source) => {
+  const { commentRanges, rawTextBodies } = analyzeMarkupActivity(source);
+  return maskRanges(
+    source,
+    [...commentRanges, ...rawTextBodies.map(({ bodyStart, bodyEnd }) => [bodyStart, bodyEnd])].sort(
+      ([left], [right]) => left - right
+    )
+  );
+};
+const readTagAttributes = (tag, label = 'markup') => {
+  const attributes = new Map();
+  const tagName = tag.match(/^<[^\s>]+/)?.[0];
+  if (tagName == null) return attributes;
+  const attributeSource = tag.slice(tagName.length, tag.lastIndexOf('>'));
+  for (const match of attributeSource.matchAll(
+    /(?:^|\s)([^\s=/>]+)(?:\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s>]+)))?/g
+  )) {
+    const name = match[1].toLowerCase();
+    if (attributes.has(name)) {
+      throw new Error(`${label}: duplicate attribute ${name} in ${tag}`);
+    }
+    attributes.set(name, match[2] ?? match[3] ?? match[4] ?? '');
+  }
+  return attributes;
+};
+const readTagAttribute = (tag, name) => readTagAttributes(tag).get(name);
+const readExternalScriptSource = (tag) => {
+  const attributes = readTagAttributes(tag);
+  const sourceAttributes = ['th:src', 'src'].filter((name) => attributes.has(name));
+  return sourceAttributes.length === 1 ? attributes.get(sourceAttributes[0]) : null;
+};
+const extractInlineScriptBodies = (source) => {
+  const { commentRanges, rawTextBodies } = analyzeMarkupActivity(source);
+  const commentsMasked = maskRanges(source, commentRanges);
+  return rawTextBodies
+    .filter(({ name }) => name === 'script')
+    .filter(({ openingTag }) => {
+      const attributes = readTagAttributes(openingTag);
+      return !attributes.has('th:src') && !attributes.has('src');
+    })
+    .map(({ bodyStart, bodyEnd }) => commentsMasked.slice(bodyStart, bodyEnd))
+    .filter((body) => body.trim() !== '');
+};
+const parseMarkupElements = (source, label) => {
+  const voidElements = new Set([
+    'area',
+    'base',
+    'basefont',
+    'bgsound',
+    'br',
+    'col',
+    'command',
+    'embed',
+    'frame',
+    'hr',
+    'img',
+    'input',
+    'keygen',
+    'link',
+    'meta',
+    'param',
+    'source',
+    'track',
+    'wbr',
+  ]);
+  const elements = [];
+  const stack = [];
+  let cursor = 0;
+  while (cursor < source.length) {
+    const start = source.indexOf('<', cursor);
+    if (start === -1) break;
+    const token = readMarkupTagAt(source, start);
+    if (token == null) {
+      cursor = start + 1;
+      continue;
+    }
+    cursor = token.end;
+    if (token.closing) {
+      const element = stack.pop();
+      if (element?.name !== token.name) {
+        throw new Error(`${label}: unmatched closing element </${token.name}>`);
+      }
+      elements.push({ ...element, contentEnd: token.start, end: token.end });
+      continue;
+    }
+    const element = {
+      name: token.name,
+      openingTag: token.tag,
+      start: token.start,
+      contentStart: token.end,
+      ancestorStarts: stack.map((ancestor) => ancestor.start),
+      parentStart: stack.at(-1)?.start ?? null,
+    };
+    const isSelfClosingNonScript = token.name !== 'script' && isSelfClosingTag(token.tag);
+    if (voidElements.has(token.name) || isSelfClosingNonScript) {
+      elements.push({ ...element, contentEnd: token.end, end: token.end });
+    } else {
+      stack.push(element);
+    }
+  }
+  if (stack.length > 0) {
+    throw new Error(`${label}: unmatched opening element <${stack.at(-1).name}>`);
+  }
+  return elements;
+};
+const resourceAttributeNames = new Set([
+  'th:src',
+  'src',
+  'th:data-src',
+  'data-src',
+  'th:href',
+  'href',
+  'th:data-href',
+  'data-href',
+]);
+const createHtmlResourceLoader = ({ path, source }) => {
+  const markup = maskInactiveMarkup(source);
+  const label = `templates/${path}`;
+  const elements = parseMarkupElements(markup, label);
+  for (const element of elements) {
+    const attributes = readTagAttributes(element.openingTag, label);
+    const sourceAttributes =
+      element.name === 'script'
+        ? ['th:src', 'src']
+        : element.name === 'link'
+          ? ['th:href', 'href']
+          : [];
+    const configuredSources = sourceAttributes.filter((name) => attributes.has(name));
+    if (configuredSources.length > 1) {
+      throw new Error(
+        `${label}: <${element.name}> must define only one of ${sourceAttributes.join(' or ')} in ${element.openingTag}`
+      );
+    }
+  }
+  const inlineScriptBodies = extractInlineScriptBodies(source);
+  const externalScriptTags = elements
+    .filter(
+      (element) => element.name === 'script' && readExternalScriptSource(element.openingTag) != null
+    )
+    .map(({ openingTag }) => openingTag);
+  const resourceAttributes = elements.flatMap((element) =>
+    [...readTagAttributes(element.openingTag)]
+      .filter(([name]) => resourceAttributeNames.has(name))
+      .map(([name, value]) => ({ elementName: element.name, name, value }))
+  );
+  return {
+    path: `templates/${path}`,
+    externalScriptTags,
+    resourceAttributes,
+    resourceValues: [...resourceAttributes.map(({ value }) => value), ...inlineScriptBodies],
+  };
+};
+const removedPhotosResources = [
+  'assets/lib/justifiedGallery/justifiedGallery.min.css',
+  'assets/lib/justifiedGallery/justifiedGallery.min.js',
+  'assets/lib/masonry/masonry.pkgd.min.js',
+  'assets/lib/masonry/imagesloaded.pkgd.min.js',
+];
+const firstPartyResourceLoaders = [
+  ...htmlTemplates.map(createHtmlResourceLoader),
+  ...readdirSync(templateRoot, { recursive: true })
+    .filter((path) => path.endsWith('.js') && !path.startsWith('assets/lib/'))
+    .map((path) => {
+      const source = readFileSync(resolve(templateRoot, path), 'utf8');
+      return {
+        path: `templates/${path}`,
+        externalScriptTags: [],
+        resourceAttributes: [],
+        resourceValues: [source],
+      };
+    }),
+];
+const layoutResourceLoader = firstPartyResourceLoaders.find(
+  ({ path }) => path === 'templates/modules/layout.html'
 );
-if (externalScripts.some((script) => script.includes('jquery@3.7.1'))) {
+const jqueryScript = layoutResourceLoader?.externalScriptTags.find((script) =>
+  readExternalScriptSource(script)?.includes('jquery@3.7.1')
+);
+if (jqueryScript == null) {
+  throw new Error('templates/modules/layout.html: synchronous jQuery script tag not found');
+}
+const globalJqueryScripts = firstPartyResourceLoaders.flatMap(({ path, externalScriptTags }) =>
+  externalScriptTags
+    .filter((script) => readExternalScriptSource(script)?.includes('jquery@3.7.1'))
+    .map((script) => ({ path, script }))
+);
+if (
+  globalJqueryScripts.length !== 1 ||
+  globalJqueryScripts[0].path !== 'templates/modules/layout.html' ||
+  globalJqueryScripts[0].script !== jqueryScript
+) {
+  throw new Error(
+    `templates: expected one jQuery 3.7.1 script in modules/layout.html, found ${globalJqueryScripts.length}`
+  );
+}
+const jqueryAttributes = readTagAttributes(jqueryScript);
+if (
+  isSelfClosingTag(jqueryScript) ||
+  jqueryAttributes.has('defer') ||
+  jqueryAttributes.has('async')
+) {
+  throw new Error(
+    'templates/modules/layout.html: jQuery must use a closing tag and load synchronously before content plugin scripts'
+  );
+}
+const settingsPath = 'settings.yaml';
+const sourceSettingsBuffer = readFileSync(resolve(settingsPath));
+const sourceSettings = parseYaml(sourceSettingsBuffer.toString('utf8'));
+const thumbnailConfigPath = 'theme.config.home.lazyload_thumbnail';
+const thumbnailDefaultUrl = '/themes/theme-Joe3/assets/img/lazyload.gif';
+const bannerConfigPath = 'theme.config.carousel.banner_lazyload_img';
+const bannerDefaultUrl = '/themes/theme-Joe3/assets/img/lazyload_h.gif';
+const placeholderPolicies = [
+  {
+    group: 'home',
+    setting: 'lazyload_thumbnail',
+    configPath: thumbnailConfigPath,
+    defaultUrl: thumbnailDefaultUrl,
+    producers: [
+      { path: 'templates/categories.html', allowedWrappers: [['direct', 1]] },
+      { path: 'templates/tags.html', allowedWrappers: [['direct', 1]] },
+      { path: 'templates/modules/ads/ads_aside.html', allowedWrappers: [['direct', 1]] },
+      { path: 'templates/modules/macro/post_item.html', allowedWrappers: [['direct', 1]] },
+      { path: 'templates/modules/macro/relate_cards.html', allowedWrappers: [['direct', 2]] },
+    ],
+  },
+  {
+    group: 'carousel',
+    setting: 'banner_lazyload_img',
+    configPath: bannerConfigPath,
+    defaultUrl: bannerDefaultUrl,
+    producers: [
+      { path: 'templates/modules/macro/banner_item.html', allowedWrappers: [['direct', 1]] },
+      {
+        path: 'templates/modules/macro/banner_item_data.html',
+        allowedWrappers: [
+          ['eager', 2],
+          ['prioritize', 1],
+        ],
+      },
+    ],
+  },
+];
+const countOccurrences = (source, value) => source.split(value).length - 1;
+const escapeRegExp = (value) => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+for (const policy of placeholderPolicies) {
+  const settingGroup = sourceSettings.spec?.forms?.find(({ group }) => group === policy.group);
+  const setting = settingGroup?.formSchema?.find(({ name }) => name === policy.setting);
+  if (setting?.value !== policy.defaultUrl) {
+    throw new Error(
+      `${settingsPath}: ${policy.group}.${policy.setting} must keep the built-in default ${policy.defaultUrl}`
+    );
+  }
+
+  const actualProducerPaths = firstPartyResourceLoaders
+    .filter(({ resourceAttributes }) =>
+      resourceAttributes.some(
+        ({ elementName, name, value }) =>
+          elementName === 'img' && name === 'th:src' && value.includes(policy.configPath)
+      )
+    )
+    .map(({ path }) => path)
+    .sort();
+  const expectedProducerPaths = policy.producers.map(({ path }) => path).sort();
+  if (actualProducerPaths.join('\n') !== expectedProducerPaths.join('\n')) {
+    throw new Error(
+      `${policy.configPath}: producer set changed; expected ${expectedProducerPaths.join(', ')}, got ${actualProducerPaths.join(', ')}`
+    );
+  }
+
+  const actualConfigResourcePaths = firstPartyResourceLoaders
+    .filter(({ resourceValues }) =>
+      resourceValues.some((value) => value.includes(policy.configPath))
+    )
+    .map(({ path }) => path)
+    .sort();
+  if (actualConfigResourcePaths.join('\n') !== expectedProducerPaths.join('\n')) {
+    throw new Error(
+      `${policy.configPath}: dynamic resource reference set changed; expected ${expectedProducerPaths.join(', ')}, got ${actualConfigResourcePaths.join(', ')}`
+    );
+  }
+
+  const actualDefaultResourcePaths = firstPartyResourceLoaders
+    .filter(({ resourceValues }) =>
+      resourceValues.some((value) => value.includes(policy.defaultUrl))
+    )
+    .map(({ path }) => path)
+    .sort();
+  if (actualDefaultResourcePaths.join('\n') !== expectedProducerPaths.join('\n')) {
+    throw new Error(
+      `${policy.defaultUrl}: built-in placeholder references must exist only in ${expectedProducerPaths.join(', ')}, got ${actualDefaultResourcePaths.join(', ')}`
+    );
+  }
+
+  const configPattern = escapeRegExp(policy.configPath);
+  const defaultUrlPattern = escapeRegExp(policy.defaultUrl);
+  const guardedDefaultPattern = `${configPattern}\\s*==\\s*['"]${defaultUrlPattern}['"]\\s*\\?\\s*${configPattern}\\s*\\+\\s*['"]\\?v=['"]\\s*\\+\\s*theme\\.spec\\.version\\s*:\\s*${configPattern}`;
+  const fullWrapperPatterns = new Map([
+    ['direct', new RegExp(`^\\s*\\$\\{\\s*${guardedDefaultPattern}\\s*\\}\\s*$`)],
+    [
+      'eager',
+      new RegExp(
+        `^\\s*\\$\\{\\s*eager\\s*\\?\\s*cover\\s*:\\s*\\(\\s*${guardedDefaultPattern}\\s*\\)\\s*\\}\\s*$`
+      ),
+    ],
+    [
+      'prioritize',
+      new RegExp(
+        `^\\s*\\$\\{\\s*prioritize\\s*\\?\\s*cover\\s*:\\s*\\(\\s*${guardedDefaultPattern}\\s*\\)\\s*\\}\\s*$`
+      ),
+    ],
+  ]);
+
+  for (const producer of policy.producers) {
+    const loader = firstPartyResourceLoaders.find(({ path }) => path === producer.path);
+    if (loader == null) {
+      throw new Error(`${policy.configPath}: missing producer ${producer.path}`);
+    }
+    const guardedAttributes = loader.resourceAttributes
+      .filter(
+        ({ elementName, name, value }) =>
+          elementName === 'img' && name === 'th:src' && value.includes(policy.configPath)
+      )
+      .map(({ value }) => value);
+    const expectedCount = producer.allowedWrappers.reduce(
+      (count, [, wrapperCount]) => count + wrapperCount,
+      0
+    );
+    if (guardedAttributes.length !== expectedCount) {
+      throw new Error(
+        `${producer.path}: expected ${expectedCount} guarded ${policy.setting} src attributes, found ${guardedAttributes.length}`
+      );
+    }
+    for (const [wrapper, expectedWrapperCount] of producer.allowedWrappers) {
+      const wrapperPattern = fullWrapperPatterns.get(wrapper);
+      const actualWrapperCount = guardedAttributes.filter((attribute) =>
+        wrapperPattern?.test(attribute)
+      ).length;
+      if (actualWrapperCount !== expectedWrapperCount) {
+        throw new Error(
+          `${producer.path}: expected ${expectedWrapperCount} complete ${wrapper} ${policy.setting} expressions, found ${actualWrapperCount}`
+        );
+      }
+    }
+    for (const attribute of guardedAttributes) {
+      if (
+        countOccurrences(attribute, policy.configPath) !== 3 ||
+        countOccurrences(attribute, policy.defaultUrl) !== 1 ||
+        countOccurrences(attribute, '?v=') !== 1 ||
+        countOccurrences(attribute, 'theme.spec.version') !== 1
+      ) {
+        throw new Error(
+          `${producer.path}: ${policy.setting} th:src must cache-bust only ${policy.defaultUrl} and return custom URLs unchanged`
+        );
+      }
+    }
+    const actualConfigReferences = loader.resourceValues.reduce(
+      (count, value) => count + countOccurrences(value, policy.configPath),
+      0
+    );
+    if (actualConfigReferences !== expectedCount * 3) {
+      throw new Error(
+        `${producer.path}: every ${policy.configPath} reference must preserve custom URLs and cache-bust only ${policy.defaultUrl}`
+      );
+    }
+    const actualDefaultResourceReferences = loader.resourceValues.reduce(
+      (count, value) => count + countOccurrences(value, policy.defaultUrl),
+      0
+    );
+    if (actualDefaultResourceReferences !== expectedCount) {
+      throw new Error(
+        `${producer.path}: expected ${expectedCount} guarded ${policy.defaultUrl} references, found ${actualDefaultResourceReferences}`
+      );
+    }
+  }
+}
+const musicResourcePaths = [
+  'assets/lib/APlayer/APlayer.min.css',
+  'assets/lib/APlayer/APlayer.min.js',
+  'assets/lib/meting/meting.min.js',
+];
+const tailTemplateMarkup = maskInactiveMarkup(tail);
+const markupElements = parseMarkupElements(tailTemplateMarkup, 'templates/modules/macro/tail.html');
+const musicConditionPattern =
+  /^\s*\$\{\s*htmlType\s*==\s*(["'])post\1\s+or\s+\(\s*not\s+#lists\.isEmpty\(\s*theme\.config\.aside\.enable_outpost_aside\s*\)\s+and\s+not\s+#lists\.isEmpty\(\s*theme\.config\.aside\.enable_outpost_aside\.\?\[\s*template_aside\s*==\s*(["'])enable_music_player\2\s+and\s+aside_music_player\s*!=\s*null\s+and\s+aside_music_player\.music_id\s*!=\s*null\s+and\s+#strings\.trim\(\s*aside_music_player\.music_id\s*\)\s*!=\s*(["'])\3\s*\]\s*\)\s*\)\s*\}\s*$/;
+const musicResourceSpecifications = [
+  { path: musicResourcePaths[0], sourceAttributes: ['th:href', 'href'] },
+  { path: musicResourcePaths[1], sourceAttributes: ['th:src', 'src'] },
+  { path: musicResourcePaths[2], sourceAttributes: ['th:src', 'src'] },
+];
+const sourceAttributeLoadsResource = (name, value, path) => {
+  if (!name.startsWith('th:')) return value === path || value === `/${path}`;
+  return new RegExp(
+    `^\\s*\\$\\{\\s*source_link\\s*\\+\\s*(["'])/${escapeRegExp(path)}\\1\\s*\\}\\s*$`
+  ).test(value);
+};
+const tagLoadsResource = (tag, { path, sourceAttributes }) => {
+  const attributes = readTagAttributes(tag);
+  const configuredSources = sourceAttributes.filter((name) => attributes.has(name));
+  return (
+    configuredSources.length === 1 &&
+    sourceAttributeLoadsResource(configuredSources[0], attributes.get(configuredSources[0]), path)
+  );
+};
+const sourceAttributeLoadsVersionedResource = (name, value, path) => {
+  if (!name.startsWith('th:')) return false;
+  return new RegExp(
+    `^\\s*\\$\\{\\s*source_link\\s*\\+\\s*(["'])/${escapeRegExp(path)}\\?v=\\1\\s*\\+\\s*theme\\.spec\\.version\\s*\\}\\s*$`
+  ).test(value);
+};
+const tagLoadsVersionedResource = (tag, path) => {
+  const attributes = readTagAttributes(tag);
+  const configuredSources = ['th:src', 'src'].filter((name) => attributes.has(name));
+  return (
+    configuredSources.length === 1 &&
+    sourceAttributeLoadsVersionedResource(
+      configuredSources[0],
+      attributes.get(configuredSources[0]),
+      path
+    )
+  );
+};
+const tagLoadsVersionedStylesheet = (tag, path) => {
+  const attributes = readTagAttributes(tag);
+  const configuredSources = ['th:href', 'href'].filter((name) => attributes.has(name));
+  return (
+    configuredSources.length === 1 &&
+    sourceAttributeLoadsVersionedResource(
+      configuredSources[0],
+      attributes.get(configuredSources[0]),
+      path
+    )
+  );
+};
+const directChildrenOf = (element) =>
+  markupElements
+    .filter((candidate) => candidate.parentStart === element.start)
+    .sort((left, right) => left.start - right.start);
+const hasOnlyElementChildren = (element, children) => {
+  let cursor = element.contentStart;
+  for (const child of children) {
+    if (tailTemplateMarkup.slice(cursor, child.start).trim() !== '') return false;
+    cursor = child.end;
+  }
+  return tailTemplateMarkup.slice(cursor, element.contentEnd).trim() === '';
+};
+const hasOnlyAllowedThymeleafAttributes = (tag, allowedNames) => {
+  const allowed = new Set(allowedNames);
+  return [...readTagAttributes(tag).keys()]
+    .filter((name) => name.startsWith('th:') || name.startsWith('data-th-'))
+    .every((name) => allowed.has(name));
+};
+const dangerousThymeleafAttributes = new Set([
+  'th:if',
+  'th:unless',
+  'th:each',
+  'th:remove',
+  'th:replace',
+  'th:insert',
+  'th:switch',
+  'th:case',
+]);
+const hasDangerousThymeleafAttribute = (tag) =>
+  [...readTagAttributes(tag).keys()].some((name) => {
+    const canonicalName = name.startsWith('data-th-')
+      ? `th:${name.slice('data-th-'.length)}`
+      : name;
+    return dangerousThymeleafAttributes.has(canonicalName);
+  });
+const hasSafeExecutableScriptAttributes = (tag) => {
+  const attributes = readTagAttributes(tag);
+  return (
+    !isSelfClosingTag(tag) &&
+    hasOnlyAllowedThymeleafAttributes(tag, ['th:src']) &&
+    attributes.has('defer') &&
+    !attributes.has('async') &&
+    !attributes.has('nomodule') &&
+    !attributes.has('type')
+  );
+};
+const musicResourceBlocks = markupElements.flatMap((block) => {
+  if (block.name !== 'th:block') return [];
+  const resourceElements = directChildrenOf(block);
+  if (
+    resourceElements.length !== 3 ||
+    !hasOnlyElementChildren(block, resourceElements) ||
+    resourceElements[0].name !== 'link' ||
+    resourceElements[1].name !== 'script' ||
+    resourceElements[2].name !== 'script' ||
+    !resourceElements.every((element, index) =>
+      tagLoadsResource(element.openingTag, musicResourceSpecifications[index])
+    )
+  ) {
+    return [];
+  }
+  return [{ block, resourceElements }];
+});
+const musicResourceBlock = musicResourceBlocks.length === 1 ? musicResourceBlocks[0].block : null;
+const musicResourceElements =
+  musicResourceBlocks.length === 1 ? musicResourceBlocks[0].resourceElements : [];
+const musicResourceTags = musicResourceElements.map(({ openingTag }) => openingTag);
+const tailFragmentElements = markupElements.filter(
+  (element) => readTagAttribute(element.openingTag, 'th:fragment') === 'tail'
+);
+const tailFragmentElement = tailFragmentElements.length === 1 ? tailFragmentElements[0] : null;
+const musicMarkupAncestors = musicResourceBlock
+  ? musicResourceBlock.ancestorStarts
+      .map((start) => markupElements.find((element) => element.start === start))
+      .filter(Boolean)
+  : [];
+const allResourceElements = markupElements.filter(
+  ({ name }) => name === 'link' || name === 'script'
+);
+const externalScripts = allResourceElements
+  .filter(
+    (element) => element.name === 'script' && readExternalScriptSource(element.openingTag) != null
+  )
+  .map(({ openingTag }) => openingTag);
+const musicResourceTagCounts = musicResourceSpecifications.map(
+  (specification) =>
+    allResourceElements.filter((element) => tagLoadsResource(element.openingTag, specification))
+      .length
+);
+const musicScriptTags = musicResourceTags.slice(1);
+const musicScriptsAreDeferred =
+  musicScriptTags.length === 2 &&
+  musicScriptTags.every((tag) => hasSafeExecutableScriptAttributes(tag));
+const customScriptElements = markupElements.filter(
+  (element) =>
+    element.name === 'script' &&
+    tagLoadsVersionedResource(element.openingTag, 'assets/js/min/custom.min.js')
+);
+const musicResourceIndexes = [
+  ...musicResourceElements.map(({ start }) => start),
+  customScriptElements.length === 1 ? customScriptElements[0].start : -1,
+];
+const customScriptElement = customScriptElements.length === 1 ? customScriptElements[0] : null;
+const customAPlayerElements = ['joe-mp3', 'joe-music', 'joe-mlist'];
+const visitAstNodes = (node, visitor) => {
+  if (node == null || typeof node !== 'object') return;
+  if (Array.isArray(node)) {
+    for (const item of node) visitAstNodes(item, visitor);
+    return;
+  }
+  if (typeof node.type === 'string') visitor(node);
+  for (const value of Object.values(node)) visitAstNodes(value, visitor);
+};
+const readStaticString = (node) => {
+  if (node?.type === 'Literal' && typeof node.value === 'string') return node.value;
+  if (
+    node?.type === 'TemplateLiteral' &&
+    node.expressions?.length === 0 &&
+    node.quasis?.length === 1
+  ) {
+    return node.quasis[0].value?.cooked ?? node.quasis[0].value?.raw ?? null;
+  }
+  return null;
+};
+const validateCustomAPlayerConsumers = (script, label) => {
+  const ast = parseAst(script, { sourceType: 'script' }, label);
+  const definitions = [];
+  visitAstNodes(ast, (node) => {
+    if (
+      node.type === 'CallExpression' &&
+      node.callee?.type === 'MemberExpression' &&
+      !node.callee.computed &&
+      node.callee.object?.type === 'Identifier' &&
+      node.callee.object.name === 'customElements' &&
+      node.callee.property?.type === 'Identifier' &&
+      node.callee.property.name === 'define'
+    ) {
+      definitions.push({
+        implementation: node.arguments?.[1] ?? null,
+        name: readStaticString(node.arguments?.[0]),
+      });
+    }
+  });
+  for (const element of customAPlayerElements) {
+    const matchingDefinitions = definitions.filter(({ name }) => name === element);
+    let aPlayerConstructions = 0;
+    if (matchingDefinitions.length === 1) {
+      visitAstNodes(matchingDefinitions[0].implementation, (node) => {
+        if (
+          node.type === 'NewExpression' &&
+          node.callee?.type === 'Identifier' &&
+          node.callee.name === 'APlayer'
+        ) {
+          aPlayerConstructions += 1;
+        }
+      });
+    }
+    if (matchingDefinitions.length !== 1 || aPlayerConstructions !== 1) {
+      throw new Error(`${label}: ${element} must construct APlayer exactly once`);
+    }
+  }
+};
+validateCustomAPlayerConsumers(customScript, customScriptPath);
+if (sourceCustomMinScript != null) {
+  validateCustomAPlayerConsumers(sourceCustomMinScript.toString('utf8'), customMinScriptPath);
+}
+if (
+  musicResourceBlock == null ||
+  !musicConditionPattern.test(
+    readTagAttribute(musicResourceBlock?.openingTag ?? '', 'th:if') ?? ''
+  ) ||
+  !hasOnlyAllowedThymeleafAttributes(musicResourceBlock?.openingTag ?? '', ['th:if']) ||
+  musicResourceBlock?.parentStart !== tailFragmentElement?.start ||
+  !hasOnlyAllowedThymeleafAttributes(tailFragmentElement?.openingTag ?? '', [
+    'th:fragment',
+    'th:with',
+  ]) ||
+  musicMarkupAncestors.some((element) => hasDangerousThymeleafAttribute(element.openingTag)) ||
+  musicResourceTagCounts.some((count) => count !== 1) ||
+  musicResourceTags.length !== 3 ||
+  !hasOnlyAllowedThymeleafAttributes(musicResourceTags[0] ?? '', ['th:href']) ||
+  readTagAttribute(musicResourceTags[0] ?? '', 'rel')
+    ?.trim()
+    .toLowerCase() !== 'stylesheet' ||
+  !musicScriptsAreDeferred ||
+  customScriptElements.length !== 1 ||
+  customScriptElement?.parentStart !== tailFragmentElement?.start ||
+  !hasSafeExecutableScriptAttributes(customScriptElement?.openingTag ?? '') ||
+  customScriptElement?.ancestorStarts
+    .map((start) => markupElements.find((element) => element.start === start))
+    .filter(Boolean)
+    .some((element) => hasDangerousThymeleafAttribute(element.openingTag)) ||
+  musicResourceIndexes.some((index) => index < 0) ||
+  musicResourceIndexes.some((index, position) =>
+    position === 0 ? false : index <= musicResourceIndexes[position - 1]
+  )
+) {
+  throw new Error(
+    'templates/modules/macro/tail.html: unwrapped music block must load one APlayer stylesheet and one deferred, non-async APlayer/meting script pair before custom.min.js on every post or a configured sidebar music item'
+  );
+}
+const guardedPackageSources = new Map(
+  [
+    settingsPath,
+    commonScriptPath,
+    postScriptPath,
+    'templates/assets/js/utils.js',
+    'templates/assets/js/beauty.js',
+    'templates/modules/link.html',
+    'templates/modules/macro/tail.html',
+    ...new Set(placeholderPolicies.flatMap(({ producers }) => producers.map(({ path }) => path))),
+  ].map((path) => [path, readFileSync(resolve(path))])
+);
+if (sourceCustomMinScript != null) {
+  guardedPackageSources.set(customMinScriptPath, sourceCustomMinScript);
+}
+if (sourceCommonMinScript != null) {
+  guardedPackageSources.set(commonMinScriptPath, sourceCommonMinScript);
+}
+if (sourcePostMinScript != null) {
+  guardedPackageSources.set(postMinScriptPath, sourcePostMinScript);
+}
+if (sourceUtilsMinScript != null) {
+  guardedPackageSources.set(utilsMinScriptPath, sourceUtilsMinScript);
+}
+if (sourceBeautyMinScript != null) {
+  guardedPackageSources.set(beautyMinScriptPath, sourceBeautyMinScript);
+}
+const firstPartyRawSourcePattern = /\.(?:html|css|less|js|mjs)$/;
+const removedPhotosVendorPaths = new Set(
+  removedPhotosResources.map((resource) => `templates/${resource}`)
+);
+const firstPartyRawSourcePaths = [
+  ...readdirSync(resolve('.'), { withFileTypes: true })
+    .filter((entry) => entry.isFile() && firstPartyRawSourcePattern.test(entry.name))
+    .map(({ name }) => name),
+  ...readdirSync(templateRoot, { recursive: true })
+    .filter(
+      (path) =>
+        firstPartyRawSourcePattern.test(path) && !removedPhotosVendorPaths.has(`templates/${path}`)
+    )
+    .map((path) => `templates/${path}`),
+  ...readdirSync(resolve('scripts'), { recursive: true })
+    .filter((path) => firstPartyRawSourcePattern.test(path) && path !== 'verify-theme-package.mjs')
+    .map((path) => `scripts/${path}`),
+];
+for (const resource of removedPhotosResources) {
+  const resourceSources = firstPartyRawSourcePaths.filter((path) =>
+    readFileSync(resolve(path), 'utf8').includes(resource)
+  );
+  if (resourceSources.length > 0) {
+    throw new Error(
+      `source theme: removed photos resource ${resource} referenced by ${resourceSources.join(', ')}`
+    );
+  }
+}
+const isotopeLibraryPath = 'templates/assets/lib/masonry/isotope.pkgd.min.js';
+if (!existsSync(resolve(isotopeLibraryPath))) {
+  throw new Error(`source theme: missing ${isotopeLibraryPath}`);
+}
+const sourceIsotopeLibrary = readFileSync(resolve(isotopeLibraryPath));
+const sourceIsotopeLibraryText = sourceIsotopeLibrary.toString('utf8');
+const expectedIsotopeLibrarySha256 =
+  '081ae9baaacc857c1c2cb51de6dbd0e1eb811c2761ef01a50df373f2f6eefe22';
+const isotopeLibrarySha256 = createHash('sha256').update(sourceIsotopeLibrary).digest('hex');
+if (sourceIsotopeLibrary.length < 35000 || isotopeLibrarySha256 !== expectedIsotopeLibrarySha256) {
+  throw new Error(
+    `${isotopeLibraryPath}: packaged isotope asset must be at least 35000 bytes with SHA-256 ${expectedIsotopeLibrarySha256}, got ${sourceIsotopeLibrary.length} bytes and ${isotopeLibrarySha256}`
+  );
+}
+const requiredIsotopeMarkers = [
+  'Isotope PACKAGED',
+  'masonry-layout/masonry',
+  'isotope-layout/js/layout-modes/masonry',
+];
+for (const marker of requiredIsotopeMarkers) {
+  if (!sourceIsotopeLibraryText.includes(marker)) {
+    throw new Error(`${isotopeLibraryPath}: missing packaged dependency marker ${marker}`);
+  }
+}
+const photosGuardPattern = /^\s*\$\{\s*htmlType\s*==\s*(["'])photos\1\s*\}\s*$/;
+const photosConditionalBlocks = markupElements.filter(
+  (element) =>
+    element.name === 'th:block' &&
+    photosGuardPattern.test(readTagAttribute(element.openingTag, 'th:if') ?? '') &&
+    hasOnlyAllowedThymeleafAttributes(element.openingTag, ['th:if'])
+);
+const isotopeSpecification = {
+  path: isotopeLibraryPath.slice('templates/'.length),
+  sourceAttributes: ['th:src', 'src'],
+};
+const photosIsotopeBlocks = photosConditionalBlocks.flatMap((block) => {
+  const children = directChildrenOf(block);
+  return children.length === 1 &&
+    hasOnlyElementChildren(block, children) &&
+    children[0].name === 'script' &&
+    tagLoadsResource(children[0].openingTag, isotopeSpecification)
+    ? [{ block, script: children[0] }]
+    : [];
+});
+const isotopeScripts = allResourceElements.filter(
+  (element) =>
+    element.name === 'script' && tagLoadsResource(element.openingTag, isotopeSpecification)
+);
+const photosPageScripts = allResourceElements.filter(
+  (element) =>
+    element.name === 'script' &&
+    tagLoadsVersionedResource(element.openingTag, 'assets/js/min/photos.min.js')
+);
+const photosPageParent =
+  photosPageScripts.length === 1
+    ? markupElements.find((element) => element.start === photosPageScripts[0].parentStart)
+    : null;
+const isotopeScriptIndex = isotopeScripts.length === 1 ? isotopeScripts[0].start : -1;
+const photosPageScriptIndex = photosPageScripts.length === 1 ? photosPageScripts[0].start : -1;
+if (
+  photosIsotopeBlocks.length !== 1 ||
+  photosIsotopeBlocks[0].block.parentStart !== tailFragmentElement?.start ||
+  !hasSafeExecutableScriptAttributes(photosIsotopeBlocks[0].script.openingTag) ||
+  isotopeScripts.length !== 1 ||
+  photosPageScripts.length !== 1 ||
+  !hasSafeExecutableScriptAttributes(photosPageScripts[0].openingTag) ||
+  photosPageParent?.parentStart !== tailFragmentElement?.start ||
+  !photosConditionalBlocks.includes(photosPageParent) ||
+  isotopeScriptIndex < 0 ||
+  photosPageScriptIndex < 0 ||
+  isotopeScriptIndex >= photosPageScriptIndex
+) {
+  throw new Error(
+    'templates/modules/macro/tail.html: photos must load one deferred packaged isotope library inside a photos guard before photos.min.js'
+  );
+}
+const linkTemplateMarkup = maskInactiveMarkup(links);
+const linkMarkupElements = parseMarkupElements(linkTemplateMarkup, 'templates/modules/link.html');
+const linkFragmentElements = linkMarkupElements.filter(
+  (element) => readTagAttribute(element.openingTag, 'th:fragment') === 'links'
+);
+const linkFragmentElement = linkFragmentElements.length === 1 ? linkFragmentElements[0] : null;
+const nprogressSpecification = {
+  path: 'assets/lib/nprogress/nprogress.min.js',
+  sourceAttributes: ['th:src', 'src'],
+};
+const nprogressScripts = firstPartyResourceLoaders.flatMap(({ path, externalScriptTags }) =>
+  externalScriptTags
+    .filter((tag) => tagLoadsResource(tag, nprogressSpecification))
+    .map((tag) => ({ path, tag }))
+);
+const nprogressLinkElements = linkMarkupElements.filter(
+  (element) =>
+    element.name === 'script' && tagLoadsResource(element.openingTag, nprogressSpecification)
+);
+const nprogressElement = nprogressLinkElements.length === 1 ? nprogressLinkElements[0] : null;
+const nprogressGuard = nprogressElement
+  ? linkMarkupElements.find((element) => element.start === nprogressElement.parentStart)
+  : null;
+const layout = readFileSync(resolve('templates/modules/layout.html'), 'utf8');
+const layoutLinkIndex = layout.indexOf('~{modules/link :: links}');
+const layoutHeadCloseIndex = layout.indexOf('</head>');
+const layoutContentIndex = layout.indexOf('th:replace="${content}"');
+if (
+  nprogressScripts.length !== 1 ||
+  nprogressScripts[0].path !== 'templates/modules/link.html' ||
+  nprogressLinkElements.length !== 1 ||
+  !hasSafeExecutableScriptAttributes(nprogressElement?.openingTag ?? '') ||
+  nprogressGuard?.name !== 'th:block' ||
+  readTagAttribute(nprogressGuard.openingTag, 'th:if') !==
+    '${theme.config.theme.enable_loading_bar}' ||
+  nprogressGuard.parentStart !== linkFragmentElement?.start ||
+  layoutLinkIndex < 0 ||
+  layoutHeadCloseIndex < 0 ||
+  layoutContentIndex < 0 ||
+  !(layoutLinkIndex < layoutHeadCloseIndex && layoutHeadCloseIndex < layoutContentIndex)
+) {
+  throw new Error(
+    'templates/modules/link.html: NProgress must load exactly once with defer in the enabled head fragment before tail common.min.js'
+  );
+}
+
+const utilsScriptElements = markupElements.filter(
+  (element) =>
+    element.name === 'script' &&
+    tagLoadsVersionedResource(element.openingTag, 'assets/js/min/utils.min.js')
+);
+const commonScriptElements = markupElements.filter(
+  (element) =>
+    element.name === 'script' &&
+    tagLoadsVersionedResource(element.openingTag, 'assets/js/min/common.min.js')
+);
+const globalUtilsScripts = firstPartyResourceLoaders.flatMap(({ path, externalScriptTags }) =>
+  externalScriptTags
+    .filter((tag) => readExternalScriptSource(tag)?.includes('assets/js/min/utils.min.js'))
+    .map((tag) => ({ path, tag }))
+);
+const globalCommonScripts = firstPartyResourceLoaders.flatMap(({ path, externalScriptTags }) =>
+  externalScriptTags
+    .filter((tag) => readExternalScriptSource(tag)?.includes('assets/js/min/common.min.js'))
+    .map((tag) => ({ path, tag }))
+);
+if (
+  utilsScriptElements.length !== 1 ||
+  commonScriptElements.length !== 1 ||
+  globalUtilsScripts.length !== 1 ||
+  globalUtilsScripts[0].path !== 'templates/modules/macro/tail.html' ||
+  globalUtilsScripts[0].tag !== utilsScriptElements[0].openingTag ||
+  globalCommonScripts.length !== 1 ||
+  globalCommonScripts[0].path !== 'templates/modules/macro/tail.html' ||
+  globalCommonScripts[0].tag !== commonScriptElements[0].openingTag ||
+  !hasSafeExecutableScriptAttributes(utilsScriptElements[0].openingTag) ||
+  !hasSafeExecutableScriptAttributes(commonScriptElements[0].openingTag) ||
+  utilsScriptElements[0].parentStart !== tailFragmentElement?.start ||
+  commonScriptElements[0].parentStart !== tailFragmentElement?.start ||
+  utilsScriptElements[0].start >= commonScriptElements[0].start
+) {
+  throw new Error(
+    'templates/modules/macro/tail.html: versioned utils.min.js must load exactly once before versioned common.min.js'
+  );
+}
+
+const qrcodeSpecification = {
+  path: 'assets/lib/jquery-qrcode/jquery.qrcode.min.js',
+  sourceAttributes: ['th:src', 'src'],
+};
+const qrcodeScriptElements = allResourceElements.filter(
+  (element) =>
+    element.name === 'script' && tagLoadsResource(element.openingTag, qrcodeSpecification)
+);
+const globalQrcodeScripts = firstPartyResourceLoaders.flatMap(({ path, externalScriptTags }) =>
+  externalScriptTags
+    .filter((tag) => tagLoadsResource(tag, qrcodeSpecification))
+    .map((tag) => ({ path, tag }))
+);
+const qrcodeElement = qrcodeScriptElements.length === 1 ? qrcodeScriptElements[0] : null;
+const qrcodeGuard = qrcodeElement
+  ? markupElements.find((element) => element.start === qrcodeElement.parentStart)
+  : null;
+const expectedQrcodeCondition =
+  "${htmlType == 'post' and #bools.isTrue(theme.config.post.enable_share) and #bools.isTrue(theme.config.post.enable_share_weixin) and #bools.isTrue(#annotations.getOrDefault(post, 'enable_share', 'true'))}";
+const activeTemplateElements = new Map(
+  htmlTemplates.map(({ path, source }) => [
+    path,
+    parseMarkupElements(maskInactiveMarkup(source), `templates/${path}`),
+  ])
+);
+const expectedQrcodeConsumers = [
+  {
+    path: 'modules/post_operate.html',
+    shareCondition:
+      "${theme.config.post.enable_share} and ${#annotations.get(post, 'enable_share')}",
+  },
+  {
+    path: 'modules/post_operate_aside.html',
+    shareCondition:
+      "${theme.config.post.enable_share} and ${#annotations.getOrDefault(post, 'enable_share', 'true')}",
+  },
+];
+const qrcodeDomConsumers = [...activeTemplateElements].flatMap(([path, elements]) =>
+  elements
+    .filter((element) =>
+      (readTagAttribute(element.openingTag, 'class') ?? '').split(/\s+/).includes('qrcode_wx')
+    )
+    .map((element) => ({ element, elements, path }))
+);
+const qrcodeDomConsumersAreExact =
+  qrcodeDomConsumers.length === expectedQrcodeConsumers.length &&
+  expectedQrcodeConsumers.every(({ path, shareCondition }) => {
+    const matches = qrcodeDomConsumers.filter((consumer) => consumer.path === path);
+    if (matches.length !== 1 || matches[0].element.name !== 'div') return false;
+    const ancestorConditions = matches[0].element.ancestorStarts
+      .map((start) => matches[0].elements.find((element) => element.start === start))
+      .filter(Boolean)
+      .map((element) => readTagAttribute(element.openingTag, 'th:if'))
+      .filter(Boolean);
+    return (
+      ancestorConditions.includes(shareCondition) &&
+      ancestorConditions.includes('${theme.config.post.enable_share_weixin}')
+    );
+  });
+const validateQrcodeRuntime = (script, label) => {
+  const ast = parseAst(script, { sourceType: 'script' }, label);
+  const initShareProperties = [];
+  walkEffectAst(ast, (node) => {
+    if (
+      node.type === 'Property' &&
+      readEffectPropertyName(node.key) === 'initShare' &&
+      node.value?.type === 'FunctionExpression'
+    ) {
+      initShareProperties.push(node);
+    }
+  });
+  const initShareProperty = initShareProperties.length === 1 ? initShareProperties[0] : null;
+  const selectorCalls = [];
+  const qrcodeCalls = [];
+  const selectorLengthMembers = [];
+  const weixinGuards = [];
+  const isQrcodeSelectorCall = (node) =>
+    node?.type === 'CallExpression' &&
+    node.callee?.type === 'Identifier' &&
+    node.callee.name === '$' &&
+    node.arguments?.length === 1 &&
+    readEffectStaticString(node.arguments[0]) === '.qrcode_wx';
+  walkEffectAst(initShareProperty?.value?.body, (node) => {
+    if (isQrcodeSelectorCall(node)) selectorCalls.push(node);
+    if (
+      node.type === 'MemberExpression' &&
+      !node.computed &&
+      readEffectPropertyName(node.property) === 'length' &&
+      isQrcodeSelectorCall(node.object)
+    ) {
+      selectorLengthMembers.push(node);
+    }
+    if (isEffectMember(node, 'ThemeConfig', 'enable_share_weixin')) weixinGuards.push(node);
+    if (
+      node.type === 'CallExpression' &&
+      node.callee?.type === 'MemberExpression' &&
+      !node.callee.computed &&
+      readEffectPropertyName(node.callee.property) === 'qrcode'
+    ) {
+      qrcodeCalls.push(node);
+    }
+  });
+  const qrcodeCall = qrcodeCalls.length === 1 ? qrcodeCalls[0] : null;
+  const qrcodeReceiver = qrcodeCall?.callee?.object;
+  const qrcodeSourceControls = [];
+  const qrcodeMinifiedControls = [];
+  walkEffectAst(initShareProperty?.value?.body, (node) => {
+    if (
+      node.type === 'IfStatement' &&
+      node.consequent?.type === 'BlockStatement' &&
+      node.consequent.body?.length === 1 &&
+      node.consequent.body[0]?.type === 'ExpressionStatement' &&
+      node.consequent.body[0].expression === qrcodeCall
+    ) {
+      qrcodeSourceControls.push(node);
+    }
+    if (node.type === 'LogicalExpression' && node.operator === '&&' && node.right === qrcodeCall) {
+      qrcodeMinifiedControls.push(node);
+    }
+  });
+  const sourceControl = qrcodeSourceControls.length === 1 ? qrcodeSourceControls[0] : null;
+  const sourceControlIsExact =
+    sourceControl?.test?.type === 'LogicalExpression' &&
+    sourceControl.test.operator === '&&' &&
+    sourceControl.test.left === weixinGuards[0] &&
+    sourceControl.test.right === selectorLengthMembers[0] &&
+    sourceControl.alternate == null;
+  const minifiedControl = qrcodeMinifiedControls.length === 1 ? qrcodeMinifiedControls[0] : null;
+  const minifiedControlIsExact =
+    minifiedControl?.left?.type === 'LogicalExpression' &&
+    minifiedControl.left.operator === '&&' &&
+    minifiedControl.left.left === weixinGuards[0] &&
+    minifiedControl.left.right === selectorLengthMembers[0];
+  if (
+    initShareProperties.length !== 1 ||
+    selectorCalls.length !== 2 ||
+    selectorLengthMembers.length !== 1 ||
+    weixinGuards.length !== 1 ||
+    qrcodeCalls.length !== 1 ||
+    !isQrcodeSelectorCall(qrcodeReceiver) ||
+    qrcodeCall.arguments?.length !== 1 ||
+    qrcodeCall.arguments[0]?.type !== 'ObjectExpression' ||
+    (!sourceControlIsExact && !minifiedControlIsExact)
+  ) {
+    throw new Error(
+      `${label}: initShare must guard and invoke one .qrcode() call on the exact .qrcode_wx selector`
+    );
+  }
+};
+validateQrcodeRuntime(postScript, postScriptPath);
+if (sourcePostMinScript != null) {
+  validateQrcodeRuntime(sourcePostMinScript.toString('utf8'), postMinScriptPath);
+}
+if (
+  globalQrcodeScripts.length !== 1 ||
+  globalQrcodeScripts[0].path !== 'templates/modules/macro/tail.html' ||
+  qrcodeScriptElements.length !== 1 ||
+  globalQrcodeScripts[0].tag !== qrcodeElement?.openingTag ||
+  !hasSafeExecutableScriptAttributes(qrcodeElement?.openingTag ?? '') ||
+  qrcodeGuard?.name !== 'th:block' ||
+  readTagAttribute(qrcodeGuard.openingTag, 'th:if') !== expectedQrcodeCondition ||
+  !hasOnlyAllowedThymeleafAttributes(qrcodeGuard.openingTag, ['th:if']) ||
+  qrcodeGuard.parentStart !== tailFragmentElement?.start ||
+  !qrcodeDomConsumersAreExact
+) {
+  throw new Error(
+    'templates: QR library must load once only for two guarded .qrcode_wx consumers on posts with global, WeChat and per-post share enabled'
+  );
+}
+
+const expectedBeautyCondition =
+  "${#bools.isTrue(theme.config.beauty.enable_big_banner) and (htmlType == 'index' or htmlType == 'tags' or htmlType == 'categories' or htmlType == 'category' or htmlType == 'archives' or htmlType == 'tag' or htmlType == 'links' or (htmlType == 'author' and #bools.isTrue(theme.config.tags.larger_tabs_image)))}";
+const expectedBigBannerProducerPaths = [
+  'archives.html',
+  'author.html',
+  'categories.html',
+  'category.html',
+  'index.html',
+  'links.html',
+  'page_links.html',
+  'tag.html',
+  'tags.html',
+];
+const bigBannerFragmentElements =
+  activeTemplateElements
+    .get('modules/macro/big_banner.html')
+    ?.filter(
+      (element) => readTagAttribute(element.openingTag, 'th:fragment') === 'big_banner(title)'
+    ) ?? [];
+const activeBigBannerIdentityElements = [...activeTemplateElements].flatMap(([path, elements]) =>
+  elements
+    .filter((element) => readTagAttribute(element.openingTag, 'id') === 'EvanBigBanner')
+    .map((element) => ({ element, path }))
+);
+const activeBigBannerProducers = [...activeTemplateElements].flatMap(([path, elements]) =>
+  elements
+    .filter((element) =>
+      /^\s*~\{modules\/macro\/big_banner\s*::\s*big_banner\(/.test(
+        readTagAttribute(element.openingTag, 'th:replace') ?? ''
+      )
+    )
+    .map((element) => ({ element, elements, path }))
+);
+const actualBigBannerProducerPaths = activeBigBannerProducers.map(({ path }) => path).sort();
+const defaultBigBannerProducerCondition = '${theme.config.beauty.enable_big_banner}';
+const authorBigBannerProducerCondition =
+  '${theme.config.beauty.enable_big_banner} and ${theme.config.tags.larger_tabs_image == true}';
+const bigBannerProducerConditionsAreExact = activeBigBannerProducers.every(
+  ({ element, elements, path }) => {
+    const conditions = [element.start, ...element.ancestorStarts]
+      .map((start) => elements.find((candidate) => candidate.start === start))
+      .filter(Boolean)
+      .map((candidate) => readTagAttribute(candidate.openingTag, 'th:if'))
+      .filter(Boolean);
+    return conditions.includes(
+      path === 'author.html' ? authorBigBannerProducerCondition : defaultBigBannerProducerCondition
+    );
+  }
+);
+if (
+  bigBannerFragmentElements.length !== 1 ||
+  activeBigBannerIdentityElements.length !== 1 ||
+  activeBigBannerIdentityElements[0].path !== 'modules/macro/big_banner.html' ||
+  !activeBigBannerIdentityElements[0].element.ancestorStarts.includes(
+    bigBannerFragmentElements[0].start
+  ) ||
+  actualBigBannerProducerPaths.join('\n') !== expectedBigBannerProducerPaths.join('\n') ||
+  !bigBannerProducerConditionsAreExact
+) {
+  throw new Error(
+    `templates: one active EvanBigBanner element must remain in its fragment; the producer set must stay ${expectedBigBannerProducerPaths.join(', ')}, each producer must keep its enable_big_banner guard, and author.html must also require larger_tabs_image; got ${actualBigBannerProducerPaths.join(', ')}`
+  );
+}
+const expectedBeautyStyleCondition =
+  "${htmlType == 'links' or (#bools.isTrue(theme.config.beauty.enable_big_banner) and (htmlType == 'index' or htmlType == 'tags' or htmlType == 'categories' or htmlType == 'category' or htmlType == 'archives' or htmlType == 'tag' or (htmlType == 'author' and #bools.isTrue(theme.config.tags.larger_tabs_image))))}";
+const beautyStylesheetPath = 'assets/css/min/beauty.min.css';
+const beautyStylesheetElements = linkMarkupElements.filter(
+  (element) =>
+    element.name === 'link' && tagLoadsVersionedStylesheet(element.openingTag, beautyStylesheetPath)
+);
+const beautyStylesheetElement =
+  beautyStylesheetElements.length === 1 ? beautyStylesheetElements[0] : null;
+const beautyStylesheetGuard = beautyStylesheetElement
+  ? linkMarkupElements.find((element) => element.start === beautyStylesheetElement.parentStart)
+  : null;
+const globalBeautyStylesheets = firstPartyResourceLoaders.flatMap(({ path, resourceAttributes }) =>
+  resourceAttributes
+    .filter(({ value }) => value.includes(beautyStylesheetPath))
+    .map((resource) => ({ path, resource }))
+);
+if (
+  globalBeautyStylesheets.length !== 1 ||
+  globalBeautyStylesheets[0].path !== 'templates/modules/link.html' ||
+  beautyStylesheetElements.length !== 1 ||
+  readTagAttribute(beautyStylesheetElement?.openingTag ?? '', 'rel') !== 'preload stylesheet' ||
+  readTagAttribute(beautyStylesheetElement?.openingTag ?? '', 'as') !== 'style' ||
+  !hasOnlyAllowedThymeleafAttributes(beautyStylesheetElement?.openingTag ?? '', ['th:href']) ||
+  beautyStylesheetGuard?.name !== 'th:block' ||
+  readTagAttribute(beautyStylesheetGuard.openingTag, 'th:if') !== expectedBeautyStyleCondition ||
+  !hasOnlyAllowedThymeleafAttributes(beautyStylesheetGuard.openingTag, ['th:if']) ||
+  beautyStylesheetGuard.parentStart !== linkFragmentElement?.start
+) {
+  throw new Error(
+    'templates/modules/link.html: versioned Beauty CSS must load only for its banner pages while remaining available to links cards'
+  );
+}
+const beautyScriptElements = markupElements.filter(
+  (element) =>
+    element.name === 'script' &&
+    tagLoadsVersionedResource(element.openingTag, 'assets/js/min/beauty.min.js')
+);
+const globalBeautyScripts = firstPartyResourceLoaders.flatMap(({ path, externalScriptTags }) =>
+  externalScriptTags
+    .filter((tag) => readExternalScriptSource(tag)?.includes('assets/js/min/beauty.min.js'))
+    .map((tag) => ({ path, tag }))
+);
+const beautyScriptElement = beautyScriptElements.length === 1 ? beautyScriptElements[0] : null;
+const beautyScriptGuard = beautyScriptElement
+  ? markupElements.find((element) => element.start === beautyScriptElement.parentStart)
+  : null;
+const beautyInitElements = markupElements.filter(
+  (element) =>
+    element.name === 'script' &&
+    readExternalScriptSource(element.openingTag) == null &&
+    readTagAttribute(element.openingTag, 'th:if') === expectedBeautyCondition &&
+    readTagAttribute(element.openingTag, 'th:inline') === 'javascript'
+);
+const beautyInitElement = beautyInitElements.length === 1 ? beautyInitElements[0] : null;
+const beautyInitBody = beautyInitElement
+  ? tail.slice(beautyInitElement.contentStart, beautyInitElement.contentEnd)
+  : '';
+const beautyInitAst = beautyInitBody
+  ? parseAst(beautyInitBody, { sourceType: 'script' }, 'Beauty inline initialization')
+  : null;
+const beautyReadyStatement =
+  beautyInitAst?.body?.length === 1 && beautyInitAst.body[0]?.type === 'ExpressionStatement'
+    ? beautyInitAst.body[0]
+    : null;
+const beautyReadyCall = beautyReadyStatement?.expression;
+const beautyReadyCallback = beautyReadyCall?.arguments?.[1];
+const beautyCallbackStatements =
+  beautyReadyCallback?.type === 'ArrowFunctionExpression' &&
+  beautyReadyCallback.body?.type === 'BlockStatement'
+    ? beautyReadyCallback.body.body
+    : [];
+const beautyGuardStatement = beautyCallbackStatements[0];
+const beautyConstructionStatement = beautyCallbackStatements[1];
+const beautyGuardParts =
+  beautyGuardStatement?.type === 'IfStatement' ? flattenEffectOr(beautyGuardStatement.test) : [];
+const beautyDomLookup = beautyGuardParts[0]?.argument;
+const beautyConstructorTypeCheck = beautyGuardParts[1];
+const beautyConstruction = beautyConstructionStatement?.expression;
+const beautyDomGuardIsExact =
+  beautyGuardParts.length === 2 &&
+  beautyGuardParts[0]?.type === 'UnaryExpression' &&
+  beautyGuardParts[0].operator === '!' &&
+  beautyDomLookup?.type === 'CallExpression' &&
+  isEffectMember(beautyDomLookup.callee, 'document', 'getElementById') &&
+  beautyDomLookup.arguments?.length === 1 &&
+  readEffectStaticString(beautyDomLookup.arguments[0]) === 'EvanBigBanner' &&
+  beautyConstructorTypeCheck?.type === 'BinaryExpression' &&
+  beautyConstructorTypeCheck.operator === '!==' &&
+  beautyConstructorTypeCheck.left?.type === 'UnaryExpression' &&
+  beautyConstructorTypeCheck.left.operator === 'typeof' &&
+  beautyConstructorTypeCheck.left.argument?.type === 'Identifier' &&
+  beautyConstructorTypeCheck.left.argument.name === 'EvanBigBanner' &&
+  readEffectStaticString(beautyConstructorTypeCheck.right) === 'function' &&
+  beautyGuardStatement.consequent?.type === 'ReturnStatement' &&
+  beautyGuardStatement.alternate == null;
+const beautyConstructionIsExact =
+  beautyConstruction?.type === 'NewExpression' &&
+  beautyConstruction.callee?.type === 'Identifier' &&
+  beautyConstruction.callee.name === 'EvanBigBanner' &&
+  beautyConstruction.arguments?.length === 1 &&
+  beautyConstruction.arguments[0]?.type === 'ObjectExpression';
+if (
+  beautyScriptElements.length !== 1 ||
+  globalBeautyScripts.length !== 1 ||
+  globalBeautyScripts[0].path !== 'templates/modules/macro/tail.html' ||
+  globalBeautyScripts[0].tag !== beautyScriptElement?.openingTag ||
+  !hasSafeExecutableScriptAttributes(beautyScriptElement?.openingTag ?? '') ||
+  beautyScriptGuard?.name !== 'th:block' ||
+  readTagAttribute(beautyScriptGuard.openingTag, 'th:if') !== expectedBeautyCondition ||
+  !hasOnlyAllowedThymeleafAttributes(beautyScriptGuard.openingTag, ['th:if']) ||
+  beautyScriptGuard.parentStart !== tailFragmentElement?.start ||
+  beautyInitElements.length !== 1 ||
+  !hasOnlyAllowedThymeleafAttributes(beautyInitElement?.openingTag ?? '', ['th:if', 'th:inline']) ||
+  beautyInitElement?.parentStart !== tailFragmentElement?.start ||
+  !isEffectMember(beautyReadyCall?.callee, 'document', 'addEventListener') ||
+  beautyReadyCall.arguments?.length !== 2 ||
+  readEffectStaticString(beautyReadyCall.arguments[0]) !== 'DOMContentLoaded' ||
+  beautyCallbackStatements.length !== 2 ||
+  !beautyDomGuardIsExact ||
+  !beautyConstructionIsExact ||
+  beautyGuardStatement.start >= beautyConstruction.start ||
+  beautyScriptElement.start >= beautyInitElement.start
+) {
+  throw new Error(
+    'templates/modules/macro/tail.html: Beauty must load versioned and initialize after a DOM guard only on pages that render EvanBigBanner'
+  );
+}
+if (externalScripts.some((script) => readExternalScriptSource(script)?.includes('jquery@3.7.1'))) {
   throw new Error('templates/modules/macro/tail.html: jQuery must not be loaded twice');
 }
-const nonDeferredScripts = externalScripts.filter((script) => !/\bdefer\b/.test(script));
-if (nonDeferredScripts.length > 0) {
+const invalidExternalScripts = externalScripts.filter(
+  (script) => isSelfClosingTag(script) || !readTagAttributes(script).has('defer')
+);
+if (invalidExternalScripts.length > 0) {
   throw new Error(
-    `templates/modules/macro/tail.html: all external theme scripts must use defer: ${nonDeferredScripts.join(', ')}`
+    `templates/modules/macro/tail.html: all external theme scripts must use closing tags and defer: ${invalidExternalScripts.join(', ')}`
   );
 }
 const expectedWowCondition =
   "${(htmlType == 'journals' and #bools.isTrue(theme.config.journals.enable_journal_effect)) or (htmlType == 'friends' and #bools.isTrue(theme.config.friends.enable_friend_effect)) or (htmlType == 'index' and #bools.isTrue(theme.config.home.enable_index_list_effect))}";
-const wowScriptCount = externalScripts.filter((script) => script.includes('wow.min.js')).length;
+const wowScriptCount = externalScripts.filter((script) =>
+  readExternalScriptSource(script)?.includes('wow.min.js')
+).length;
 const wowBlock = tail.match(
   /<th:block\s+th:if="([^"]+)"\s*>\s*<script[^>]+wow\.min\.js[^>]*><\/script>\s*<\/th:block>/
 );
@@ -735,7 +2338,7 @@ if (blogger.includes('assets/effect/bg/strips.js')) {
   throw new Error('templates/modules/common/blogger.html: strips.js must load after tail jQuery');
 }
 const stripsScript = externalScripts.find((script) =>
-  script.includes('assets/effect/bg/strips.js')
+  readExternalScriptSource(script)?.includes('assets/effect/bg/strips.js')
 );
 if (
   !stripsScript ||
@@ -1220,7 +2823,6 @@ if (tagOption) {
   }
 }
 
-const zipOption = option('--zip');
 if (zipOption) {
   const zipPath = resolve(zipOption === true ? `dist/theme-Joe3-${version}.zip` : zipOption);
   if (!existsSync(zipPath)) {
@@ -1246,6 +2848,22 @@ if (zipOption) {
     if (packagedFiles.some((file) => file === path || file.startsWith(`${path}/`))) {
       throw new Error(`${zipPath}: excluded package path found: ${path}`);
     }
+  }
+  for (const [path, source] of guardedPackageSources) {
+    if (!packagedFiles.includes(path)) {
+      throw new Error(`${zipPath}: missing ${path}`);
+    }
+    const packagedSource = execFileSync('unzip', ['-p', zipPath, path]);
+    if (!packagedSource.equals(source)) {
+      throw new Error(`${zipPath}: packaged ${path} does not match the source file`);
+    }
+  }
+  if (!packagedFiles.includes(isotopeLibraryPath)) {
+    throw new Error(`${zipPath}: missing ${isotopeLibraryPath}`);
+  }
+  const packagedIsotopeLibrary = execFileSync('unzip', ['-p', zipPath, isotopeLibraryPath]);
+  if (!packagedIsotopeLibrary.equals(sourceIsotopeLibrary)) {
+    throw new Error(`${zipPath}: packaged ${isotopeLibraryPath} does not match the source asset`);
   }
   for (const { path } of optimizedGifAssets) {
     if (!packagedFiles.includes(path)) {

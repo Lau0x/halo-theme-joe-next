@@ -55,7 +55,7 @@
               ${thumbnail.gen(cover, 'l')} 1200w,
               ${thumbnail.gen(cover, 'xl')} 1600w|"
                             sizes="(max-width: 1600px) 100vw, 1600px"
-                            th:src="${theme.config.home.lazyload_thumbnail}"
+                            th:src="${theme.config.home.lazyload_thumbnail == '/themes/theme-Joe3/assets/img/lazyload.gif' ? theme.config.home.lazyload_thumbnail + '?v=' + theme.spec.version : theme.config.home.lazyload_thumbnail}"
                             th:alt="${category.spec.displayName}"
                             onerror="Joe.errorImg(this, 'HomeErrImg')"
                           />

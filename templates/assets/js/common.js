@@ -893,9 +893,11 @@ const commonContext = {
       ThemeConfig.cursor_effect === "off"
 		)
 			return;
-		$.getScript(
-			`${ThemeConfig.BASE_RES_URL}/assets/effect/cursor/${ThemeConfig.cursor_effect}.js`
-		);
+		$.ajax({
+			url: `${ThemeConfig.BASE_RES_URL}/assets/effect/cursor/${ThemeConfig.cursor_effect}.js?v=${ThemeConfig.version}`,
+			dataType: "script",
+			cache: true,
+		});
 	},
 	/* 加载背景特效 */
 	loadBackdropEffect() {
@@ -905,9 +907,11 @@ const commonContext = {
       ThemeConfig.backdrop === "off"
 		)
 			return;
-		$.getScript(
-			`${ThemeConfig.BASE_RES_URL}/assets/effect/backdrop/${ThemeConfig.backdrop}.js`
-		);
+		$.ajax({
+			url: `${ThemeConfig.BASE_RES_URL}/assets/effect/backdrop/${ThemeConfig.backdrop}.js?v=${ThemeConfig.version}`,
+			dataType: "script",
+			cache: true,
+		});
 	},
 	/* 自定义favicon */
 	setFavicon() {

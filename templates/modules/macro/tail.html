@@ -31,7 +31,10 @@
     <th:block th:if="${theme.config.aside.show_newreply == true} or ${htmlType == 'sheet'}">
       <script defer th:src="${source_link+'/assets/lib/j-marked/marked.min.js'}"></script>
     </th:block>
-    <script defer th:src="${source_link+'/assets/js/min/utils.min.js'}"></script>
+    <script
+      defer
+      th:src="${source_link+'/assets/js/min/utils.min.js?v='+theme.spec.version}"
+    ></script>
 
     <th:block th:if="${htmlType == 'index' && theme.config.carousel.enable_banner}">
       <script defer th:src="${source_link+'/assets/lib/swiper/swiper-bundle.min.js'}"></script>
@@ -46,14 +49,11 @@
       <script defer th:src="${source_link+'/assets/lib/fancybox/jquery.fancybox.min.js'}"></script>
     </th:block>
     <th:block
-      th:each="aside : ${theme.config.aside.enable_outpost_aside}"
-      th:if="${aside.template_aside == 'enable_music_player'} or ${htmlType =='post'}"
+      th:if="${htmlType == 'post' or (not #lists.isEmpty(theme.config.aside.enable_outpost_aside) and not #lists.isEmpty(theme.config.aside.enable_outpost_aside.?[template_aside == 'enable_music_player' and aside_music_player != null and aside_music_player.music_id != null and #strings.trim(aside_music_player.music_id) != '']))}"
     >
-      <th:block th:if="${#strings.trim(aside.aside_music_player.music_id) !=''}">
-        <link rel="stylesheet" th:href="${source_link+'/assets/lib/APlayer/APlayer.min.css'}" />
-        <script defer th:src="${source_link+'/assets/lib/APlayer/APlayer.min.js'}"></script>
-        <script defer th:src="${source_link+'/assets/lib/meting/meting.min.js'}"></script>
-      </th:block>
+      <link rel="stylesheet" th:href="${source_link+'/assets/lib/APlayer/APlayer.min.css'}" />
+      <script defer th:src="${source_link+'/assets/lib/APlayer/APlayer.min.js'}"></script>
+      <script defer th:src="${source_link+'/assets/lib/meting/meting.min.js'}"></script>
     </th:block>
     <script
       defer
@@ -62,7 +62,9 @@
     <th:block th:if="${theme.config.custom.favicon != null && theme.config.custom.favicon != ''}">
       <script defer th:src="${source_link+'/assets/lib/favico/favico.min.js'}"></script>
     </th:block>
-    <th:block th:if="${htmlType == 'post'}">
+    <th:block
+      th:if="${htmlType == 'post' and #bools.isTrue(theme.config.post.enable_share) and #bools.isTrue(theme.config.post.enable_share_weixin) and #bools.isTrue(#annotations.getOrDefault(post, 'enable_share', 'true'))}"
+    >
       <script
         defer
         th:src="${source_link+'/assets/lib/jquery-qrcode/jquery.qrcode.min.js'}"
@@ -70,13 +72,7 @@
     </th:block>
     <!--相册-->
     <th:block th:if="${htmlType == 'photos'}">
-      <script
-        defer
-        th:src="${source_link+'/assets/lib/justifiedGallery/justifiedGallery.min.js'}"
-      ></script>
-      <script defer th:src="${source_link+'/assets/lib/masonry/masonry.pkgd.min.js'}"></script>
       <script defer th:src="${source_link+'/assets/lib/masonry/isotope.pkgd.min.js'}"></script>
-      <script defer th:src="${source_link+'/assets/lib/masonry/imagesloaded.pkgd.min.js'}"></script>
     </th:block>
 
     <!--===== 引入页面级js start =====-->
@@ -127,8 +123,13 @@
       <script defer th:src="${source_link+'/assets/lib/draggabilly/draggabilly.min.js'}"></script>
       <script defer th:src="${source_link+'/assets/js/min/leaving.min.js'}"></script>
     </th:block>
-    <th:block th:if="${theme.config.beauty.enable_big_banner}">
-      <script defer th:src="${source_link+'/assets/js/min/beauty.min.js'}"></script>
+    <th:block
+      th:if="${#bools.isTrue(theme.config.beauty.enable_big_banner) and (htmlType == 'index' or htmlType == 'tags' or htmlType == 'categories' or htmlType == 'category' or htmlType == 'archives' or htmlType == 'tag' or htmlType == 'links' or (htmlType == 'author' and #bools.isTrue(theme.config.tags.larger_tabs_image)))}"
+    >
+      <script
+        defer
+        th:src="${source_link+'/assets/js/min/beauty.min.js?v='+theme.spec.version}"
+      ></script>
     </th:block>
 
     <!-- ===== 引入页面级js end ===== -->
@@ -161,8 +162,13 @@
     </script>
 
     <!--    大图配置-->
-    <script th:inline="javascript" th:if="${theme.config.beauty.enable_big_banner}">
+    <script
+      th:inline="javascript"
+      th:if="${#bools.isTrue(theme.config.beauty.enable_big_banner) and (htmlType == 'index' or htmlType == 'tags' or htmlType == 'categories' or htmlType == 'category' or htmlType == 'archives' or htmlType == 'tag' or htmlType == 'links' or (htmlType == 'author' and #bools.isTrue(theme.config.tags.larger_tabs_image)))}"
+    >
       document.addEventListener('DOMContentLoaded', () => {
+        if (!document.getElementById('EvanBigBanner') || typeof EvanBigBanner !== 'function')
+          return;
         // 以下配置参数均为默认值
         new EvanBigBanner({
           followMode: false, // 跟随模式

@@ -24,7 +24,7 @@
           display: none;
         }
       </style>
-      <script th:src="${source_link+'/assets/lib/nprogress/nprogress.min.js'}"></script>
+      <script defer th:src="${source_link+'/assets/lib/nprogress/nprogress.min.js'}"></script>
     </th:block>
     <link
       rel="preload stylesheet"
@@ -153,10 +153,6 @@
     </th:block>
     <th:block th:if="${htmlType == 'photos'}">
       <link
-        rel="stylesheet"
-        th:href="${source_link+'/assets/lib/justifiedGallery/justifiedGallery.min.css'}"
-      />
-      <link
         rel="preload stylesheet"
         as="style"
         th:href="${source_link+'/assets/css/min/photos.min.css?v='+theme.spec.version}"
@@ -201,7 +197,7 @@
       />
     </th:block>
     <th:block
-      th:if="${#bools.isTrue(theme.config.beauty.enable_big_banner) or htmlType == 'links'}"
+      th:if="${htmlType == 'links' or (#bools.isTrue(theme.config.beauty.enable_big_banner) and (htmlType == 'index' or htmlType == 'tags' or htmlType == 'categories' or htmlType == 'category' or htmlType == 'archives' or htmlType == 'tag' or (htmlType == 'author' and #bools.isTrue(theme.config.tags.larger_tabs_image))))}"
     >
       <link
         rel="preload stylesheet"
