@@ -569,7 +569,7 @@ if (sourceLeavingMinScript != null) {
 }
 const activeMarkedConsumers = ['templates/assets/js', 'templates/assets/js/min'].flatMap(
   (directory) =>
-    readdirSync(resolve(directory), { withFileTypes: true })
+    (existsSync(resolve(directory)) ? readdirSync(resolve(directory), { withFileTypes: true }) : [])
       .filter((entry) => entry.isFile() && entry.name.endsWith('.js'))
       .flatMap((entry) => {
         const path = `${directory}/${entry.name}`;
