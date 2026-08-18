@@ -24,6 +24,14 @@ const excludedPackagePaths = [
   'templates/assets/lib/vue@2.6.10',
 ];
 
+const fontAwesomeLegacyFontPaths = [
+  'templates/assets/lib/font-awesome/fonts/FontAwesome.otf',
+  'templates/assets/lib/font-awesome/fonts/fontawesome-webfont.eot',
+  'templates/assets/lib/font-awesome/fonts/fontawesome-webfont.svg',
+  'templates/assets/lib/font-awesome/fonts/fontawesome-webfont.ttf',
+  'templates/assets/lib/font-awesome/fonts/fontawesome-webfont.woff',
+];
+
 const optimizedGifAssets = [
   {
     path: 'templates/assets/img/lazyload.gif',
@@ -360,6 +368,67 @@ if (!/^\d+(?:\.\d+){2,3}(?:-rc\.\d{2})?$/.test(version)) {
 const changelog = readFileSync(resolve('CHANGELOG.md'), 'utf8');
 if (!changelog.includes(`## [${version}]`)) {
   throw new Error(`CHANGELOG.md has no ${version} release section`);
+}
+
+const packageJsonPath = 'package.json';
+const sourcePackageJson = JSON.parse(readFileSync(resolve(packageJsonPath), 'utf8'));
+if (
+  sourcePackageJson.scripts?.build !== 'pnpm build-only && node scripts/package-theme.mjs' ||
+  sourcePackageJson.devDependencies?.fflate !== '0.8.2'
+) {
+  throw new Error(
+    `${packageJsonPath}: build must use the direct pinned fflate package workflow without system ZIP tools`
+  );
+}
+
+const fontAwesomeRuntimeCssPath = 'templates/assets/lib/font-awesome/css/font-awesome.min.css';
+const fontAwesomeRuntimeCssBuffer = readFileSync(resolve(fontAwesomeRuntimeCssPath));
+const fontAwesomeRuntimeCss = fontAwesomeRuntimeCssBuffer.toString('utf8');
+const fontAwesomeFaceMatches = [...fontAwesomeRuntimeCss.matchAll(/@font-face\{[^}]*\}/g)];
+const expectedFontAwesomeFace =
+  "@font-face{font-family:'FontAwesome';src:url('../fonts/fontawesome-webfont.woff2?v=4.4.0') format('woff2');font-weight:normal;font-style:normal}";
+if (
+  fontAwesomeFaceMatches.length !== 1 ||
+  fontAwesomeFaceMatches[0][0] !== expectedFontAwesomeFace ||
+  /font-display\s*:/i.test(fontAwesomeFaceMatches[0]?.[0] ?? '')
+) {
+  throw new Error(
+    `${fontAwesomeRuntimeCssPath}: Font Awesome must use one WOFF2-only face and preserve the existing implicit font-display strategy`
+  );
+}
+const fontAwesomeIconPayload = fontAwesomeRuntimeCss.slice(
+  fontAwesomeFaceMatches[0].index + fontAwesomeFaceMatches[0][0].length
+);
+const fontAwesomeIconCodepoints = [
+  ...fontAwesomeIconPayload.matchAll(/content:["']\\([0-9a-f]{4,6})["']/gi),
+].map((match) => match[1].toLowerCase());
+const expectedFontAwesomeIconPayloadSha256 =
+  '6fd520df1cd512c2c49dd2b7de1fbf91a85f9aaa05a74971242465f200241533';
+const fontAwesomeIconPayloadSha256 = createHash('sha256')
+  .update(fontAwesomeIconPayload)
+  .digest('hex');
+if (
+  fontAwesomeIconCodepoints.length !== 585 ||
+  new Set(fontAwesomeIconCodepoints).size !== 585 ||
+  fontAwesomeIconPayloadSha256 !== expectedFontAwesomeIconPayloadSha256
+) {
+  throw new Error(
+    `${fontAwesomeRuntimeCssPath}: complete Font Awesome 4.4 icon mappings must be preserved`
+  );
+}
+const fontAwesomeWoff2Path = 'templates/assets/lib/font-awesome/fonts/fontawesome-webfont.woff2';
+const fontAwesomeWoff2 = readFileSync(resolve(fontAwesomeWoff2Path));
+const expectedFontAwesomeWoff2Sha256 =
+  '3c4a1bb7ce3234407184f0d80cc4dec075e4ad616b44dcc5778e1cfb1bc24019';
+const fontAwesomeWoff2Sha256 = createHash('sha256').update(fontAwesomeWoff2).digest('hex');
+if (
+  fontAwesomeWoff2.length !== 64464 ||
+  fontAwesomeWoff2.subarray(0, 4).toString('ascii') !== 'wOF2' ||
+  fontAwesomeWoff2Sha256 !== expectedFontAwesomeWoff2Sha256
+) {
+  throw new Error(
+    `${fontAwesomeWoff2Path}: complete Font Awesome 4.4 WOFF2 asset must be preserved`
+  );
 }
 
 const configScriptIds = {
@@ -1901,6 +1970,8 @@ if (sourceBeautyMinScript != null) {
 if (sourceLeavingMinScript != null) {
   guardedPackageSources.set(leavingMinScriptPath, sourceLeavingMinScript);
 }
+guardedPackageSources.set(fontAwesomeRuntimeCssPath, fontAwesomeRuntimeCssBuffer);
+guardedPackageSources.set(fontAwesomeWoff2Path, fontAwesomeWoff2);
 const firstPartyRawSourcePattern = /\.(?:html|css|less|js|mjs)$/;
 const removedPhotosVendorPaths = new Set(
   removedPhotosResources.map((resource) => `templates/${resource}`)
@@ -3465,7 +3536,7 @@ if (zipOption) {
   })
     .trim()
     .split('\n');
-  for (const path of excludedPackagePaths) {
+  for (const path of [...excludedPackagePaths, ...fontAwesomeLegacyFontPaths]) {
     if (packagedFiles.some((file) => file === path || file.startsWith(`${path}/`))) {
       throw new Error(`${zipPath}: excluded package path found: ${path}`);
     }

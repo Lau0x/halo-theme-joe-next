@@ -1,7 +1,7 @@
 {
   "scripts": {
     "audit:ci": "pnpm audit",
-    "build": "pnpm build-only && theme-package",
+    "build": "pnpm build-only && node scripts/package-theme.mjs",
     "build-only": "rolldown -c",
     "format:check": "prettier --check 'templates/**/*.html' theme.yaml settings.yaml package.json rolldown.config.mjs 'scripts/**/*.mjs' '.github/**/*.yml'",
     "prepare": "husky",
@@ -19,6 +19,7 @@
   },
   "devDependencies": {
     "@halo-dev/theme-package-cli": "^1.1.1",
+    "fflate": "0.8.2",
     "husky": "^9.1.7",
     "js-yaml": "4.3.1",
     "less": "4.8.1",
