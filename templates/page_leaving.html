@@ -168,7 +168,10 @@
                         max-width: 100%;
                       }
                     </style>
-                    <script th:inline="javascript">
+                    <script
+                      th:inline="javascript"
+                      th:with="source_link=${(#strings.trim(theme.config.basic.source_link) !='' && theme.config.basic.enable_source_link)? theme.config.basic.source_link : '/themes/theme-Joe3'}"
+                    >
                       const escapeHTML = (value = '') =>
                         String(value).replace(
                           /[&<>"']/g,
@@ -198,6 +201,20 @@
                       const path = window.location.pathname;
                       const avatarPlaceholder =
                         '/themes/theme-Joe3/assets/img/transparent-placeholder.png';
+                      const draggabillyURL =
+                        /*[[${source_link+'/assets/lib/draggabilly/draggabilly.min.js'}]]*/ '';
+                      const leavingURL =
+                        /*[[${source_link+'/assets/js/min/leaving.min.js?v='+theme.spec.version}]]*/ '';
+                      const loadLeavingResource = (id, src) =>
+                        new Promise((resolve, reject) => {
+                          const script = document.createElement('script');
+                          script.id = id;
+                          script.src = src;
+                          script.async = false;
+                          script.addEventListener('load', resolve, { once: true });
+                          script.addEventListener('error', reject, { once: true });
+                          document.body.appendChild(script);
+                        });
 
                       const url =
                         serverURL +
@@ -205,32 +222,34 @@
                         encodeURIComponent(path) +
                         '&pageSize=100';
 
-                      fetch(url).then(async (response) => {
-                        const data = await response.json();
-                        const comments = data?.data?.data || [];
-                        document.getElementById('waline-leaving').innerHTML = comments
-                          .map((comment) => {
-                            const commentContent = document.createElement('div');
-                            commentContent.innerHTML = comment.comment || '';
-                            const commentText = escapeHTML(commentContent.textContent || '');
-                            const nick = escapeHTML(comment.nick || '匿名');
-                            const avatar = escapeHTML(safeURL(comment.avatar, avatarPlaceholder));
-                            const lazyloadAvatar = escapeHTML(
-                              safeURL(ThemeConfig.lazyload_avatar, avatarPlaceholder)
-                            );
-                            const timestamp = new Date(comment.time);
+                      fetch(url)
+                        .then(async (response) => {
+                          if (!response.ok) throw new Error('Waline comments request failed');
+                          const data = await response.json();
+                          const comments = data?.data?.data || [];
+                          document.getElementById('waline-leaving').innerHTML = comments
+                            .map((comment) => {
+                              const commentContent = document.createElement('div');
+                              commentContent.innerHTML = comment.comment || '';
+                              const commentText = escapeHTML(commentContent.textContent || '');
+                              const nick = escapeHTML(comment.nick || '匿名');
+                              const avatar = escapeHTML(safeURL(comment.avatar, avatarPlaceholder));
+                              const lazyloadAvatar = escapeHTML(
+                                safeURL(ThemeConfig.lazyload_avatar, avatarPlaceholder)
+                              );
+                              const timestamp = new Date(comment.time);
 
-                            // 获取年、月、日、时、分、秒
-                            const year = timestamp.getFullYear();
-                            const month = timestamp.getMonth() + 1; // 月份是从0开始的，所以要加1
-                            const day = timestamp.getDate();
-                            const hours = timestamp.getHours();
-                            const minutes = timestamp.getMinutes();
-                            const seconds = timestamp.getSeconds();
+                              // 获取年、月、日、时、分、秒
+                              const year = timestamp.getFullYear();
+                              const month = timestamp.getMonth() + 1; // 月份是从0开始的，所以要加1
+                              const day = timestamp.getDate();
+                              const hours = timestamp.getHours();
+                              const minutes = timestamp.getMinutes();
+                              const seconds = timestamp.getSeconds();
 
-                            // 构建日期时间字符串
-                            const commentTime = `${year}-${month < 10 ? '0' : ''}${month}-${day < 10 ? '0' : ''}${day}`;
-                            return `<li class="item">
+                              // 构建日期时间字符串
+                              const commentTime = `${year}-${month < 10 ? '0' : ''}${month}-${day < 10 ? '0' : ''}${day}`;
+                              return `<li class="item">
               <div class="user">
                 <img class="avatar lazyload" src="${lazyloadAvatar}" alt="用户头像"
                      data-src="${avatar}" data-text-avatar="${nick}" onload="Joe.loadedPlaceholderReplaceImg(this, 'AvatarImg')" onerror="Joe.errorImg(this, 'ErrAvatarImg')" />
@@ -241,13 +260,15 @@
                 <div class="content leaving-content" >${commentText}</div>
               </div>
             </li>`;
-                          })
-                          .join('');
-                        const leaving = document.createElement('script');
-                        leaving.src = /*[[@{/assets/js/min/leaving.min.js}]]*/ '';
-                        leaving.type = 'module';
-                        document.body.appendChild(leaving);
-                      });
+                            })
+                            .join('');
+                          await loadLeavingResource(
+                            'joe-leaving-waline-draggabilly',
+                            draggabillyURL
+                          );
+                          await loadLeavingResource('joe-leaving-waline-runtime', leavingURL);
+                        })
+                        .catch(() => {});
                     </script>
                   </th:block>
 
@@ -317,6 +338,24 @@
         <th:block th:replace="~{modules/common/footer :: footer}" />
       </div>
       <th:block th:replace="~{modules/macro/tail :: tail}" />
+      <th:block
+        th:with="source_link=${(#strings.trim(theme.config.basic.source_link) !='' && theme.config.basic.enable_source_link)? theme.config.basic.source_link : '/themes/theme-Joe3'}"
+      >
+        <th:block
+          th:if="${theme.config.basic.comment_option == 'default'} or ${#strings.trim(theme.config.basic.waline.waline_serverURL) ==''}"
+        >
+          <script
+            id="joe-leaving-default-draggabilly"
+            defer
+            th:src="${source_link+'/assets/lib/draggabilly/draggabilly.min.js'}"
+          ></script>
+          <script
+            id="joe-leaving-default-runtime"
+            defer
+            th:src="${source_link+'/assets/js/min/leaving.min.js?v='+theme.spec.version}"
+          ></script>
+        </th:block>
+      </th:block>
     </body>
   </th:block>
 </html>

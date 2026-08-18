@@ -2,7 +2,7 @@ import { execFileSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { existsSync, readFileSync, readdirSync } from 'node:fs';
 import { resolve } from 'node:path';
-import { load as parseYaml } from 'js-yaml';
+import { load as parseYaml, loadAll as parseYamlDocuments } from 'js-yaml';
 import { parseAst } from 'rolldown/parseAst';
 
 const expectedIdentity = {
@@ -442,6 +442,17 @@ if (zipOption && sourceCustomMinScript == null) {
     `${customMinScriptPath}: browser bundle must be built before package verification`
   );
 }
+const leavingScriptPath = 'templates/assets/js/leaving.js';
+const leavingScript = readFileSync(resolve(leavingScriptPath), 'utf8');
+const leavingMinScriptPath = 'templates/assets/js/min/leaving.min.js';
+const sourceLeavingMinScript = existsSync(resolve(leavingMinScriptPath))
+  ? readFileSync(resolve(leavingMinScriptPath))
+  : null;
+if (zipOption && sourceLeavingMinScript == null) {
+  throw new Error(
+    `${leavingMinScriptPath}: browser bundle must be built before package verification`
+  );
+}
 const walkEffectAst = (node, visitor) => {
   if (node == null || typeof node !== 'object') return;
   if (Array.isArray(node)) {
@@ -478,6 +489,111 @@ const flattenEffectOr = (node) =>
   node?.type === 'LogicalExpression' && node.operator === '||'
     ? [...flattenEffectOr(node.left), ...flattenEffectOr(node.right)]
     : [node];
+const validateLeavingConsumer = (script, label) => {
+  const ast = parseAst(script, { sourceType: 'script' }, label);
+  const selectors = [];
+  const draggabillyCalls = [];
+  const itemEachCalls = [];
+  walkEffectAst(ast, (node) => {
+    if (
+      node.type === 'CallExpression' &&
+      node.callee?.type === 'Identifier' &&
+      node.callee.name === '$'
+    ) {
+      const selector = readEffectStaticString(node.arguments?.[0]);
+      if (selector != null) selectors.push(selector);
+    }
+    if (
+      node.type === 'CallExpression' &&
+      node.callee?.type === 'MemberExpression' &&
+      readEffectPropertyName(node.callee.property) === 'draggabilly'
+    ) {
+      draggabillyCalls.push(node);
+    }
+    if (
+      node.type === 'CallExpression' &&
+      node.callee?.type === 'MemberExpression' &&
+      readEffectPropertyName(node.callee.property) === 'each' &&
+      node.callee.object?.type === 'CallExpression' &&
+      node.callee.object.callee?.type === 'Identifier' &&
+      node.callee.object.callee.name === '$' &&
+      readEffectStaticString(node.callee.object.arguments?.[0]) === '.joe_leaving-list .item'
+    ) {
+      itemEachCalls.push(node);
+    }
+  });
+  const draggabillyReceiver = draggabillyCalls[0]?.callee?.object;
+  const itemEachCallback =
+    itemEachCalls.length === 1 && itemEachCalls[0].arguments?.length === 1
+      ? itemEachCalls[0].arguments[0]
+      : null;
+  const itemParameter = itemEachCallback?.params?.[1];
+  const containmentProperty = draggabillyCalls[0]?.arguments?.[0]?.properties?.filter(
+    (property) => readEffectPropertyName(property.key) === 'containment'
+  );
+  const containmentValue = containmentProperty?.[0]?.value;
+  const containmentIsTrue =
+    (containmentValue?.type === 'Literal' && containmentValue.value === true) ||
+    (containmentValue?.type === 'UnaryExpression' &&
+      containmentValue.operator === '!' &&
+      containmentValue.argument?.type === 'Literal' &&
+      containmentValue.argument.value === 0);
+  if (
+    selectors.filter((selector) => selector === '.joe_leaving-list').length !== 1 ||
+    selectors.filter((selector) => selector === '.joe_leaving-list .item').length !== 1 ||
+    draggabillyCalls.length !== 1 ||
+    draggabillyReceiver?.type !== 'CallExpression' ||
+    draggabillyReceiver.callee?.type !== 'Identifier' ||
+    draggabillyReceiver.callee.name !== '$' ||
+    draggabillyReceiver.arguments?.length !== 1 ||
+    draggabillyReceiver.arguments[0]?.type !== 'Identifier' ||
+    itemEachCalls.length !== 1 ||
+    itemEachCallback?.type !== 'ArrowFunctionExpression' ||
+    itemParameter?.type !== 'Identifier' ||
+    draggabillyReceiver.arguments[0].name !== itemParameter.name ||
+    !(itemEachCallback.start < draggabillyCalls[0].start) ||
+    !(draggabillyCalls[0].end < itemEachCallback.end) ||
+    draggabillyCalls[0].arguments?.length !== 1 ||
+    draggabillyCalls[0].arguments[0]?.type !== 'ObjectExpression' ||
+    containmentProperty?.length !== 1 ||
+    !containmentIsTrue
+  ) {
+    throw new Error(
+      `${label}: leaving runtime must select the leaving list/items and initialize Draggabilly exactly once per item`
+    );
+  }
+};
+validateLeavingConsumer(leavingScript, leavingScriptPath);
+if (sourceLeavingMinScript != null) {
+  validateLeavingConsumer(sourceLeavingMinScript.toString('utf8'), leavingMinScriptPath);
+}
+const activeMarkedConsumers = ['templates/assets/js', 'templates/assets/js/min'].flatMap(
+  (directory) =>
+    readdirSync(resolve(directory), { withFileTypes: true })
+      .filter((entry) => entry.isFile() && entry.name.endsWith('.js'))
+      .flatMap((entry) => {
+        const path = `${directory}/${entry.name}`;
+        const ast = parseAst(readFileSync(resolve(path), 'utf8'), { sourceType: 'script' }, path);
+        const consumers = [];
+        walkEffectAst(ast, (node) => {
+          if (
+            node.type === 'CallExpression' &&
+            ((node.callee?.type === 'Identifier' && node.callee.name === 'marked') ||
+              (node.callee?.type === 'MemberExpression' &&
+                node.callee.object?.type === 'Identifier' &&
+                node.callee.object.name === 'marked'))
+          ) {
+            consumers.push(`${path}:${node.start}`);
+          }
+        });
+        return consumers;
+      })
+);
+if (activeMarkedConsumers.length !== 0) {
+  throw new Error(
+    `source theme: marked has no active first-party consumer, found ${activeMarkedConsumers.join(', ')}`
+  );
+}
 const isEffectCacheTrue = (node) =>
   node?.type === 'Literal' && node.value === true
     ? true
@@ -1291,6 +1407,37 @@ if (
 const settingsPath = 'settings.yaml';
 const sourceSettingsBuffer = readFileSync(resolve(settingsPath));
 const sourceSettings = parseYaml(sourceSettingsBuffer.toString('utf8'));
+const annotationSettingsPath = 'annotation-setting.yaml';
+const sourceAnnotationSettingsBuffer = readFileSync(resolve(annotationSettingsPath));
+const sourceAnnotationSettings = [];
+parseYamlDocuments(sourceAnnotationSettingsBuffer.toString('utf8'), (document) => {
+  if (document != null) sourceAnnotationSettings.push(document);
+});
+const postAnnotationSettings = sourceAnnotationSettings.filter(
+  (document) =>
+    document?.kind === 'AnnotationSetting' &&
+    document.spec?.targetRef?.group === 'content.halo.run' &&
+    document.spec?.targetRef?.kind === 'Post'
+);
+const postAnnotationSetting =
+  postAnnotationSettings.length === 1 ? postAnnotationSettings[0] : null;
+for (const name of ['enable_toc', 'enable_share']) {
+  const matches =
+    postAnnotationSetting?.spec?.formSchema?.filter((setting) => setting?.name === name) ?? [];
+  const setting = matches.length === 1 ? matches[0] : null;
+  if (
+    postAnnotationSettings.length !== 1 ||
+    matches.length !== 1 ||
+    setting?.$formkit !== 'switch' ||
+    setting.value !== 'true' ||
+    setting.onValue !== 'true' ||
+    setting.offValue !== 'false'
+  ) {
+    throw new Error(
+      `${annotationSettingsPath}: Post ${name} must be one switch with true default/onValue and false offValue`
+    );
+  }
+}
 const thumbnailConfigPath = 'theme.config.home.lazyload_thumbnail';
 const thumbnailDefaultUrl = '/themes/theme-Joe3/assets/img/lazyload.gif';
 const bannerConfigPath = 'theme.config.carousel.banner_lazyload_img';
@@ -1721,12 +1868,18 @@ if (
 const guardedPackageSources = new Map(
   [
     settingsPath,
+    annotationSettingsPath,
     commonScriptPath,
     postScriptPath,
+    leavingScriptPath,
     'templates/assets/js/utils.js',
     'templates/assets/js/beauty.js',
     'templates/modules/link.html',
     'templates/modules/macro/tail.html',
+    'templates/page_leaving.html',
+    'templates/modules/postMetaVariable.html',
+    'templates/modules/post_operate.html',
+    'templates/modules/post_operate_aside.html',
     ...new Set(placeholderPolicies.flatMap(({ producers }) => producers.map(({ path }) => path))),
   ].map((path) => [path, readFileSync(resolve(path))])
 );
@@ -1744,6 +1897,9 @@ if (sourceUtilsMinScript != null) {
 }
 if (sourceBeautyMinScript != null) {
   guardedPackageSources.set(beautyMinScriptPath, sourceBeautyMinScript);
+}
+if (sourceLeavingMinScript != null) {
+  guardedPackageSources.set(leavingMinScriptPath, sourceLeavingMinScript);
 }
 const firstPartyRawSourcePattern = /\.(?:html|css|less|js|mjs)$/;
 const removedPhotosVendorPaths = new Set(
@@ -1960,11 +2116,410 @@ const activeTemplateElements = new Map(
     parseMarkupElements(maskInactiveMarkup(source), `templates/${path}`),
   ])
 );
+const pageLeavingTemplatePath = 'templates/page_leaving.html';
+const pageLeavingTemplate = readFileSync(resolve(pageLeavingTemplatePath), 'utf8');
+const pageLeavingElements = activeTemplateElements.get('page_leaving.html') ?? [];
+const expectedDefaultLeavingCondition =
+  "${theme.config.basic.comment_option == 'default'} or ${#strings.trim(theme.config.basic.waline.waline_serverURL) ==''}";
+const expectedWalineLeavingCondition =
+  "${theme.config.basic.comment_option == 'waline'} and ${#strings.trim(theme.config.basic.waline.waline_serverURL) !=''}";
+const normalizeMarkupExpression = (value) => value?.replace(/\s+/g, '') ?? '';
+const expectedSourceLinkBinding = readTagAttribute(
+  tailFragmentElement?.openingTag ?? '',
+  'th:with'
+);
+const readClassTokens = (element) =>
+  (readTagAttribute(element?.openingTag ?? '', 'class') ?? '').split(/\s+/).filter(Boolean);
+const leavingListElements = pageLeavingElements.filter(
+  (element) => element.name === 'ul' && readClassTokens(element).includes('joe_leaving-list')
+);
+const defaultLeavingLists = leavingListElements.filter((element) => {
+  const parent = pageLeavingElements.find((candidate) => candidate.start === element.parentStart);
+  return readTagAttribute(parent?.openingTag ?? '', 'th:if') === expectedDefaultLeavingCondition;
+});
+const walineLeavingLists = leavingListElements.filter((element) => {
+  const parent = pageLeavingElements.find((candidate) => candidate.start === element.parentStart);
+  return (
+    readTagAttribute(parent?.openingTag ?? '', 'th:if') === expectedWalineLeavingCondition &&
+    readTagAttribute(element.openingTag, 'id') === 'waline-leaving'
+  );
+});
+const findPageLeavingScriptById = (id) =>
+  pageLeavingElements.filter(
+    (element) => element.name === 'script' && readTagAttribute(element.openingTag, 'id') === id
+  );
+const defaultDraggabillyElements = findPageLeavingScriptById('joe-leaving-default-draggabilly');
+const defaultRuntimeElements = findPageLeavingScriptById('joe-leaving-default-runtime');
+const defaultDraggabillyElement =
+  defaultDraggabillyElements.length === 1 ? defaultDraggabillyElements[0] : null;
+const defaultRuntimeElement =
+  defaultRuntimeElements.length === 1 ? defaultRuntimeElements[0] : null;
+const defaultResourceGuard = defaultDraggabillyElement
+  ? pageLeavingElements.find((element) => element.start === defaultDraggabillyElement.parentStart)
+  : null;
+const defaultResourceSourceBlock = defaultResourceGuard
+  ? pageLeavingElements.find((element) => element.start === defaultResourceGuard.parentStart)
+  : null;
+const defaultResourceChildren = defaultResourceGuard
+  ? pageLeavingElements
+      .filter((element) => element.parentStart === defaultResourceGuard.start)
+      .sort((left, right) => left.start - right.start)
+  : [];
+const draggabillyPath = 'assets/lib/draggabilly/draggabilly.min.js';
+const leavingRuntimePath = 'assets/js/min/leaving.min.js';
+const draggabillySpecification = {
+  path: draggabillyPath,
+  sourceAttributes: ['th:src', 'src'],
+};
+const globalDraggabillyScripts = firstPartyResourceLoaders.flatMap(({ path, externalScriptTags }) =>
+  externalScriptTags
+    .filter((tag) => readExternalScriptSource(tag)?.includes(draggabillyPath))
+    .map((tag) => ({ path, tag }))
+);
+const globalLeavingRuntimeScripts = firstPartyResourceLoaders.flatMap(
+  ({ path, externalScriptTags }) =>
+    externalScriptTags
+      .filter((tag) => readExternalScriptSource(tag)?.includes(leavingRuntimePath))
+      .map((tag) => ({ path, tag }))
+);
+const globalMarkedScripts = firstPartyResourceLoaders.flatMap(({ path, externalScriptTags }) =>
+  externalScriptTags
+    .filter((tag) => readExternalScriptSource(tag)?.includes('assets/lib/j-marked/marked.min.js'))
+    .map((tag) => ({ path, tag }))
+);
+if (
+  leavingListElements.length !== 2 ||
+  defaultLeavingLists.length !== 1 ||
+  walineLeavingLists.length !== 1 ||
+  defaultDraggabillyElements.length !== 1 ||
+  defaultRuntimeElements.length !== 1 ||
+  defaultResourceGuard?.name !== 'th:block' ||
+  readTagAttribute(defaultResourceGuard.openingTag, 'th:if') !== expectedDefaultLeavingCondition ||
+  !hasOnlyAllowedThymeleafAttributes(defaultResourceGuard?.openingTag ?? '', ['th:if']) ||
+  defaultRuntimeElement?.parentStart !== defaultResourceGuard?.start ||
+  defaultResourceChildren.length !== 2 ||
+  defaultResourceChildren[0]?.start !== defaultDraggabillyElement?.start ||
+  defaultResourceChildren[1]?.start !== defaultRuntimeElement?.start ||
+  defaultResourceSourceBlock?.name !== 'th:block' ||
+  !hasOnlyAllowedThymeleafAttributes(defaultResourceSourceBlock?.openingTag ?? '', ['th:with']) ||
+  normalizeMarkupExpression(
+    readTagAttribute(defaultResourceSourceBlock?.openingTag ?? '', 'th:with')
+  ) !== normalizeMarkupExpression(expectedSourceLinkBinding) ||
+  !tagLoadsResource(defaultDraggabillyElement?.openingTag ?? '', draggabillySpecification) ||
+  !tagLoadsVersionedResource(defaultRuntimeElement?.openingTag ?? '', leavingRuntimePath) ||
+  !hasSafeExecutableScriptAttributes(defaultDraggabillyElement?.openingTag ?? '') ||
+  !hasSafeExecutableScriptAttributes(defaultRuntimeElement?.openingTag ?? '') ||
+  globalDraggabillyScripts.length !== 1 ||
+  globalDraggabillyScripts[0].path !== pageLeavingTemplatePath ||
+  globalLeavingRuntimeScripts.length !== 1 ||
+  globalLeavingRuntimeScripts[0].path !== pageLeavingTemplatePath ||
+  globalMarkedScripts.length !== 0
+) {
+  throw new Error(
+    `${pageLeavingTemplatePath}: only the default leaving branch may statically load one deferred Draggabilly script followed by one versioned leaving runtime; marked must have zero active loaders`
+  );
+}
+const walineRuntimeScripts = pageLeavingElements.filter(
+  (element) =>
+    element.name === 'script' &&
+    readExternalScriptSource(element.openingTag) == null &&
+    pageLeavingTemplate
+      .slice(element.contentStart, element.contentEnd)
+      .includes('loadLeavingResource')
+);
+const walineRuntimeScript = walineRuntimeScripts.length === 1 ? walineRuntimeScripts[0] : null;
+const walineRuntimeGuard = walineRuntimeScript
+  ? pageLeavingElements.find((element) => element.start === walineRuntimeScript.parentStart)
+  : null;
+const walineRuntimeBody = walineRuntimeScript
+  ? pageLeavingTemplate.slice(walineRuntimeScript.contentStart, walineRuntimeScript.contentEnd)
+  : '';
+const walineRuntimeAst = walineRuntimeBody
+  ? parseAst(walineRuntimeBody, { sourceType: 'script' }, pageLeavingTemplatePath)
+  : null;
+const walineDeclarators = [];
+const walineAwaits = [];
+const walineFetchCalls = [];
+const walineThenCalls = [];
+const walineCatchCalls = [];
+const walineInnerHTMLAssignments = [];
+const walineScriptElementCreations = [];
+const walineLoaderAssignments = [];
+const walineLoaderEvents = [];
+const walineLoaderAppends = [];
+const walineResponseGuards = [];
+const walinePromises = [];
+walkEffectAst(walineRuntimeAst, (node) => {
+  if (node.type === 'VariableDeclarator') walineDeclarators.push(node);
+  if (
+    node.type === 'NewExpression' &&
+    node.callee?.type === 'Identifier' &&
+    node.callee.name === 'Promise'
+  ) {
+    walinePromises.push(node);
+  }
+  if (node.type === 'AwaitExpression') walineAwaits.push(node);
+  if (
+    node.type === 'CallExpression' &&
+    node.callee?.type === 'Identifier' &&
+    node.callee.name === 'fetch'
+  ) {
+    walineFetchCalls.push(node);
+  }
+  if (node.type === 'CallExpression' && readEffectPropertyName(node.callee?.property) === 'then') {
+    walineThenCalls.push(node);
+  }
+  if (node.type === 'CallExpression' && readEffectPropertyName(node.callee?.property) === 'catch') {
+    walineCatchCalls.push(node);
+  }
+  if (
+    node.type === 'AssignmentExpression' &&
+    readEffectPropertyName(node.left?.property) === 'innerHTML'
+  ) {
+    walineInnerHTMLAssignments.push(node);
+  }
+  if (
+    node.type === 'CallExpression' &&
+    isEffectMember(node.callee, 'document', 'createElement') &&
+    readEffectStaticString(node.arguments?.[0]) === 'script'
+  ) {
+    walineScriptElementCreations.push(node);
+  }
+  if (
+    node.type === 'AssignmentExpression' &&
+    node.left?.type === 'MemberExpression' &&
+    node.left.object?.type === 'Identifier' &&
+    node.left.object.name === 'script'
+  ) {
+    walineLoaderAssignments.push(node);
+  }
+  if (
+    node.type === 'CallExpression' &&
+    node.callee?.type === 'MemberExpression' &&
+    node.callee.object?.type === 'Identifier' &&
+    node.callee.object.name === 'script' &&
+    readEffectPropertyName(node.callee.property) === 'addEventListener'
+  ) {
+    walineLoaderEvents.push(node);
+  }
+  if (
+    node.type === 'CallExpression' &&
+    node.callee?.type === 'MemberExpression' &&
+    readEffectPropertyName(node.callee.property) === 'appendChild' &&
+    node.arguments?.[0]?.type === 'Identifier' &&
+    node.arguments[0].name === 'script'
+  ) {
+    walineLoaderAppends.push(node);
+  }
+  if (
+    node.type === 'IfStatement' &&
+    node.test?.type === 'UnaryExpression' &&
+    node.test.operator === '!' &&
+    isEffectMember(node.test.argument, 'response', 'ok') &&
+    node.consequent?.type === 'ThrowStatement'
+  ) {
+    walineResponseGuards.push(node);
+  }
+});
+const readWalineDeclarator = (name) =>
+  walineDeclarators.filter(
+    (declaration) => declaration.id?.type === 'Identifier' && declaration.id.name === name
+  );
+const draggabillyUrlDeclarators = readWalineDeclarator('draggabillyURL');
+const leavingUrlDeclarators = readWalineDeclarator('leavingURL');
+const loaderDeclarators = readWalineDeclarator('loadLeavingResource');
+const readWalineBinding = (declarators) =>
+  declarators.length === 1
+    ? walineRuntimeBody.slice(declarators[0].id.end, declarators[0].init.start).replace(/\s+/g, '')
+    : '';
+const walineThenCallback =
+  walineThenCalls.length === 1 && walineThenCalls[0].arguments?.length === 1
+    ? walineThenCalls[0].arguments[0]
+    : null;
+const walineCatchCallback =
+  walineCatchCalls.length === 1 && walineCatchCalls[0].arguments?.length === 1
+    ? walineCatchCalls[0].arguments[0]
+    : null;
+const walineTargetAssignments = walineInnerHTMLAssignments.filter((assignment) => {
+  const lookup = assignment.left?.object;
+  return (
+    lookup?.type === 'CallExpression' &&
+    isEffectMember(lookup.callee, 'document', 'getElementById') &&
+    readEffectStaticString(lookup.arguments?.[0]) === 'waline-leaving'
+  );
+});
+const walineInnerHTMLAssignment =
+  walineTargetAssignments.length === 1 ? walineTargetAssignments[0] : null;
+const walineLoaderAwaits = walineAwaits.filter(
+  (awaitNode) =>
+    awaitNode.argument?.type === 'CallExpression' &&
+    awaitNode.argument.callee?.type === 'Identifier' &&
+    awaitNode.argument.callee.name === 'loadLeavingResource'
+);
+const walineAwaitArguments = walineLoaderAwaits.map((awaitNode) => awaitNode.argument.arguments);
+const loaderAssignmentProperties = new Map(
+  walineLoaderAssignments.map((assignment) => [
+    readEffectPropertyName(assignment.left.property),
+    assignment.right,
+  ])
+);
+const loaderEventNames = walineLoaderEvents.map((call) =>
+  readEffectStaticString(call.arguments?.[0])
+);
+const walineTargetLookup = walineInnerHTMLAssignment?.left?.object;
+const walinePromiseExecutor =
+  walinePromises.length === 1 && walinePromises[0].arguments?.length === 1
+    ? walinePromises[0].arguments[0]
+    : null;
+const walineAppendTarget = walineLoaderAppends[0]?.callee?.object;
+if (
+  walineRuntimeScripts.length !== 1 ||
+  readTagAttribute(walineRuntimeScript?.openingTag ?? '', 'th:inline') !== 'javascript' ||
+  normalizeMarkupExpression(readTagAttribute(walineRuntimeScript?.openingTag ?? '', 'th:with')) !==
+    normalizeMarkupExpression(expectedSourceLinkBinding) ||
+  walineRuntimeGuard?.name !== 'th:block' ||
+  readTagAttribute(walineRuntimeGuard?.openingTag ?? '', 'th:if') !==
+    expectedWalineLeavingCondition ||
+  draggabillyUrlDeclarators.length !== 1 ||
+  readEffectStaticString(draggabillyUrlDeclarators[0].init) !== '' ||
+  readWalineBinding(draggabillyUrlDeclarators) !==
+    "=/*[[${source_link+'/assets/lib/draggabilly/draggabilly.min.js'}]]*/" ||
+  leavingUrlDeclarators.length !== 1 ||
+  readEffectStaticString(leavingUrlDeclarators[0].init) !== '' ||
+  readWalineBinding(leavingUrlDeclarators) !==
+    "=/*[[${source_link+'/assets/js/min/leaving.min.js?v='+theme.spec.version}]]*/" ||
+  loaderDeclarators.length !== 1 ||
+  loaderDeclarators[0].init?.type !== 'ArrowFunctionExpression' ||
+  loaderDeclarators[0].init.params?.length !== 2 ||
+  loaderDeclarators[0].init.params[0]?.name !== 'id' ||
+  loaderDeclarators[0].init.params[1]?.name !== 'src' ||
+  walinePromises.length !== 1 ||
+  loaderDeclarators[0].init.body !== walinePromises[0] ||
+  walinePromiseExecutor?.type !== 'ArrowFunctionExpression' ||
+  walinePromiseExecutor.params?.length !== 2 ||
+  walinePromiseExecutor.params[0]?.name !== 'resolve' ||
+  walinePromiseExecutor.params[1]?.name !== 'reject' ||
+  walineScriptElementCreations.length !== 1 ||
+  loaderAssignmentProperties.size !== 3 ||
+  loaderAssignmentProperties.get('id')?.type !== 'Identifier' ||
+  loaderAssignmentProperties.get('id').name !== 'id' ||
+  loaderAssignmentProperties.get('src')?.type !== 'Identifier' ||
+  loaderAssignmentProperties.get('src').name !== 'src' ||
+  loaderAssignmentProperties.get('async')?.type !== 'Literal' ||
+  loaderAssignmentProperties.get('async').value !== false ||
+  loaderEventNames.length !== 2 ||
+  loaderEventNames[0] !== 'load' ||
+  loaderEventNames[1] !== 'error' ||
+  walineLoaderEvents[0]?.arguments?.[1]?.name !== 'resolve' ||
+  walineLoaderEvents[1]?.arguments?.[1]?.name !== 'reject' ||
+  walineLoaderEvents.some(
+    (call) =>
+      call.arguments?.[2]?.type !== 'ObjectExpression' ||
+      call.arguments[2].properties?.length !== 1 ||
+      readEffectPropertyName(call.arguments[2].properties[0]?.key) !== 'once' ||
+      call.arguments[2].properties[0]?.value?.value !== true
+  ) ||
+  walineLoaderAppends.length !== 1 ||
+  walineAppendTarget?.type !== 'MemberExpression' ||
+  !isEffectMember(walineAppendTarget, 'document', 'body') ||
+  walineFetchCalls.length !== 1 ||
+  walineResponseGuards.length !== 1 ||
+  walineThenCalls.length !== 1 ||
+  walineThenCalls[0].callee?.object !== walineFetchCalls[0] ||
+  walineThenCallback?.type !== 'ArrowFunctionExpression' ||
+  walineThenCallback.async !== true ||
+  walineCatchCalls.length !== 1 ||
+  walineCatchCalls[0].callee?.object !== walineThenCalls[0] ||
+  walineCatchCallback?.type !== 'ArrowFunctionExpression' ||
+  walineCatchCallback.body?.type !== 'BlockStatement' ||
+  walineCatchCallback.body.body?.length !== 0 ||
+  walineTargetAssignments.length !== 1 ||
+  !(defaultLeavingLists[0].end < defaultDraggabillyElement.start) ||
+  !(walineLeavingLists[0].end < walineRuntimeScript.start) ||
+  walineTargetLookup?.type !== 'CallExpression' ||
+  !isEffectMember(walineTargetLookup.callee, 'document', 'getElementById') ||
+  readEffectStaticString(walineTargetLookup.arguments?.[0]) !== 'waline-leaving' ||
+  walineLoaderAwaits.length !== 2 ||
+  walineAwaitArguments[0]?.length !== 2 ||
+  readEffectStaticString(walineAwaitArguments[0][0]) !== 'joe-leaving-waline-draggabilly' ||
+  walineAwaitArguments[0][1]?.type !== 'Identifier' ||
+  walineAwaitArguments[0][1].name !== 'draggabillyURL' ||
+  walineAwaitArguments[1]?.length !== 2 ||
+  readEffectStaticString(walineAwaitArguments[1][0]) !== 'joe-leaving-waline-runtime' ||
+  walineAwaitArguments[1][1]?.type !== 'Identifier' ||
+  walineAwaitArguments[1][1].name !== 'leavingURL' ||
+  !(walineInnerHTMLAssignment.end < walineLoaderAwaits[0].start) ||
+  !(walineLoaderAwaits[0].end < walineLoaderAwaits[1].start) ||
+  walineLoaderAwaits.some(
+    (node) => !(walineThenCallback.start < node.start && node.end < walineThenCallback.end)
+  )
+) {
+  throw new Error(
+    `${pageLeavingTemplatePath}: Waline must insert its leaving DOM before sequentially loading Draggabilly and the versioned leaving runtime exactly once, with a non-breaking fetch/script error path`
+  );
+}
+const postMetaTemplatePath = 'templates/modules/postMetaVariable.html';
+const postMetaTemplate = readFileSync(resolve(postMetaTemplatePath), 'utf8');
+const postMetaElements = activeTemplateElements.get('modules/postMetaVariable.html') ?? [];
+const postMetaScripts = postMetaElements.filter(
+  (element) =>
+    element.name === 'script' && readTagAttribute(element.openingTag, 'id') === 'post-meta-variable'
+);
+const postMetaScript = postMetaScripts.length === 1 ? postMetaScripts[0] : null;
+const postMetaFragment = postMetaScript
+  ? postMetaElements.find((element) => element.start === postMetaScript.parentStart)
+  : null;
+const postMetaScriptBody = postMetaScript
+  ? postMetaTemplate.slice(postMetaScript.contentStart, postMetaScript.contentEnd)
+  : '';
+const postMetaAst = postMetaScriptBody
+  ? parseAst(postMetaScriptBody, { sourceType: 'script' }, postMetaTemplatePath)
+  : null;
+const pageAttrsDeclarators =
+  postMetaAst?.body.flatMap((statement) =>
+    statement.type === 'VariableDeclaration' && statement.kind === 'const'
+      ? statement.declarations.filter(
+          (declaration) =>
+            declaration.id?.type === 'Identifier' && declaration.id.name === 'PageAttrs'
+        )
+      : []
+  ) ?? [];
+const pageAttrsObject =
+  pageAttrsDeclarators.length === 1 && pageAttrsDeclarators[0].init?.type === 'ObjectExpression'
+    ? pageAttrsDeclarators[0].init
+    : null;
+const tocMetaProperties =
+  pageAttrsObject?.properties.filter(
+    (property) =>
+      property.type === 'Property' && readEffectPropertyName(property.key) === 'metas_enable_toc'
+  ) ?? [];
+const tocMetaProperty = tocMetaProperties.length === 1 ? tocMetaProperties[0] : null;
+const tocMetaBinding = tocMetaProperty
+  ? postMetaScriptBody.slice(tocMetaProperty.key.end, tocMetaProperty.value.start)
+  : '';
+if (
+  postMetaScripts.length !== 1 ||
+  readTagAttribute(postMetaScript?.openingTag ?? '', 'th:inline') !== 'javascript' ||
+  readExternalScriptSource(postMetaScript?.openingTag ?? '') != null ||
+  postMetaFragment?.name !== 'th:block' ||
+  readTagAttribute(postMetaFragment.openingTag, 'th:fragment') !== 'postSetting' ||
+  pageAttrsDeclarators.length !== 1 ||
+  tocMetaProperties.length !== 1 ||
+  tocMetaProperty?.value?.type !== 'Literal' ||
+  tocMetaProperty.value.value !== true ||
+  !/^\s*:\s*\/\*\[\[\$\{#annotations\.getOrDefault\(post,\s*'enable_toc',\s*'true'\)\}\]\]\*\/\s*$/.test(
+    tocMetaBinding
+  )
+) {
+  throw new Error(
+    `${postMetaTemplatePath}: active PageAttrs.metas_enable_toc must read Post enable_toc with the true fallback`
+  );
+}
 const expectedQrcodeConsumers = [
   {
     path: 'modules/post_operate.html',
     shareCondition:
-      "${theme.config.post.enable_share} and ${#annotations.get(post, 'enable_share')}",
+      "${theme.config.post.enable_share} and ${#annotations.getOrDefault(post, 'enable_share', 'true')}",
   },
   {
     path: 'modules/post_operate_aside.html',
@@ -1994,6 +2549,72 @@ const qrcodeDomConsumersAreExact =
       ancestorConditions.includes('${theme.config.post.enable_share_weixin}')
     );
   });
+const validateTocRuntime = (script, label) => {
+  const ast = parseAst(script, { sourceType: 'script' }, label);
+  const initTocProperties = [];
+  walkEffectAst(ast, (node) => {
+    if (
+      node.type === 'Property' &&
+      readEffectPropertyName(node.key) === 'initToc' &&
+      node.value?.type === 'FunctionExpression'
+    ) {
+      initTocProperties.push(node);
+    }
+  });
+  const initTocProperty = initTocProperties.length === 1 ? initTocProperties[0] : null;
+  const firstStatement = initTocProperty?.value?.body?.body?.[0];
+  const guardNodes =
+    firstStatement?.type === 'IfStatement' ? flattenEffectOr(firstStatement.test) : [];
+  const pageAttrsGuard = guardNodes[0];
+  const themeGuard = guardNodes[1];
+  const domGuard = guardNodes[2];
+  const pageAttrsTocMembers = [];
+  const pageAttrsCommentMembers = [];
+  walkEffectAst(initTocProperty?.value?.body, (node) => {
+    if (isEffectMember(node, 'PageAttrs', 'metas_enable_toc')) pageAttrsTocMembers.push(node);
+    if (isEffectMember(node, 'PageAttrs', 'metas_enable_comment')) {
+      pageAttrsCommentMembers.push(node);
+    }
+  });
+  const selectorLength = domGuard?.argument;
+  const selectorCall = selectorLength?.object;
+  const guardIsExact =
+    guardNodes.length === 3 &&
+    pageAttrsGuard?.type === 'BinaryExpression' &&
+    pageAttrsGuard.operator === '===' &&
+    pageAttrsGuard.left === pageAttrsTocMembers[0] &&
+    readEffectStaticString(pageAttrsGuard.right) === 'false' &&
+    themeGuard?.type === 'UnaryExpression' &&
+    themeGuard.operator === '!' &&
+    isEffectMember(themeGuard.argument, 'ThemeConfig', 'enable_toc') &&
+    domGuard?.type === 'UnaryExpression' &&
+    domGuard.operator === '!' &&
+    selectorLength?.type === 'MemberExpression' &&
+    !selectorLength.computed &&
+    readEffectPropertyName(selectorLength.property) === 'length' &&
+    selectorCall?.type === 'CallExpression' &&
+    selectorCall.callee?.type === 'Identifier' &&
+    selectorCall.callee.name === '$' &&
+    selectorCall.arguments?.length === 1 &&
+    readEffectStaticString(selectorCall.arguments[0]) === '.toc-container';
+  if (
+    initTocProperties.length !== 1 ||
+    pageAttrsTocMembers.length !== 1 ||
+    pageAttrsCommentMembers.length !== 0 ||
+    !guardIsExact ||
+    firstStatement.consequent?.type !== 'ReturnStatement' ||
+    firstStatement.consequent.argument != null ||
+    firstStatement.alternate != null
+  ) {
+    throw new Error(
+      `${label}: initToc must start with the exact PageAttrs.metas_enable_toc, global setting and TOC DOM guard`
+    );
+  }
+};
+validateTocRuntime(postScript, postScriptPath);
+if (sourcePostMinScript != null) {
+  validateTocRuntime(sourcePostMinScript.toString('utf8'), postMinScriptPath);
+}
 const validateQrcodeRuntime = (script, label) => {
   const ast = parseAst(script, { sourceType: 'script' }, label);
   const initShareProperties = [];

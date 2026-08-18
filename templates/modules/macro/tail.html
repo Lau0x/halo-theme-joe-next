@@ -28,9 +28,6 @@
     <th:block th:if="${htmlType == 'post' or htmlType == 'journals' or htmlType == 'sheet'}">
       <script defer th:src="${source_link+'/assets/lib/clipboard/clipboard.min.js'}"></script>
     </th:block>
-    <th:block th:if="${theme.config.aside.show_newreply == true} or ${htmlType == 'sheet'}">
-      <script defer th:src="${source_link+'/assets/lib/j-marked/marked.min.js'}"></script>
-    </th:block>
     <script
       defer
       th:src="${source_link+'/assets/js/min/utils.min.js?v='+theme.spec.version}"
@@ -118,10 +115,6 @@
         defer
         th:src="${source_link+'/assets/js/min/photos.min.js?v='+theme.spec.version}"
       ></script>
-    </th:block>
-    <th:block th:if="${htmlType == 'sheet'}">
-      <script defer th:src="${source_link+'/assets/lib/draggabilly/draggabilly.min.js'}"></script>
-      <script defer th:src="${source_link+'/assets/js/min/leaving.min.js'}"></script>
     </th:block>
     <th:block
       th:if="${#bools.isTrue(theme.config.beauty.enable_big_banner) and (htmlType == 'index' or htmlType == 'tags' or htmlType == 'categories' or htmlType == 'category' or htmlType == 'archives' or htmlType == 'tag' or htmlType == 'links' or (htmlType == 'author' and #bools.isTrue(theme.config.tags.larger_tabs_image)))}"
