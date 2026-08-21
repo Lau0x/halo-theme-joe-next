@@ -1341,6 +1341,23 @@ const readTagAttributes = (tag, label = 'markup') => {
   return attributes;
 };
 const readTagAttribute = (tag, name) => readTagAttributes(tag).get(name);
+const error404TemplatePath = 'templates/error/404.html';
+const expectedError404TemplateSha256 =
+  'd34614e29924ac5a0dde9769f59509ed5f2ce7bf5d2511ab050bd3149d13bae6';
+const error404TemplateBuffer = readFileSync(resolve(error404TemplatePath));
+const error404TemplateSha256 = createHash('sha256').update(error404TemplateBuffer).digest('hex');
+if (error404TemplateSha256 !== expectedError404TemplateSha256) {
+  throw new Error(
+    `${error404TemplatePath}: expected SHA-256 ${expectedError404TemplateSha256}, got ${error404TemplateSha256}`
+  );
+}
+const error404Template = error404TemplateBuffer.toString('utf8');
+const error404ViewportTag = error404Template.match(
+  /<meta\b[^>]*\bname=["']viewport["'][^>]*>/i
+)?.[0];
+if (!error404ViewportTag?.includes('width=device-width')) {
+  throw new Error(`${error404TemplatePath}: viewport must include width=device-width`);
+}
 const readExternalScriptSource = (tag) => {
   const attributes = readTagAttributes(tag);
   const sourceAttributes = ['th:src', 'src'].filter((name) => attributes.has(name));
@@ -2151,6 +2168,7 @@ const guardedPackageSources = new Map(
     ...new Set(placeholderPolicies.flatMap(({ producers }) => producers.map(({ path }) => path))),
   ].map((path) => [path, readFileSync(resolve(path))])
 );
+guardedPackageSources.set(error404TemplatePath, error404TemplateBuffer);
 guardedPackageSources.set(themeLogoPackagePath, sourceThemeLogo);
 if (sourceCustomMinScript != null) {
   guardedPackageSources.set(customMinScriptPath, sourceCustomMinScript);
