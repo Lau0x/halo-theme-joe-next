@@ -21,7 +21,7 @@
     "@halo-dev/theme-package-cli": "^1.1.1",
     "fflate": "0.8.2",
     "husky": "^9.1.7",
-    "js-yaml": "4.3.1",
+    "js-yaml": "5.3.0",
     "less": "4.8.1",
     "lint-staged": "^15.5.2",
     "postcss": "8.5.26",
