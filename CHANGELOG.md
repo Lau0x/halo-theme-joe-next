@@ -14,20 +14,30 @@
 
 ---
 
-## [1.6.11.12-rc.06] · 2026-08-18 · Font Awesome 现代字体包候选版
+## [1.6.11.12-rc.07] · 2026-08-21 · 上游仓库独立性与现代字体包候选版
 
 ### 性能
 
 - 主题 ZIP 不再包含 Font Awesome 的 OTF、EOT、SVG、TTF 和 WOFF 旧字体格式，仅保留完整 Font Awesome 4.4 图标规则及原始 `fontawesome-webfont.woff2`。
-- 现代浏览器仍请求同一份 Font Awesome 样式和同一份 WOFF2，图标视觉与运行时网络请求行为不变；本次优化仅让主题 ZIP 包体较 rc.05 约减少 2.56%。
+- 现代浏览器仍请求同一份 Font Awesome 样式和同一份 WOFF2，图标视觉与运行时网络请求行为不变；单独计算 Font Awesome 字体裁剪本身时，主题 ZIP 包体较 rc.05 约减少 2.56%，该数字不包含本版其他包体调整。
+
+### 修复
+
+- 外部资源地址仍保持可选，但已保存的旧 Joe3 上游仓库或 GitHub Pages 地址会自动回退到包内 `/themes/theme-Joe3` 资源，避免上游删库后造成整站样式和脚本失效。
+- 删除不再有消费者的 `bbchin.com` 运行时常量；原作者署名与历史来源链接继续保留，不参与页面资源加载。
+- 主题卡片 Logo 改用主题包内现有的 `Joe3.png`，不再依赖 `wmimg.com` 图床。
 
 ### 维护
 
 - 打包流程使用显式锁定的 `fflate` 纯 Node 处理 ZIP：在隔离目录生成原包，完整裁剪并校验后，再通过同目录临时文件原子替换最终包；失败时保留旧包。
+- 主题 ZIP 根目录的 YAML 仅包含 Halo 运行所需的 `theme.yaml`、`settings.yaml` 与 `annotation-setting.yaml`，不再混入 Docker Compose、pnpm workspace 或锁文件等开发 YAML。
 - 主题包校验新增 WOFF2-only `@font-face`、完整 Font Awesome 4.4 图标映射、WOFF2/CSS 源包字节一致性、旧字体格式缺席，以及纯 Node 打包依赖守卫。
+- 主题包校验新增外部资源默认关闭、全部 `source_link` 消费者本地回退与旧上游拒绝规则、第一方运行时源码及其 ZIP 内容中的旧上游 URL 扫描，以及本地 Logo 源包字节一致性守卫。
 
 ### 兼容性提示与已知限制
 
+- `metadata.name`、`settingName`、`configMapName` 及 `/themes/theme-Joe3` 本地路径保持不变，Halo 现有配置和原地升级不受影响。
+- 自己长期维护的 CDN 地址仍可继续使用；本版只对已知旧 Joe3 上游地址强制本地回退，但沿用旧上游路径片段的自建镜像也会回退到包内资源。本版不会替用户判断其他第三方 CDN、图床或 API 是否长期可用。
 - IE 11、Safari 9 及更早版本、旧 Android 浏览器等不支持 WOFF2 的环境可能无法显示 Font Awesome 图标；现代浏览器不受影响。
 - 本版不宣称减少现代页面的运行时网络请求，也没有对子集、字形或图标类名做裁剪。
 

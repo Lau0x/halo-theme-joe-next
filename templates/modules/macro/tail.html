@@ -2,7 +2,7 @@
 <html th:lang="${#locale.toLanguageTag}" xmlns:th="http://www.thymeleaf.org">
   <th:block
     th:fragment="tail"
-    th:with="source_link=${(#strings.trim(theme.config.basic.source_link) !='' && theme.config.basic.enable_source_link)? theme.config.basic.source_link : '/themes/theme-Joe3'}"
+    th:with="source_link=${(#strings.trim(theme.config.basic.source_link) != '' and #bools.isTrue(theme.config.basic.enable_source_link) and !#strings.contains(#strings.toLowerCase(#strings.trim(theme.config.basic.source_link)), 'jiewenhuang/halo-theme-joe3.0') and !#strings.contains(#strings.toLowerCase(#strings.trim(theme.config.basic.source_link)), 'jiewenhuang.github.io')) ? #strings.trim(theme.config.basic.source_link) : '/themes/theme-Joe3'}"
   >
     <!--    ===== 引入脚本 start ===== -->
     <!-- jQuery 在 head 同步加载以兼容正文插件；其余外部主题脚本统一 defer。 -->

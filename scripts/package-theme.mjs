@@ -27,6 +27,7 @@ const guardedFontAwesomePaths = [
   'templates/assets/lib/font-awesome/css/font-awesome.min.css',
   'templates/assets/lib/font-awesome/fonts/fontawesome-webfont.woff2',
 ];
+const rootYamlPaths = ['annotation-setting.yaml', 'settings.yaml', 'theme.yaml'];
 
 const projectRoot = resolve('.');
 const theme = parseYaml(readFileSync(resolve(projectRoot, 'theme.yaml'), 'utf8'));
@@ -42,6 +43,14 @@ const copyIfPresent = (path) => {
 };
 
 const validateArchive = (entries) => {
+  const packagedRootYamlPaths = Object.keys(entries)
+    .filter((path) => !path.includes('/') && /\.ya?ml$/i.test(path))
+    .sort();
+  if (packagedRootYamlPaths.join('\n') !== rootYamlPaths.join('\n')) {
+    throw new Error(
+      `theme package root YAML files must be exactly ${rootYamlPaths.join(', ')}, got ${packagedRootYamlPaths.join(', ')}`
+    );
+  }
   const remainingLegacyFonts = legacyFontPaths.filter((path) => entries[path] != null);
   if (remainingLegacyFonts.length > 0) {
     throw new Error(`legacy Font Awesome assets remain: ${remainingLegacyFonts.join(', ')}`);
@@ -58,12 +67,12 @@ const validateArchive = (entries) => {
 
 try {
   for (const path of ['templates', 'ui-plugin/dist', 'i18n']) copyIfPresent(path);
+  for (const path of rootYamlPaths) copyIfPresent(path);
   for (const entry of readdirSync(projectRoot, { withFileTypes: true })) {
     if (
       entry.isFile() &&
       (entry.name === 'README.md' ||
         entry.name === 'LICENSE' ||
-        /\.(?:yaml|yml)$/.test(entry.name) ||
         /^screenshot\.(?:png|jpe?g|webp)$/.test(entry.name))
     ) {
       copyIfPresent(entry.name);

@@ -123,7 +123,7 @@ spec:
           id: enable_source_link
           key: enable_source_link
           label: '是否使用外部资源地址'
-          help: '使用外部请将整个assets目录上传'
+          help: '仅建议使用自己长期可控的 CDN，并上传完整 assets 目录；旧主题仓库地址会自动回退到主题本地资源'
           value: false
           options:
             - value: false
@@ -137,7 +137,7 @@ spec:
           key: source_link
           label: 外部资源地址
           value: ''
-          help: '如果你的资源地址是https://example.com/assets/js/min/index.min.js，那么这里填写https://example.com'
+          help: '如果资源地址是 https://example.com/assets/js/min/index.min.js，这里填写 https://example.com；请勿填写旧主题仓库或其 CDN 地址'
         - $formkit: color
           name: mode_color_light
           id: mode_color_light

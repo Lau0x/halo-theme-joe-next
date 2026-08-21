@@ -170,7 +170,7 @@
                     </style>
                     <script
                       th:inline="javascript"
-                      th:with="source_link=${(#strings.trim(theme.config.basic.source_link) !='' && theme.config.basic.enable_source_link)? theme.config.basic.source_link : '/themes/theme-Joe3'}"
+                      th:with="source_link=${(#strings.trim(theme.config.basic.source_link) != '' and #bools.isTrue(theme.config.basic.enable_source_link) and !#strings.contains(#strings.toLowerCase(#strings.trim(theme.config.basic.source_link)), 'jiewenhuang/halo-theme-joe3.0') and !#strings.contains(#strings.toLowerCase(#strings.trim(theme.config.basic.source_link)), 'jiewenhuang.github.io')) ? #strings.trim(theme.config.basic.source_link) : '/themes/theme-Joe3'}"
                     >
                       const escapeHTML = (value = '') =>
                         String(value).replace(
@@ -339,7 +339,7 @@
       </div>
       <th:block th:replace="~{modules/macro/tail :: tail}" />
       <th:block
-        th:with="source_link=${(#strings.trim(theme.config.basic.source_link) !='' && theme.config.basic.enable_source_link)? theme.config.basic.source_link : '/themes/theme-Joe3'}"
+        th:with="source_link=${(#strings.trim(theme.config.basic.source_link) != '' and #bools.isTrue(theme.config.basic.enable_source_link) and !#strings.contains(#strings.toLowerCase(#strings.trim(theme.config.basic.source_link)), 'jiewenhuang/halo-theme-joe3.0') and !#strings.contains(#strings.toLowerCase(#strings.trim(theme.config.basic.source_link)), 'jiewenhuang.github.io')) ? #strings.trim(theme.config.basic.source_link) : '/themes/theme-Joe3'}"
       >
         <th:block
           th:if="${theme.config.basic.comment_option == 'default'} or ${#strings.trim(theme.config.basic.waline.waline_serverURL) ==''}"

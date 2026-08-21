@@ -24,7 +24,7 @@ spec:
     name: Roy Leo (continued from Jiewenhuang)
     website: 'https://blog.laoda.de'
   description: 'Community-maintained continuation of Halo Theme Joe3, originally by Jiewenhuang. Adds features and fixes while upstream is inactive.'
-  logo: 'https://wmimg.com/i/70/2023/08/64d3c41d5bde2.webp'
+  logo: '/themes/theme-Joe3/assets/img/Joe3.png'
   homepage: 'https://blog.laoda.de'
   repo: 'https://github.com/Lau0x/halo-theme-joe-next'
   issues: 'https://github.com/Lau0x/halo-theme-joe-next/issues'
@@ -33,7 +33,7 @@ spec:
       url: 'https://creativecommons.org/licenses/by-nc-sa/4.0/'
   settingName: 'theme-Joe-setting'
   configMapName: 'theme-Joe-configMap'
-  version: '1.6.11.12-rc.06'
+  version: '1.6.11.12-rc.07'
   requires: '>=2.22.2'
   customTemplates:
     page:

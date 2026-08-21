@@ -10,6 +10,9 @@ const expectedIdentity = {
   'spec.settingName': 'theme-Joe-setting',
   'spec.configMapName': 'theme-Joe-configMap',
 };
+const expectedThemeLogo = '/themes/theme-Joe3/assets/img/Joe3.png';
+const themeLogoPackagePath = 'templates/assets/img/Joe3.png';
+const expectedRootYamlPaths = ['annotation-setting.yaml', 'settings.yaml', 'theme.yaml'];
 
 const excludedPackagePaths = [
   'templates/assets/img/dp',
@@ -351,6 +354,10 @@ const validateTheme = (document, label) => {
     throw new Error(`${label}: store.halo.run/app-id must not be present`);
   }
 
+  if (document.spec?.logo !== expectedThemeLogo) {
+    throw new Error(`${label}: spec.logo must use the packaged asset ${expectedThemeLogo}`);
+  }
+
   if (!document.spec?.version) {
     throw new Error(`${label}: spec.version is required`);
   }
@@ -359,6 +366,11 @@ const validateTheme = (document, label) => {
 const sourcePath = resolve('theme.yaml');
 const sourceTheme = parseYaml(readFileSync(sourcePath, 'utf8'));
 validateTheme(sourceTheme, 'theme.yaml');
+
+if (!existsSync(resolve(themeLogoPackagePath))) {
+  throw new Error(`source theme: missing packaged logo ${themeLogoPackagePath}`);
+}
+const sourceThemeLogo = readFileSync(resolve(themeLogoPackagePath));
 
 const version = String(sourceTheme.spec.version);
 if (!/^\d+(?:\.\d+){2,3}(?:-rc\.\d{2})?$/.test(version)) {
@@ -440,7 +452,10 @@ const configScriptIds = {
 const templateRoot = resolve('templates');
 const htmlTemplates = readdirSync(templateRoot, { recursive: true })
   .filter((path) => path.endsWith('.html'))
-  .map((path) => ({ path, source: readFileSync(resolve(templateRoot, path), 'utf8') }));
+  .map((path) => ({
+    path,
+    source: readFileSync(resolve(templateRoot, path), 'utf8'),
+  }));
 if (htmlTemplates.some(({ source }) => /id\s*=\s*(["'])theme-config-getter\1/.test(source))) {
   throw new Error('templates: legacy duplicate id theme-config-getter must not be present');
 }
@@ -998,6 +1013,11 @@ const themeSettingVariable = readFileSync(
   resolve('templates/modules/themeSettingVariable.html'),
   'utf8'
 );
+if (/\bBASE_URL\b/.test(themeSettingVariable) || themeSettingVariable.includes('bbchin.com')) {
+  throw new Error(
+    'templates/modules/themeSettingVariable.html: retired bbchin BASE_URL must not be exposed at runtime'
+  );
+}
 const actionsTemplatePath = 'templates/modules/common/actions.html';
 const actionsTemplate = readFileSync(resolve(actionsTemplatePath), 'utf8');
 const actionButtonCounts = { random: 1, mode: 2, back2top: 2, toc: 1 };
@@ -1268,6 +1288,33 @@ const maskRanges = (source, ranges) => {
   }
   return masked + source.slice(cursor);
 };
+const maskInactiveHtmlComments = (source) => {
+  let activeSource = '';
+  let cursor = 0;
+  while (cursor < source.length) {
+    const commentStart = source.indexOf('<!--', cursor);
+    if (commentStart === -1) return activeSource + source.slice(cursor);
+    activeSource += source.slice(cursor, commentStart);
+    if (source.startsWith('<!--/*/', commentStart)) {
+      const contentStart = commentStart + '<!--/*/'.length;
+      const commentEnd = source.indexOf('/*/-->', contentStart);
+      if (commentEnd !== -1) {
+        activeSource += preserveMarkupOffsets(source.slice(commentStart, contentStart));
+        activeSource += maskInactiveHtmlComments(source.slice(contentStart, commentEnd));
+        activeSource += preserveMarkupOffsets(
+          source.slice(commentEnd, commentEnd + '/*/-->'.length)
+        );
+        cursor = commentEnd + '/*/-->'.length;
+        continue;
+      }
+    }
+    const commentEnd = source.indexOf('-->', commentStart + '<!--'.length);
+    const end = commentEnd === -1 ? source.length : commentEnd + '-->'.length;
+    activeSource += preserveMarkupOffsets(source.slice(commentStart, end));
+    cursor = end;
+  }
+  return activeSource;
+};
 const maskInactiveMarkup = (source) => {
   const { commentRanges, rawTextBodies } = analyzeMarkupActivity(source);
   return maskRanges(
@@ -1476,6 +1523,143 @@ if (
 const settingsPath = 'settings.yaml';
 const sourceSettingsBuffer = readFileSync(resolve(settingsPath));
 const sourceSettings = parseYaml(sourceSettingsBuffer.toString('utf8'));
+const sourceLinkSettings = sourceSettings.spec?.forms
+  ?.find(({ group }) => group === 'basic')
+  ?.formSchema?.filter(({ name }) => ['enable_source_link', 'source_link'].includes(name));
+const enableSourceLinkSetting = sourceLinkSettings?.find(
+  ({ name }) => name === 'enable_source_link'
+);
+const sourceLinkSetting = sourceLinkSettings?.find(({ name }) => name === 'source_link');
+if (
+  sourceLinkSettings?.length !== 2 ||
+  enableSourceLinkSetting?.value !== false ||
+  sourceLinkSetting?.value !== ''
+) {
+  throw new Error(
+    `${settingsPath}: external asset hosting must remain opt-in with enable_source_link=false and an empty source_link default`
+  );
+}
+
+const expectedSourceLinkResolver = `\${(#strings.trim(theme.config.basic.source_link) != '' and #bools.isTrue(theme.config.basic.enable_source_link) and !#strings.contains(#strings.toLowerCase(#strings.trim(theme.config.basic.source_link)), 'jiewenhuang/halo-theme-joe3.0') and !#strings.contains(#strings.toLowerCase(#strings.trim(theme.config.basic.source_link)), 'jiewenhuang.github.io')) ? #strings.trim(theme.config.basic.source_link) : '/themes/theme-Joe3'}`;
+const normalizeSourceLinkResolver = (value) => value.replace(/\s+/g, ' ').trim();
+const normalizedSourceLinkResolver = normalizeSourceLinkResolver(expectedSourceLinkResolver);
+const sourceLinkResolverPolicies = [
+  ['modules/layout.html', 1],
+  ['modules/link.html', 1],
+  ['modules/macro/tail.html', 1],
+  ['modules/themeSettingVariable.html', 1],
+  ['modules/key_css.html', 1],
+  ['page_leaving.html', 2],
+];
+const activeHtmlTemplates = htmlTemplates.map(({ path, source }) => ({
+  path,
+  source: maskInactiveHtmlComments(source),
+}));
+const actualSourceLinkResolverPaths = activeHtmlTemplates
+  .filter(({ source }) => source.includes('theme.config.basic.source_link'))
+  .map(({ path }) => path)
+  .sort();
+const expectedSourceLinkResolverPaths = sourceLinkResolverPolicies.map(([path]) => path).sort();
+if (actualSourceLinkResolverPaths.join('\n') !== expectedSourceLinkResolverPaths.join('\n')) {
+  throw new Error(
+    `${settingsPath}: source_link consumers must stay limited to ${expectedSourceLinkResolverPaths.join(', ')}, got ${actualSourceLinkResolverPaths.join(', ')}`
+  );
+}
+for (const [path, expectedCount] of sourceLinkResolverPolicies) {
+  const source = activeHtmlTemplates.find((template) => template.path === path)?.source ?? '';
+  const count = [...source.matchAll(/\$\{[^}]*\}/g)].filter(
+    ([expression]) => normalizeSourceLinkResolver(expression) === normalizedSourceLinkResolver
+  ).length;
+  if (count !== expectedCount) {
+    throw new Error(
+      `templates/${path}: expected ${expectedCount} source_link resolver(s) with local fallback and upstream denylist, found ${count}`
+    );
+  }
+}
+
+const forbiddenUpstreamRuntimeReferences = [
+  /(?:https?:)?\/\/(?:[^\s"'`()<>]*\/)?(?:jiewenhuang\/halo-theme-joe3\.0|qinhua\/halo-theme-joe2\.0|haoouba\/joe)(?:\.git)?(?=$|[@/?#\s"'`()<>])/i,
+  /(?:https?:)?\/\/jiewenhuang\.github\.io(?=$|[/:?#\s"'`()<>])/i,
+];
+const maskCommentText = (value) => value.replace(/[^\r\n]/g, ' ');
+const stripSlashComments = (source, allowLineComments) => {
+  let output = '';
+  let cursor = 0;
+  let quote = null;
+  let escaped = false;
+  while (cursor < source.length) {
+    const character = source[cursor];
+    const nextCharacter = source[cursor + 1];
+    if (quote != null) {
+      output += character;
+      cursor += 1;
+      if (escaped) escaped = false;
+      else if (character === '\\') escaped = true;
+      else if (character === quote) quote = null;
+      continue;
+    }
+    if (character === '"' || character === "'" || character === '`') {
+      quote = character;
+      output += character;
+      cursor += 1;
+      continue;
+    }
+    if (character === '/' && nextCharacter === '*' && !source.startsWith('/*[[', cursor)) {
+      const commentEnd = source.indexOf('*/', cursor + 2);
+      const end = commentEnd === -1 ? source.length : commentEnd + 2;
+      output += maskCommentText(source.slice(cursor, end));
+      cursor = end;
+      continue;
+    }
+    if (allowLineComments && character === '/' && nextCharacter === '/') {
+      const lineEnd = source.indexOf('\n', cursor + 2);
+      const end = lineEnd === -1 ? source.length : lineEnd;
+      output += maskCommentText(source.slice(cursor, end));
+      cursor = end;
+      continue;
+    }
+    output += character;
+    cursor += 1;
+  }
+  return output;
+};
+const prepareRuntimeReferenceSource = (source, path) => {
+  const normalized = source.replace(/\\\//g, '/');
+  if (path.endsWith('.html')) {
+    let activeSource = maskInactiveHtmlComments(normalized);
+    const { rawTextBodies } = analyzeMarkupActivity(activeSource);
+    for (const { bodyStart, bodyEnd, name } of rawTextBodies) {
+      if (name !== 'script' && name !== 'style') continue;
+      const body = activeSource.slice(bodyStart, bodyEnd);
+      const activeBody = stripSlashComments(body, name === 'script');
+      activeSource = activeSource.slice(0, bodyStart) + activeBody + activeSource.slice(bodyEnd);
+    }
+    return activeSource;
+  }
+  if (/\.(?:js|mjs)$/.test(path)) return normalized;
+  if (/\.(?:css|less)$/.test(path)) return stripSlashComments(normalized, false);
+  return normalized;
+};
+const hasForbiddenUpstreamRuntimeReference = (source, path) =>
+  forbiddenUpstreamRuntimeReferences.some((pattern) =>
+    pattern.test(prepareRuntimeReferenceSource(source, path))
+  );
+const runtimeTextSourcePaths = [
+  'theme.yaml',
+  settingsPath,
+  'annotation-setting.yaml',
+  ...readdirSync(templateRoot, { recursive: true })
+    .filter(
+      (path) => !path.startsWith('assets/lib/') && /\.(?:html|css|less|js|mjs|yaml|yml)$/.test(path)
+    )
+    .map((path) => `templates/${path}`),
+];
+for (const path of runtimeTextSourcePaths) {
+  const source = readFileSync(resolve(path), 'utf8');
+  if (hasForbiddenUpstreamRuntimeReference(source, path)) {
+    throw new Error(`${path}: runtime dependency must not reference a retired upstream repository`);
+  }
+}
 const annotationSettingsPath = 'annotation-setting.yaml';
 const sourceAnnotationSettingsBuffer = readFileSync(resolve(annotationSettingsPath));
 const sourceAnnotationSettings = [];
@@ -1520,9 +1704,18 @@ const placeholderPolicies = [
     producers: [
       { path: 'templates/categories.html', allowedWrappers: [['direct', 1]] },
       { path: 'templates/tags.html', allowedWrappers: [['direct', 1]] },
-      { path: 'templates/modules/ads/ads_aside.html', allowedWrappers: [['direct', 1]] },
-      { path: 'templates/modules/macro/post_item.html', allowedWrappers: [['direct', 1]] },
-      { path: 'templates/modules/macro/relate_cards.html', allowedWrappers: [['direct', 2]] },
+      {
+        path: 'templates/modules/ads/ads_aside.html',
+        allowedWrappers: [['direct', 1]],
+      },
+      {
+        path: 'templates/modules/macro/post_item.html',
+        allowedWrappers: [['direct', 1]],
+      },
+      {
+        path: 'templates/modules/macro/relate_cards.html',
+        allowedWrappers: [['direct', 2]],
+      },
     ],
   },
   {
@@ -1531,7 +1724,10 @@ const placeholderPolicies = [
     configPath: bannerConfigPath,
     defaultUrl: bannerDefaultUrl,
     producers: [
-      { path: 'templates/modules/macro/banner_item.html', allowedWrappers: [['direct', 1]] },
+      {
+        path: 'templates/modules/macro/banner_item.html',
+        allowedWrappers: [['direct', 1]],
+      },
       {
         path: 'templates/modules/macro/banner_item_data.html',
         allowedWrappers: [
@@ -1943,6 +2139,9 @@ const guardedPackageSources = new Map(
     leavingScriptPath,
     'templates/assets/js/utils.js',
     'templates/assets/js/beauty.js',
+    'templates/modules/layout.html',
+    'templates/modules/key_css.html',
+    'templates/modules/themeSettingVariable.html',
     'templates/modules/link.html',
     'templates/modules/macro/tail.html',
     'templates/page_leaving.html',
@@ -1952,6 +2151,7 @@ const guardedPackageSources = new Map(
     ...new Set(placeholderPolicies.flatMap(({ producers }) => producers.map(({ path }) => path))),
   ].map((path) => [path, readFileSync(resolve(path))])
 );
+guardedPackageSources.set(themeLogoPackagePath, sourceThemeLogo);
 if (sourceCustomMinScript != null) {
   guardedPackageSources.set(customMinScriptPath, sourceCustomMinScript);
 }
@@ -3109,7 +3309,9 @@ if (
 
 const sourceJsDir = resolve('templates/assets/js');
 for (const file of readdirSync(sourceJsDir).filter((name) => name.endsWith('.js'))) {
-  execFileSync(process.execPath, ['--check', resolve(sourceJsDir, file)], { stdio: 'pipe' });
+  execFileSync(process.execPath, ['--check', resolve(sourceJsDir, file)], {
+    stdio: 'pipe',
+  });
 }
 
 const globalStyles = readFileSync(resolve('templates/assets/css/global.less'), 'utf8');
@@ -3536,6 +3738,32 @@ if (zipOption) {
   })
     .trim()
     .split('\n');
+  const packagedRootYamlPaths = packagedFiles
+    .filter((path) => !path.includes('/') && /\.ya?ml$/i.test(path))
+    .sort();
+  if (packagedRootYamlPaths.join('\n') !== expectedRootYamlPaths.join('\n')) {
+    throw new Error(
+      `${zipPath}: root YAML files must be exactly ${expectedRootYamlPaths.join(', ')}, got ${packagedRootYamlPaths.join(', ')}`
+    );
+  }
+  const packagedRuntimeTextPaths = packagedFiles.filter(
+    (path) =>
+      ['theme.yaml', settingsPath, annotationSettingsPath].includes(path) ||
+      (path.startsWith('templates/') &&
+        !path.startsWith('templates/assets/lib/') &&
+        /\.(?:html|css|less|js|mjs|yaml|yml)$/.test(path))
+  );
+  for (const path of packagedRuntimeTextPaths) {
+    const packagedSource = execFileSync('unzip', ['-p', zipPath, path], {
+      encoding: 'utf8',
+      maxBuffer: 5 * 1024 * 1024,
+    });
+    if (hasForbiddenUpstreamRuntimeReference(packagedSource, path)) {
+      throw new Error(
+        `${zipPath}: packaged runtime dependency must not reference a retired upstream repository: ${path}`
+      );
+    }
+  }
   for (const path of [...excludedPackagePaths, ...fontAwesomeLegacyFontPaths]) {
     if (packagedFiles.some((file) => file === path || file.startsWith(`${path}/`))) {
       throw new Error(`${zipPath}: excluded package path found: ${path}`);
