@@ -21,11 +21,11 @@
           <i class="joe-font joe-icon-share"></i>
           <div class="share-icon-list">
             <th:block th:if="${theme.config.post.enable_share_link}">
-              <a
+              <button
                 class="icon-share-link"
-                href="javascript:;"
-                rel="noopener noreferrer"
+                type="button"
                 title="复制文章链接"
+                aria-label="复制文章链接"
                 th:data-post-title="${post.spec.title}"
                 th:data-post-description="${post.status.excerpt}"
                 th:data-template="${theme.config.post.share_link_template}"
@@ -45,7 +45,7 @@
                     fill="#989b9e"
                   ></path>
                 </svg>
-              </a>
+              </button>
             </th:block>
             <th:block th:if="${theme.config.post.enable_share_weibo}">
               <a
@@ -119,9 +119,10 @@
               </a>
             </th:block>
             <th:block th:if="${theme.config.post.enable_share_weixin}">
-              <a
+              <button
                 class="share_to_weixin"
-                href="javascript:;"
+                type="button"
+                aria-expanded="false"
                 title="分享到微信"
                 aria-label="分享到微信"
               >
@@ -141,11 +142,11 @@
                     fill="#3db214"
                   ></path>
                 </svg>
-                <div class="qrcode_wrapper animated bounceIn">
-                  <div class="qrcode_wx"></div>
-                  <p>微信扫一扫</p>
-                </div>
-              </a>
+                <span class="qrcode_wrapper animated bounceIn">
+                  <span class="qrcode_wx"></span>
+                  <span class="qrcode_text">微信扫一扫</span>
+                </span>
+              </button>
             </th:block>
             <!-- #358 分享渠道扩展 · X (Twitter) -->
             <th:block th:if="${theme.config.post.enable_share_x}">

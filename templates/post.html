@@ -13,7 +13,9 @@
         <!--          navbar-->
         <th:block th:replace="~{modules/macro/navbar :: navbar}" />
         <th:block th:replace="~{modules/post_bread :: post_bread}" />
-        <div
+        <main
+          id="joe-main-content"
+          tabindex="-1"
           class="joe_container joe_main_container page-post"
           th:classappend="${theme.config.theme.enable_show_in_up ? 'animated fadeIn':''}"
         >
@@ -64,6 +66,8 @@
                           th:src="${theme.config.blogger.lazyload_avatar}"
                           th:data-src="${contributor.avatar}"
                           th:alt="${contributor.displayName}"
+                          loading="lazy"
+                          decoding="async"
                           onerror="Joe.errorImg(this, 'ErrAvatarImg')"
                         />
                         <div class="meta">
@@ -101,10 +105,10 @@
                             <span class="line">/</span>
                             <span class="text" id="wordCount">0 字</span>
                             <th:block
-                              th:if="${#annotations.getOrDefault(post, 'enable_collect_check', 'true')} and ${theme.config.other.check_baidu_collect}"
+                              th:if="${#annotations.getOrDefault(post, 'enable_collect_check', 'true') == 'true'} and ${#bools.isTrue(theme.config.other.check_baidu_collect)}"
                             >
                               <span class="line">/</span>
-                              <span class="text" id="joe_baidu_record">正在检测是否收录...</span>
+                              <span class="text" id="joe_baidu_record">百度收录查询/提交入口</span>
                             </th:block>
                           </div>
                         </div>
@@ -190,16 +194,17 @@
                     </th:block>
                   </div>
                   <th:block
-                    th:if="${theme.config.ads.enable_ads_top != 'none'} and ${not #lists.isEmpty(theme.config.ads.ads_top)}"
-                    th:each="ads_data : ${theme.config.ads.ads_top}"
+                    th:if="${#bools.isTrue(theme.config.ads.enable_ads)} and ${theme.config.ads.enable_ads_top != 'none'} and ${not #lists.isEmpty(theme.config.ads.ads_top)}"
                   >
-                    <th:block
-                      th:replace="~{modules/ads/ads_post :: ads_post(kind = ${theme.config.ads.enable_ads_top}, data = ${ads_data})}"
-                    />
+                    <th:block th:each="ads_data : ${theme.config.ads.ads_top}">
+                      <th:block
+                        th:replace="~{modules/ads/ads_post :: ads_post(kind = ${theme.config.ads.enable_ads_top}, data = ${ads_data})}"
+                      />
+                    </th:block>
                   </th:block>
                   <article
                     th:class="'joe_detail__article animated fadeIn '+${#annotations.getOrDefault(post, 'img_align', 'center')+'-img'}"
-                    th:classappend="|${(#annotations.getOrDefault(post, 'enable_read_limit', 'false') == 'true' && (#authentication.name == 'anonymousUser' || contributor.name != #authentication.name)) ? 'limited': ''} ${(#annotations.getOrDefault(post, 'enable_copy', 'true') == 'false' or theme.config.post.enable_copy != true) ? 'uncopy' : ''} ${theme.config.post.enable_indent ? 'indent':''} ${(theme.config.code_block.enable_code_line_number == true and theme.config.code_block.enable_code_newline !=true) ? 'line-numbers':''} ${theme.config.code_block.enable_single_code_select == true ? 'single_code_select': ''}|"
+                    th:classappend="|${(#annotations.getOrDefault(post, 'enable_copy', 'true') == 'false' or not #bools.isTrue(theme.config.post.enable_copy)) ? 'uncopy' : ''} ${#bools.isTrue(theme.config.post.enable_indent) ? 'indent' : ''} ${(#bools.isTrue(theme.config.code_block.enable_code_line_number) and not #bools.isTrue(theme.config.code_block.enable_code_newline)) ? 'line-numbers' : ''} ${#bools.isTrue(theme.config.code_block.enable_single_code_select) ? 'single_code_select' : ''}|"
                   >
                     <div id="post-inner">
                       <th:block
@@ -216,20 +221,23 @@
                       </th:block>
                     </div>
                     <th:block
-                      th:if="${#annotations.getOrDefault(post, 'enable_read_limit', 'false') == 'true' && (#authentication.name == 'anonymousUser' || contributor.name != #authentication.name)}"
-                      th:with="authenticationDisplayName=${#authentication.name == 'anonymousUser' ? '游客' : contributorFinder.getContributor(#authentication.name).displayName}"
+                      th:if="${#annotations.getOrDefault(post, 'enable_read_limit', 'false') == 'true' and (theme.config.basic.comment_option == 'default' or #strings.trim(theme.config.basic.waline.waline_serverURL) == '') and #bools.isTrue(theme.config.post.enable_comment) and #annotations.getOrDefault(post, 'enable_comment', 'true') == 'true' and not #bools.isTrue(theme.config.other.enable_clean_mode) and (#authentication.name == 'anonymousUser' or contributor.name != #authentication.name)}"
                     >
-                      <joe-read-limited
-                        th:username="${#authentication.name}"
-                        th:display-name="${authenticationDisplayName}"
-                        th:comment-name="${post.metadata.name}"
-                        th:comment-kind="Post"
-                        th:comment-plugin="${(theme.config.basic.comment_option == 'default' || #strings.trim(theme.config.basic.waline.waline_serverURL) =='') ? 'CommentWidgetPlugin' : 'WalinePlugin'}"
-                      ></joe-read-limited>
+                      <th:block
+                        th:with="authenticationDisplayName=${#authentication.name == 'anonymousUser' ? '游客' : contributorFinder.getContributor(#authentication.name).displayName}"
+                      >
+                        <joe-read-limited
+                          th:username="${#authentication.name}"
+                          th:display-name="${authenticationDisplayName}"
+                          th:comment-name="${post.metadata.name}"
+                          th:comment-kind="Post"
+                          comment-plugin="CommentWidgetPlugin"
+                        ></joe-read-limited>
+                      </th:block>
                     </th:block>
                   </article>
                   <th:block
-                    th:if="${#annotations.getOrDefault(post, 'enable_like' ,'true') == 'true'} and ${theme.config.post.enable_like}"
+                    th:if="${#annotations.getOrDefault(post, 'enable_like' ,'true') == 'true'} and ${#bools.isTrue(theme.config.post.enable_like)}"
                   >
                     <th:block th:replace="~{modules/macro/favorite :: bottom}" />
                   </th:block>
@@ -237,12 +245,13 @@
                 <th:block th:replace="~{modules/post_operate :: post_operate}" />
                 <th:block th:replace="~{modules//macro/post_copyright :: post_copyright}" />
                 <th:block
-                  th:if="${theme.config.ads.enable_ads_bottom != 'none'} and ${not #lists.isEmpty(theme.config.ads.ads_bottom)}"
-                  th:each="ads_data : ${theme.config.ads.ads_bottom}"
+                  th:if="${#bools.isTrue(theme.config.ads.enable_ads)} and ${theme.config.ads.enable_ads_bottom != 'none'} and ${not #lists.isEmpty(theme.config.ads.ads_bottom)}"
                 >
-                  <th:block
-                    th:replace="~{modules/ads/ads_post :: ads_post(kind = ${theme.config.ads.enable_ads_bottom}, data = ${ads_data})}"
-                  />
+                  <th:block th:each="ads_data : ${theme.config.ads.ads_bottom}">
+                    <th:block
+                      th:replace="~{modules/ads/ads_post :: ads_post(kind = ${theme.config.ads.enable_ads_bottom}, data = ${ads_data})}"
+                    />
+                  </th:block>
                 </th:block>
               </div>
               <th:block th:replace="~{modules/post_operate_aside :: post_operate_aside}" />
@@ -276,7 +285,7 @@
                 <th:block th:replace="~{modules/macro/relate_cards :: relate_cards}" />
               </th:block>
               <th:block
-                th:if="${theme.config.other.enable_clean_mode != true} and ${theme.config.post.enable_comment}"
+                th:if="${not #bools.isTrue(theme.config.other.enable_clean_mode)} and ${#bools.isTrue(theme.config.post.enable_comment)}"
               >
                 <div class="joe_comment">
                   <th:block
@@ -307,7 +316,7 @@
                 </div>
               </th:block>
               <th:block
-                th:if="${theme.config.other.enable_clean_mode == true} or ${theme.config.post.enable_comment !=true}"
+                th:if="${#bools.isTrue(theme.config.other.enable_clean_mode)} or ${not #bools.isTrue(theme.config.post.enable_comment)}"
               >
                 <div class="joe_comment">
                   <div class="joe_comment__close">
@@ -329,11 +338,13 @@
             </th:block>
           </div>
 
-          <!--      <th:block th:if="${theme.config.post.enable_post_aside} and ${#annotations.getOrDefault(post, 'enable_aside', 'true')}">-->
-          <th:block th:replace="~{modules/common/aside_post :: aside_post}" />
-          <!--      </th:block>-->
-        </div>
-        <th:block th:if="${theme.config.post.enable_progress_bar}">
+          <th:block
+            th:if="${#bools.isTrue(theme.config.aside.enable_post_aside)} and ${#annotations.getOrDefault(post, 'enable_aside', 'true') == 'true'}"
+          >
+            <th:block th:replace="~{modules/common/aside_post :: aside_post}" />
+          </th:block>
+        </main>
+        <th:block th:if="${#bools.isTrue(theme.config.post.enable_progress_bar)}">
           <div
             class="joe_progress_bar"
             th:style="'background:'+${theme.config.post.progress_bar_bgc ?: ''}"

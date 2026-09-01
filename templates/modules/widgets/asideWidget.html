@@ -39,6 +39,8 @@
                   th:src="${reward.reward_url}"
                   alt="打赏"
                   th:class="reward-image"
+                  loading="lazy"
+                  decoding="async"
                 />
               </div>
               <div th:if="${reward.reward_type == 'custom'}" th:utext="${reward.reward_html}"></div>
@@ -60,6 +62,8 @@
           th:src="${pic_data.qrcode_url}"
           th:data-src="${pic_data.qrcode_url}"
           th:alt="${pic_data.qrcode_title}"
+          loading="lazy"
+          decoding="async"
           onerror="Joe.errorImg(this, 'LoadFailedImg')"
         />
         <th:block th:if="${pic_data.qrcode_description != ''}">
@@ -138,6 +142,8 @@
                     th:src="${theme.config.blogger.lazyload_avatar}"
                     alt="头像"
                     th:data-text-avatar="${result.owner.displayName}"
+                    loading="lazy"
+                    decoding="async"
                     onload="Joe.loadedPlaceholderReplaceImg(this, 'AvatarImg')"
                     onerror="Joe.errorImg(this, 'ErrAvatarImg')"
                   />
@@ -248,7 +254,7 @@
 
                   return `<li class="item">
 		                    <div class="user">
-		                        <img width="35" height="35" class="avatar lazyload" data-src="${avatar}" src="${lazyloadAvatar}"  alt="头像" data-text-avatar="${nick}" onload="Joe.loadedPlaceholderReplaceImg(this, 'AvatarImg')" onerror="Joe.errorImg(this, 'ErrAvatarImg')" />
+		                        <img width="35" height="35" class="avatar lazyload" data-src="${avatar}" src="${lazyloadAvatar}"  alt="头像" data-text-avatar="${nick}" loading="lazy" decoding="async" onload="Joe.loadedPlaceholderReplaceImg(this, 'AvatarImg')" onerror="Joe.errorImg(this, 'ErrAvatarImg')" />
 		                        <div class="info">
 		                            <div class="author">${nick}</div>
 		                            <span class="date">${commentTime}</span>
@@ -364,18 +370,20 @@
     </section>
   </th:block>
   <th:block th:fragment="enable_ads_aside(ads_data)">
-    <th:block th:switch="${ads_data.aside_ads_type}">
-      <th:block th:case="'img'">
-        <th:block th:if="${#strings.trim(ads_data.aside_ads_img) !=''}">
+    <th:block th:if="${#bools.isTrue(theme.config.ads.enable_ads)}">
+      <th:block th:switch="${ads_data.aside_ads_type}">
+        <th:block th:case="'img'">
+          <th:block th:if="${#strings.trim(ads_data.aside_ads_img) !=''}">
+            <th:block
+              th:replace="~{modules/ads/ads_aside :: ads_aside_img(ads_url=${ads_data.aside_ads_url}, ads_img=${ads_data.aside_ads_img})}"
+            />
+          </th:block>
+        </th:block>
+        <th:block th:case="'code'">
           <th:block
-            th:replace="~{modules/ads/ads_aside :: ads_aside_img(ads_url=${ads_data.aside_ads_url}, ads_img=${ads_data.aside_ads_img})}"
+            th:replace="~{modules/ads/ads_aside :: ads_aside_code(ads_code = ${ads_data.aside_ads_code})}"
           />
         </th:block>
-      </th:block>
-      <th:block th:case="'code'">
-        <th:block
-          th:replace="~{modules/ads/ads_aside :: ads_aside_code(ads_code = ${ads_data.aside_ads_code})}"
-        />
       </th:block>
     </th:block>
   </th:block>

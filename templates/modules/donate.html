@@ -18,6 +18,8 @@
               <img
                 th:src="${theme.config.post.qrcode_zfb}"
                 alt="qrcode alipay"
+                loading="lazy"
+                decoding="async"
                 onerror="Joe.errorImg(this, 'LoadFailedImg')"
               />
             </li>
@@ -30,6 +32,8 @@
               <img
                 th:src="${theme.config.post.qrcode_wx}"
                 alt="qrcode weixin"
+                loading="lazy"
+                decoding="async"
                 onerror="Joe.errorImg(this, 'LoadFailedImg')"
               />
             </li>
@@ -42,6 +46,8 @@
               <img
                 th:src="${theme.config.post.qrcode_qq}"
                 alt="qrcode qq"
+                loading="lazy"
+                decoding="async"
                 onerror="Joe.errorImg(this, 'LoadFailedImg')"
               />
             </li>

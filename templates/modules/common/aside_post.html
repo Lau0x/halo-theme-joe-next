@@ -22,12 +22,13 @@
           <th:block th:replace="~{modules/macro/relate :: relate}" />
         </th:block>
         <th:block
-          th:if="${theme.config.ads.enable_ads_aside != 'none'} and ${not #lists.isEmpty(theme.config.ads.ads_aside)}"
-          th:each="ads_data : ${theme.config.ads.ads_aside}"
+          th:if="${#bools.isTrue(theme.config.ads.enable_ads)} and ${theme.config.ads.enable_ads_aside != 'none'} and ${not #lists.isEmpty(theme.config.ads.ads_aside)}"
         >
-          <th:block
-            th:replace="~{modules/ads/ads_post :: ads_post(kind = ${theme.config.ads.enable_ads_aside}, data = ${ads_data})}"
-          />
+          <th:block th:each="ads_data : ${theme.config.ads.ads_aside}">
+            <th:block
+              th:replace="~{modules/ads/ads_post :: ads_post(kind = ${theme.config.ads.enable_ads_aside}, data = ${ads_data})}"
+            />
+          </th:block>
         </th:block>
       </div>
     </aside>

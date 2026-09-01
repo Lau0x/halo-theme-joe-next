@@ -1673,7 +1673,7 @@ spec:
           id: enable_sheet_aside
           key: enable_sheet_aside
           label: 自定义页侧边栏
-          help: '自定义页面右侧是否展示侧边栏，默认关闭。开启后，所有自定义页面都会展示侧边栏（若部分页面不想展示，可以配置对应页面的元数据 enable_aside 为 false ）'
+          help: '自定义页面右侧是否展示侧边栏，默认开启。开启后，所有自定义页面都会展示侧边栏（若部分页面不想展示，可以配置对应页面的元数据 enable_aside 为 false ）'
         - $formkit: array
           if: '$get(enable_sheet_aside).value == true'
           name: enable_outpost_aside
@@ -2208,7 +2208,7 @@ spec:
           id: enable_copy
           key: enable_copy
           label: 文章可复制
-          value: false
+          value: true
         - $formkit: switch
           name: enable_indent
           id: enable_indent
@@ -3108,6 +3108,7 @@ spec:
         # 广告位置、密度、lazy-load 全部由 Google AdSense 算法和用户在 AdSense 后台配置决定。
         # 使用前提：① 你已有 AdSense 账号且审核通过；② 在 AdSense 后台打开 "Auto ads" 并关联本站点域名。
         - $formkit: switch
+          if: '$get(enable_ads).value == true'
           name: enable_adsense
           id: enable_adsense
           key: enable_adsense
@@ -3115,7 +3116,7 @@ spec:
           value: false
           help: '通过 Google Auto Ads 自动在合适位置展示广告。需在 AdSense 后台开启 Auto Ads + 关联域名。广告位置/密度/lazy-load 由 Google 端控制，主题侧只注入主脚本。'
         - $formkit: text
-          if: '$get(enable_adsense).value == true'
+          if: '$get(enable_ads).value == true && $get(enable_adsense).value == true'
           name: adsense_client_id
           id: adsense_client_id
           key: adsense_client_id
@@ -3358,15 +3359,16 @@ spec:
           name: check_baidu_collect
           id: check_baidu_collect
           key: check_baidu_collect
-          label: 检查百度收录情况
+          label: 显示百度收录查询/提交入口
+          help: '在文章、页面和动态元信息中显示百度站长平台的查询/提交入口；主题不会自动检测或自动推送。'
         - $formkit: text
           if: '$get(check_baidu_collect).value == true'
           name: baidu_token
           id: baidu_token
           key: baidu_token
-          label: 百度推送Token
+          label: 旧版百度推送 Token（保留兼容，当前不使用）
           value: ''
-          help: '文章页未收录时会自动将当前链接推送给百度加快收录，Token在百度收录平台注册账号获取（必须启用“检查百度收录”并填入token才生效），https://ziyuan.baidu.com/linksubmit'
+          help: '仅为兼容旧版本配置而保留；当前主题不会读取、输出或使用此 Token，请通过上方入口前往百度站长平台操作。'
         - $formkit: switch
           name: enable_console_theme
           id: enable_console_theme

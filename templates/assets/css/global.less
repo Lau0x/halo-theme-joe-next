@@ -3535,6 +3535,11 @@ body {
 }
 
 .joe_load {
+  appearance: none;
+  display: block;
+  padding: 0;
+  border: 0;
+  font: inherit;
   position: relative;
   z-index: 1;
   margin: 15px auto 0;
@@ -5121,10 +5126,16 @@ body {
   }
 
   &__agree {
+    appearance: none;
     display: flex;
     align-items: center;
     justify-content: center;
     margin: 30px 0 10px;
+    padding: 0;
+    border: 0;
+    font: inherit;
+    background: transparent;
+    cursor: pointer;
 
     .agree {
       text-align: center;
@@ -5295,10 +5306,19 @@ body {
         border-radius: 50px;
         transition: all 0.2s;
 
-        a {
+        a,
+        button {
           position: relative;
           display: inline-block;
           margin: 0 3px;
+        }
+
+        button {
+          appearance: none;
+          padding: 0;
+          border: 0;
+          background: transparent;
+          cursor: pointer;
         }
       }
 
@@ -5322,7 +5342,8 @@ body {
           border-top-color: #e0e0e0;
         }
 
-        p {
+        .qrcode_text {
+          display: block;
           padding: 6px 0 0;
           text-align: center;
           font-size: 12px;
@@ -5330,7 +5351,8 @@ body {
         }
       }
 
-      &:hover {
+      &:hover,
+      &:focus-within {
         width: auto;
         overflow: initial;
         background: var(--classD);
@@ -5347,7 +5369,8 @@ body {
         }
       }
 
-      .share_to_weixin:hover .qrcode_wrapper {
+      .share_to_weixin:hover .qrcode_wrapper,
+      .share_to_weixin.active .qrcode_wrapper {
         display: block;
       }
     }

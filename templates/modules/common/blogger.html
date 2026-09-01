@@ -14,6 +14,8 @@
         class="image"
         th:src="${theme.config.blogger.author_bg ?: '/themes/theme-Joe3/assets/img/author_bg.jpg'}"
         alt="博主栏壁纸"
+        loading="lazy"
+        decoding="async"
         th:onerror="this.onerror=null;this.src='/themes/theme-Joe3/assets/img/author_bg.jpg'"
       />
       <div class="user">
@@ -36,6 +38,8 @@
             th:src="${theme.config.blogger.lazyload_avatar}"
             alt="博主头像"
             th:data-text-avatar="${theme.config.blogger.nickname ?: site.title}"
+            loading="lazy"
+            decoding="async"
             onload="Joe.loadedPlaceholderReplaceImg(this, 'AvatarImg')"
             onerror="Joe.errorImg(this, 'ErrAvatarImg')"
           />
@@ -56,6 +60,8 @@
               th:class="'avatar_frame '+${theme.config.blogger.avatar_frame}"
               th:src="@{/assets/frame/__${theme.config.blogger.avatar_frame}__.png}"
               alt="挂架"
+              loading="lazy"
+              decoding="async"
             />
           </th:block>
           <th:block th:if="${theme.config.blogger.avatar_widget != '0'}">
@@ -63,6 +69,8 @@
               th:class="'avatar_widget '+${theme.config.blogger.avatar_widget}"
               th:src="@{/assets/widget/__${theme.config.blogger.avatar_widget}__.gif}"
               alt="相框"
+              loading="lazy"
+              decoding="async"
             />
           </th:block>
         </div>
@@ -76,6 +84,8 @@
               class="level"
               th:src="@{/assets/svg/level_1.svg}"
               alt="博主等级"
+              loading="lazy"
+              decoding="async"
             />
           </th:block>
         </a>
@@ -89,6 +99,8 @@
               height="14"
               src="https://v2.jinrishici.com/one.svg?font-size=146&spacing=2&color=grey"
               alt="今日诗词"
+              loading="lazy"
+              decoding="async"
             />
           </th:block>
         </th:block>

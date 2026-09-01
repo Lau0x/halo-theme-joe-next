@@ -2,21 +2,35 @@
 <html th:lang="${#locale.toLanguageTag}" xmlns:th="https://www.thymeleaf.org">
   <th:block th:fragment="favorite">
     <th:block th:fragment="bottom">
-      <div class="joe_detail__agree">
-        <div class="agree">
-          <div class="icon">
+      <button
+        class="joe_detail__agree"
+        type="button"
+        aria-pressed="false"
+        aria-label="点赞"
+        title="点赞"
+      >
+        <span class="agree">
+          <span class="icon">
             <i class="joe-font joe-icon-like icon-like"></i>
             <i class="joe-font joe-icon-like-fill icon-unlike"></i>
-          </div>
+          </span>
           <span class="nums">[[${post.stats.upvote}]]</span>
-        </div>
-      </div>
+        </span>
+      </button>
     </th:block>
     <th:block th:fragment="aside">
-      <li class="post-operate-like">
-        <i class="joe-font joe-icon-dianzan icon-like"></i>
-        <i class="joe-font joe-icon-dianzan-fill icon-unlike"></i>
-        <span class="nums" df="" th:classappend="${post.stats.upvote gt 0}? 'visible'"></span>
+      <li>
+        <button
+          class="post-operate-like"
+          type="button"
+          aria-pressed="false"
+          aria-label="点赞"
+          title="点赞"
+        >
+          <i class="joe-font joe-icon-dianzan icon-like"></i>
+          <i class="joe-font joe-icon-dianzan-fill icon-unlike"></i>
+          <span class="nums" df="" th:classappend="${post.stats.upvote gt 0}? 'visible'"></span>
+        </button>
       </li>
     </th:block>
   </th:block>

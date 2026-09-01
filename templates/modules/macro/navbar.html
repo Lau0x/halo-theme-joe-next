@@ -1,6 +1,7 @@
 <!doctype html>
 <html th:lang="${#locale.toLanguageTag}" xmlns:th="https://www.thymeleaf.org">
   <th:block th:fragment="navbar">
+    <a class="joe_skip-link" href="#joe-main-content">跳到主要内容</a>
     <header class="joe_header">
       <div
         class="joe_header__above"
@@ -10,7 +11,13 @@
           class="joe_container joe_header_container"
           th:classappend="${theme.config.navbar.enable_full_header ? 'full':''}"
         >
-          <i class="joe-font joe-icon-caidan joe_header__above-slideicon"></i>
+          <button
+            type="button"
+            class="joe-font joe-icon-caidan joe_header__above-slideicon"
+            aria-label="打开移动端菜单"
+            aria-controls="joe-mobile-navigation"
+            aria-expanded="false"
+          ></button>
           <th:block
             th:if="${theme.config.navbar.show_logo}"
             th:with="logoLink = ${theme.config.navbar.logo_link == '#'}?'javascript:;':${theme.config.navbar.logo_link}"
@@ -172,6 +179,8 @@
                         th:src="${contributor.avatar}"
                         th:title="${contributor.displayName}"
                         th:alt="${contributor.displayName}"
+                        loading="lazy"
+                        decoding="async"
                         onerror="Joe.errorImg(this, 'ErrAvatarImg')"
                       />
                     </a>
@@ -197,7 +206,7 @@
         </div>
       </div>
 
-      <div class="joe_header__slideout">
+      <nav id="joe-mobile-navigation" class="joe_header__slideout" aria-label="移动端主导航">
         <div class="joe_header__slideout-wrap">
           <img
             width="400"
@@ -205,6 +214,8 @@
             class="joe_header__slideout-image"
             th:src="${theme.config.blogger.author_bg ?: #theme.assets('/img/author_bg.jpg')}"
             alt="侧边栏壁纸"
+            loading="lazy"
+            decoding="async"
             onerror="Joe.errorImg(this)"
           />
           <div class="joe_header__slideout-author">
@@ -216,6 +227,8 @@
               th:src="${theme.config.blogger.avatar ?: (theme.config.blogger.default_avatar ?: '/themes/theme-Joe3/assets/img/transparent-placeholder.png')}"
               alt="博主头像"
               th:data-text-avatar="${theme.config.blogger.name ?: site.title}"
+              loading="lazy"
+              decoding="async"
               onload="Joe.loadedPlaceholderReplaceImg(this, 'AvatarImg')"
               onerror="Joe.errorImg(this, 'ErrAvatarImg')"
             />
@@ -233,6 +246,8 @@
                     class="level"
                     th:src="@{/assets/svg/level_1.svg}"
                     alt="博主等级"
+                    loading="lazy"
+                    decoding="async"
                   />
                 </th:block>
               </a>
@@ -500,7 +515,7 @@
             </li>
           </ul>
         </div>
-      </div>
+      </nav>
 
       <div class="joe_header__searchout">
         <a href="javascript:SearchWidget.open()" title="搜索" aria-label="打开搜索"></a>
@@ -515,7 +530,7 @@
         <!--    </div>-->
       </div>
 
-      <div class="joe_header__toc">
+      <div id="joe-mobile-toc" class="joe_header__toc">
         <div class="joe_header__toc-wrap">
           <div class="toc_top">
             <h3>目 录<span>CONTENT</span></h3>
@@ -524,6 +539,8 @@
               height="150"
               th:src="${theme.config.blogger.author_bg?:'/themes/theme-Joe3/assets/img/context_bg.png'}"
               alt="文章目录"
+              loading="lazy"
+              decoding="async"
               onerror="Joe.errorImg(this)"
             />
           </div>

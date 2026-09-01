@@ -57,6 +57,58 @@ copy() {
   docker cp "$src" "$CONTAINER":"$TARGET"/
 }
 
+resolve_health_endpoint() {
+  local port_mappings mapping bind_host host_port health_host priority
+  local selected_priority=999
+
+  port_mappings=$(docker port "$CONTAINER" 8090/tcp 2>/dev/null || true)
+  PORT_MAPPINGS="$port_mappings"
+  PORT_MAPPING=""
+  HEALTH_HOST=""
+  HOST_PORT=""
+
+  while IFS= read -r mapping; do
+    [[ "$mapping" =~ ^(\[[^]]+\]|[^:]+):([0-9]+)$ ]] || continue
+    bind_host=${BASH_REMATCH[1]}
+    host_port=${BASH_REMATCH[2]}
+    (( 10#$host_port >= 1 && 10#$host_port <= 65535 )) || continue
+
+    # 优先本机 IPv4、IPv4 wildcard、本机 IPv6、IPv6 wildcard，其余具体地址按 Docker 输出顺序选首个。
+    case "$bind_host" in
+      127.0.0.1)
+        health_host="$bind_host"
+        priority=10
+        ;;
+      0.0.0.0)
+        health_host="127.0.0.1"
+        priority=20
+        ;;
+      '[::1]')
+        health_host="$bind_host"
+        priority=30
+        ;;
+      '[::]')
+        health_host="[::1]"
+        priority=40
+        ;;
+      *)
+        health_host="$bind_host"
+        priority=50
+        ;;
+    esac
+
+    if (( priority < selected_priority )); then
+      selected_priority=$priority
+      PORT_MAPPING="$mapping"
+      HEALTH_HOST="$health_host"
+      HOST_PORT=$((10#$host_port))
+    fi
+  done <<< "$port_mappings"
+
+  [ -n "$PORT_MAPPING" ] || return 1
+  HEALTH_URL="http://${HEALTH_HOST}:${HOST_PORT}/actuator/health"
+}
+
 case "$MODE" in
   templates)
     echo -e "${YELLOW}>>> 同步 templates/ 到 ${CONTAINER}:${TARGET}${NC}"
@@ -80,11 +132,29 @@ esac
 if $RESTART; then
   echo -e "${YELLOW}>>> 重启 Halo 让 Thymeleaf 模板缓存失效（约 15s）${NC}"
   docker restart "$CONTAINER" > /dev/null
-  for i in $(seq 1 12); do
-    code=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:8090/actuator/health 2>/dev/null)
-    [ "$code" = "200" ] && echo -e "${GREEN}Halo 就绪（${i}×5s）${NC}" && break
-    sleep 5
+  if ! resolve_health_endpoint; then
+    echo -e "${RED}无法解析 ${CONTAINER} 的容器端口 8090 有效发布映射（端口必须为 1-65535）${NC}"
+    [ -n "$PORT_MAPPINGS" ] && printf '%s\n' "$PORT_MAPPINGS"
+    exit 1
+  fi
+  echo -e "${YELLOW}>>> 健康检查 ${CONTAINER}：${PORT_MAPPING} → ${HEALTH_URL}${NC}"
+  MAX_ATTEMPTS=12
+  RETRY_DELAY=5
+  READY=false
+  for ((i = 1; i <= MAX_ATTEMPTS; i++)); do
+    code=$(curl --noproxy '*' -sS --connect-timeout 1 --max-time 2 -o /dev/null -w "%{http_code}" "$HEALTH_URL" 2>/dev/null || true)
+    if [ "$code" = "200" ]; then
+      echo -e "${GREEN}Halo 就绪：${CONTAINER} @ ${HEALTH_HOST}:${HOST_PORT}（第 ${i}/${MAX_ATTEMPTS} 次）${NC}"
+      READY=true
+      break
+    fi
+    (( i < MAX_ATTEMPTS )) && sleep "$RETRY_DELAY"
   done
+  if ! $READY; then
+    echo -e "${RED}Halo 健康检查超时：${CONTAINER} @ ${HEALTH_URL}${NC}"
+    docker ps -a --filter "name=^/${CONTAINER}$" --format '容器={{.Names}} 状态={{.Status}} 端口={{.Ports}}'
+    exit 1
+  fi
 else
   echo -e "${YELLOW}同步完成（未重启，templates 改动可能被 Thymeleaf 缓存）${NC}"
 fi

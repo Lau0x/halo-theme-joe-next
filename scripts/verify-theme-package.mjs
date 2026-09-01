@@ -515,6 +515,15 @@ const archivesScriptPath = 'templates/assets/js/archives.js';
 const archivesScript = readFileSync(resolve(archivesScriptPath), 'utf8');
 const photosScriptPath = 'templates/assets/js/photos.js';
 const photosScript = readFileSync(resolve(photosScriptPath), 'utf8');
+const photosMinScriptPath = 'templates/assets/js/min/photos.min.js';
+const sourcePhotosMinScript = existsSync(resolve(photosMinScriptPath))
+  ? readFileSync(resolve(photosMinScriptPath))
+  : null;
+if (zipOption && sourcePhotosMinScript == null) {
+  throw new Error(
+    `${photosMinScriptPath}: browser bundle must be built before package verification`
+  );
+}
 const customScriptPath = 'templates/assets/js/custom.js';
 const customScript = readFileSync(resolve(customScriptPath), 'utf8');
 const customMinScriptPath = 'templates/assets/js/min/custom.min.js';
@@ -1188,13 +1197,337 @@ const paginationTemplate = readFileSync(resolve(paginationTemplatePath), 'utf8')
 const paginationEllipsisCount = paginationTemplate.match(/>\.\.\.</g)?.length ?? 0;
 const paginationEllipsisSpans =
   paginationTemplate.match(/<span aria-hidden="true">\.\.\.<\/span>/g)?.length ?? 0;
+const paginationNavigationCount =
+  paginationTemplate.match(/<nav\b[^>]*aria-label="分页导航"[^>]*>/g)?.length ?? 0;
+const paginationListCount =
+  paginationTemplate.match(/<ul\b[^>]*class="joe_pagination"[^>]*>/g)?.length ?? 0;
+const paginationCurrentCount = paginationTemplate.match(/th:aria-current=/g)?.length ?? 0;
+const paginationDisabledCount = paginationTemplate.match(/th:aria-disabled=/g)?.length ?? 0;
+const paginationTabindexCount = paginationTemplate.match(/th:tabindex=/g)?.length ?? 0;
+const paginationConditionalHrefCount =
+  paginationTemplate.match(
+    /th:href="\$\{(?:1 eq pageIndex|pageIndex eq totalPages)\} \? null : @\{\$\{(?:posts|archives|moments|data)\.(?:prevUrl|nextUrl)\}\}"/g
+  )?.length ?? 0;
 if (
   paginationEllipsisCount === 0 ||
   paginationEllipsisSpans !== paginationEllipsisCount ||
-  /<a\b[^>]*href="#"[^>]*>\s*\.\.\.\s*<\/a>/.test(paginationTemplate)
+  /<a\b[^>]*href="#"[^>]*>\s*\.\.\.\s*<\/a>/.test(paginationTemplate) ||
+  paginationNavigationCount !== 7 ||
+  (paginationTemplate.match(/<\/nav>/g)?.length ?? 0) !== 7 ||
+  paginationListCount !== 14 ||
+  /<ul\b[^>]*role="navigation"/.test(paginationTemplate) ||
+  paginationCurrentCount !== 42 ||
+  paginationDisabledCount !== 28 ||
+  paginationTabindexCount !== 28 ||
+  paginationConditionalHrefCount !== 28 ||
+  !commonScript.includes('.find("li.active > a").attr("aria-current", "page")') ||
+  !commonScript.includes('.find("li.disabled > a")') ||
+  !commonScript.includes('.removeAttr("href")') ||
+  !commonScript.includes('{ "aria-disabled": "true", tabindex: "-1" }')
 ) {
   throw new Error(
-    `${paginationTemplatePath}: pagination ellipses must be non-interactive aria-hidden spans`
+    `${paginationTemplatePath}: pagination must expose labelled navigation, current-page state, disabled non-links and non-interactive ellipses`
+  );
+}
+
+const indexTemplatePath = 'templates/index.html';
+const indexTemplate = readFileSync(resolve(indexTemplatePath), 'utf8');
+const loadMoreButton = indexTemplate.match(
+  /<button\b(?=[^>]*class="joe_load")(?=[^>]*type="button")(?=[^>]*aria-busy="false")(?=[^>]*aria-describedby="joe-load-status")[^>]*>/
+)?.[0];
+if (
+  !loadMoreButton ||
+  /<div\b[^>]*class="joe_load"/.test(indexTemplate) ||
+  !/<p\b(?=[^>]*id="joe-load-status")(?=[^>]*class="sr-only")(?=[^>]*role="status")(?=[^>]*aria-live="polite")[^>]*>/.test(
+    indexTemplate
+  ) ||
+  !indexScript.includes('.prop("disabled", true)') ||
+  !indexScript.includes('"aria-busy": "true"') ||
+  !indexScript.includes('"aria-busy": "false"') ||
+  !indexScript.includes('$loadStatus.text("正在加载更多文章")') ||
+  !indexScript.includes('已新增 ${postListNewElements.length} 篇文章') ||
+  !indexScript.includes('已加载全部文章') ||
+  !indexScript.includes('$loadStatus.text("文章加载失败，请重试")') ||
+  !indexScript.includes('const requestedNextUrls = new Set()') ||
+  !indexScript.includes('requestedNextUrls.has(domNext)') ||
+  !indexScript.includes('requestedNextUrls.add(domNext)') ||
+  !indexScript.includes('!requestedNextUrls.has(nextPage)') ||
+  !indexScript.includes('requestedNextUrls.delete(domNext)') ||
+  !indexScript.includes('当前分页没有公开文章，正在继续查找') ||
+  !indexScript.includes('setTimeout(() => $domLoad.trigger("click"), 0)') ||
+  !tail.includes('!domClick.disabled')
+) {
+  throw new Error(
+    `${indexTemplatePath}: AJAX load-more must be a native busy/disabled button with persistent polite success, end and retry status`
+  );
+}
+
+const runPaginationHoleHarness = async (pages, start) => {
+  const requested = new Set();
+  let next = start;
+  while (next && next !== '/' && !requested.has(next)) {
+    requested.add(next);
+    const page = await Promise.resolve(pages[next]);
+    if (page.items > 0) return { requested: [...requested], found: true };
+    next = page.next;
+  }
+  return { requested: [...requested], found: false };
+};
+const holeThenItems = await runPaginationHoleHarness(
+  { A: { items: 0, next: 'B' }, B: { items: 2, next: null } },
+  'A'
+);
+const consecutiveHoles = await runPaginationHoleHarness(
+  { A: { items: 0, next: 'B' }, B: { items: 0, next: null } },
+  'A'
+);
+const selfLoopHole = await runPaginationHoleHarness({ A: { items: 0, next: 'A' } }, 'A');
+if (
+  !holeThenItems.found ||
+  holeThenItems.requested.join(',') !== 'A,B' ||
+  consecutiveHoles.found ||
+  consecutiveHoles.requested.join(',') !== 'A,B' ||
+  selfLoopHole.found ||
+  selfLoopHole.requested.join(',') !== 'A'
+) {
+  throw new Error(
+    `${indexScriptPath}: empty-page traversal must reach later items, exhaust consecutive holes and stop self-loops after one request`
+  );
+}
+
+const favoriteTemplatePath = 'templates/modules/macro/favorite.html';
+const favoriteTemplate = readFileSync(resolve(favoriteTemplatePath), 'utf8');
+const favoriteBottomButton = favoriteTemplate.match(
+  /<button\b[^>]*class="joe_detail__agree"[^>]*>[\s\S]*?<\/button>/
+)?.[0];
+const postOperateTemplatePaths = [
+  'templates/modules/post_operate.html',
+  'templates/modules/post_operate_aside.html',
+];
+if (
+  !/<button\b(?=[^>]*class="joe_detail__agree")(?=[^>]*type="button")(?=[^>]*aria-pressed="false")[^>]*>/.test(
+    favoriteTemplate
+  ) ||
+  !/<button\b(?=[^>]*class="post-operate-like")(?=[^>]*type="button")(?=[^>]*aria-pressed="false")[^>]*>/.test(
+    favoriteTemplate
+  ) ||
+  !favoriteBottomButton ||
+  !/<span class="agree">/.test(favoriteBottomButton) ||
+  !/<span class="icon">/.test(favoriteBottomButton) ||
+  /<div\b/.test(favoriteBottomButton)
+) {
+  throw new Error(
+    `${favoriteTemplatePath}: article like controls must be native buttons with synchronized pressed state and names`
+  );
+}
+const verifyOneWayUpvote = (script, path) => {
+  const method = script.match(/initLike\(\)\s*\{([\s\S]*?)\n\s*\},\n/)?.[1];
+  const handlerGuard = method?.indexOf('if (_loading || flag) return;') ?? -1;
+  const request = method?.indexOf('/apis/api.halo.run/v1alpha1/trackers/upvote') ?? -1;
+  const successState = method?.indexOf('flag = true;', request) ?? -1;
+  if (
+    !method ||
+    handlerGuard < 0 ||
+    request < 0 ||
+    handlerGuard > request ||
+    successState < request ||
+    !method.includes('if (flag) {') ||
+    !method.includes('.prop("disabled", pressed)') ||
+    !method.includes('.attr("aria-pressed", String(pressed))') ||
+    !method.includes('已点赞，当前 ${likeCount} 次点赞') ||
+    !method.includes('likeCount++') ||
+    !method.includes('if (!agreeArr.includes(cid)) agreeArr.push(cid);') ||
+    !/\.catch\(\(\) => \{[\s\S]*?_loading = false;[\s\S]*?\.prop\("disabled", false\)[\s\S]*?\.attr\("aria-busy", "false"\)/.test(
+      method
+    ) ||
+    (method.match(/\/apis\/api\.halo\.run\/v1alpha1\/trackers\/upvote/g)?.length ?? 0) !== 1 ||
+    /取消点赞|likes--|likeCount--|agreeArr\.splice\(/.test(method)
+  ) {
+    throw new Error(
+      `${path}: upvote must be one-way, disable an already-upvoted control and guard a second request`
+    );
+  }
+};
+verifyOneWayUpvote(postScript, postScriptPath);
+const postLikeMethod = postScript.match(/initLike\(\)\s*\{([\s\S]*?)\n\s*\},\n/)?.[1];
+const postSuccess = postLikeMethod?.match(/\.then\(\(_res\) => \{([\s\S]*?)\n\s*\}\)/)?.[1];
+if (
+  !postSuccess ||
+  !postSuccess.includes('localStorage.getItem(encryption("agree"))') ||
+  postSuccess.indexOf('localStorage.getItem(encryption("agree"))') >
+    postSuccess.indexOf('localStorage.setItem(name, val)')
+) {
+  throw new Error(
+    `${postScriptPath}: each successful concurrent upvote must re-read and merge persisted post ids before writing`
+  );
+}
+for (const path of postOperateTemplatePaths) {
+  const template = readFileSync(resolve(path), 'utf8');
+  for (const control of ['icon-share-link', 'share_to_weixin']) {
+    if (
+      !new RegExp(`<button\\b(?=[^>]*class="${control}")(?=[^>]*type="button")[^>]*>`).test(
+        template
+      ) ||
+      new RegExp(`<a\\b[^>]*class="${control}"`).test(template)
+    ) {
+      throw new Error(
+        `${path}: ${control} must be a native button while outbound shares remain links`
+      );
+    }
+  }
+}
+if (
+  !postOperateTemplatePaths.every((path) => {
+    const template = readFileSync(resolve(path), 'utf8');
+    const weixinButton = template.match(
+      /<button\b[^>]*class="share_to_weixin"[^>]*>[\s\S]*?<\/button>/
+    )?.[0];
+    return (
+      weixinButton != null &&
+      /<button\b(?=[^>]*class="share_to_weixin")(?=[^>]*aria-expanded="false")[^>]*>/.test(
+        weixinButton
+      ) &&
+      !/<div\b/.test(weixinButton)
+    );
+  }) ||
+  !postScript.includes('$weixinButtons.off("click.joeWeixinShare")') ||
+  !postScript.includes('.attr("aria-expanded", "true")') ||
+  !postScript.includes('.attr("aria-expanded", "false")')
+) {
+  throw new Error(
+    `${postScriptPath}: WeChat share buttons must toggle valid phrasing-content QR controls and synchronize expanded state`
+  );
+}
+
+const journalsScriptPath = 'templates/assets/js/journals.js';
+const journalsScript = readFileSync(resolve(journalsScriptPath), 'utf8');
+const journalsMinScriptPath = 'templates/assets/js/min/journals.min.js';
+const sourceJournalsMinScript = existsSync(resolve(journalsMinScriptPath))
+  ? readFileSync(resolve(journalsMinScriptPath))
+  : null;
+if (zipOption && sourceJournalsMinScript == null) {
+  throw new Error(
+    `${journalsMinScriptPath}: browser bundle must be built before package verification`
+  );
+}
+verifyOneWayUpvote(journalsScript, journalsScriptPath);
+const journalLikeMethod = journalsScript.match(/initLike\(\)\s*\{([\s\S]*?)\n\s*\},\n/)?.[1];
+const journalSuccess = journalLikeMethod?.match(/\.then\(\(_res\) => \{([\s\S]*?)\n\s*\}\)/)?.[1];
+if (
+  !journalSuccess ||
+  !journalSuccess.includes('localStorage.getItem(encryption("agree-journal"))') ||
+  journalSuccess.indexOf('localStorage.getItem(encryption("agree-journal"))') >
+    journalSuccess.indexOf('localStorage.setItem(name, val)')
+) {
+  throw new Error(
+    `${journalsScriptPath}: each successful concurrent upvote must re-read and merge persisted journal ids before writing`
+  );
+}
+const createDeferred = () => {
+  let resolvePromise;
+  const promise = new Promise((resolveDeferred) => {
+    resolvePromise = resolveDeferred;
+  });
+  return { promise, resolve: resolvePromise };
+};
+let concurrentJournalStorage = '[]';
+const completeConcurrentJournalUpvote = (cid, deferred) =>
+  deferred.promise.then(() => {
+    const current = JSON.parse(concurrentJournalStorage);
+    if (!current.includes(cid)) current.push(cid);
+    concurrentJournalStorage = JSON.stringify(current);
+  });
+const journalDeferredA = createDeferred();
+const journalDeferredB = createDeferred();
+const journalCompletionA = completeConcurrentJournalUpvote('A', journalDeferredA);
+const journalCompletionB = completeConcurrentJournalUpvote('B', journalDeferredB);
+journalDeferredB.resolve();
+await journalCompletionB;
+journalDeferredA.resolve();
+await journalCompletionA;
+if (!['A', 'B'].every((cid) => JSON.parse(concurrentJournalStorage).includes(cid))) {
+  throw new Error(`${journalsScriptPath}: concurrent upvote merge harness lost a journal id`);
+}
+let concurrentPostStorage = '[]';
+const completeConcurrentPostUpvote = (cid, deferred) =>
+  deferred.promise.then(() => {
+    const current = JSON.parse(concurrentPostStorage);
+    if (!current.includes(cid)) current.push(cid);
+    concurrentPostStorage = JSON.stringify(current);
+  });
+const postDeferredA = createDeferred();
+const postDeferredB = createDeferred();
+const postCompletionA = completeConcurrentPostUpvote('A', postDeferredA);
+const postCompletionB = completeConcurrentPostUpvote('B', postDeferredB);
+postDeferredB.resolve();
+await postCompletionB;
+postDeferredA.resolve();
+await postCompletionA;
+if (!['A', 'B'].every((cid) => JSON.parse(concurrentPostStorage).includes(cid))) {
+  throw new Error(`${postScriptPath}: concurrent upvote merge harness lost a post id`);
+}
+for (const path of ['templates/moment.html', 'templates/moments.html']) {
+  const template = readFileSync(resolve(path), 'utf8');
+  if (
+    !/<button\b(?=[^>]*class="joe_journal_operate_item journal_content_expander")(?=[^>]*aria-expanded="false")[^>]*>/.test(
+      template
+    ) ||
+    !/<button\b(?=[^>]*class="joe_journal_operate_item like")(?=[^>]*aria-pressed="false")[^>]*>/.test(
+      template
+    ) ||
+    (template.match(/<button\b[^>]*class="joe_journal_operate_item comment"[^>]*>/g)?.length ??
+      0) !== 2 ||
+    (template.match(
+      /<button\b[^>]*class="joe_journal_operate_item journal_comment_expander"[^>]*>/g
+    )?.length ?? 0) !== 2 ||
+    !template.includes('th:id="\'journal-comment-\'+${moment.metadata.name}"')
+  ) {
+    throw new Error(
+      `${path}: moment like, comment and content expanders must be native stateful buttons bound to the comment panel`
+    );
+  }
+}
+const phase2GlobalStylesPath = 'templates/assets/css/global.less';
+const phase2GlobalStyles = readFileSync(resolve(phase2GlobalStylesPath), 'utf8');
+const phase2PostStylesPath = 'templates/assets/css/post.less';
+const phase2PostStyles = readFileSync(resolve(phase2PostStylesPath), 'utf8');
+if (
+  (phase2GlobalStyles.match(/&:focus-within/g)?.length ?? 0) !== 1 ||
+  !/&:hover,\s*&:focus-within\s*\{[\s\S]*?width:\s*auto;[\s\S]*?overflow:\s*initial;[\s\S]*?\.share-icon-list\s*\{[\s\S]*?pointer-events:\s*initial;[\s\S]*?opacity:\s*1;[\s\S]*?transform:\s*scale\(1\);/.test(
+    phase2GlobalStyles
+  ) ||
+  (phase2PostStyles.match(/&:focus-within/g)?.length ?? 0) !== 1 ||
+  !/&:hover,\s*&:focus-within\s*\{[\s\S]*?overflow:\s*initial;[\s\S]*?\.share-icon-list\s*\{[\s\S]*?pointer-events:\s*initial;[\s\S]*?opacity:\s*1;[\s\S]*?transform:\s*translate3d\(15px,\s*0,\s*0\);/.test(
+    phase2PostStyles
+  ) ||
+  phase2PostStyles.includes('\n    span {\n      display: none;') ||
+  !/>\s*\.post-operate-like\s*>\s*\.nums,\s*>\s*\.post-operate-comment\s*>\s*span\s*\{/.test(
+    phase2PostStyles
+  ) ||
+  !/\.share_to_weixin\.active\s+\.qrcode_wrapper\s*\{\s*display:\s*block;/.test(phase2PostStyles) ||
+  !/\.joe_load\s*\{[\s\S]*?appearance:\s*none;[\s\S]*?display:\s*block;/.test(phase2GlobalStyles)
+) {
+  throw new Error(
+    `${phase2GlobalStylesPath} and ${phase2PostStylesPath}: share menus must expose the complete hover state on keyboard focus`
+  );
+}
+if (
+  !paginationTemplate.includes('th:href="${author.status.permalink}"') ||
+  (paginationTemplate.match(/<a href="\/" th:aria-current=/g)?.length ?? 0) !== 1
+) {
+  throw new Error(
+    `${paginationTemplatePath}: author pagination must link page one to the author permalink`
+  );
+}
+if (
+  !journalsScript.includes('$likeButton.on("click"') ||
+  !journalsScript.includes('.attr("aria-pressed", String(pressed))') ||
+  !journalsScript.includes('".journal_comment_expander,.joe_journal_operate_item.comment"') ||
+  !journalsScript.includes('.attr("aria-expanded", String(isOpen))') ||
+  !journalsScript.includes('$(".journal_content_expander").on("click"')
+) {
+  throw new Error(
+    `${journalsScriptPath}: moment controls must synchronize pressed, expanded, busy and accessible-name state`
   );
 }
 const animationSettings = [
@@ -1558,6 +1891,10 @@ if (
 }
 
 const expectedSourceLinkResolver = `\${(#strings.trim(theme.config.basic.source_link) != '' and #bools.isTrue(theme.config.basic.enable_source_link) and !#strings.contains(#strings.toLowerCase(#strings.trim(theme.config.basic.source_link)), 'jiewenhuang/halo-theme-joe3.0') and !#strings.contains(#strings.toLowerCase(#strings.trim(theme.config.basic.source_link)), 'jiewenhuang.github.io')) ? #strings.trim(theme.config.basic.source_link) : '/themes/theme-Joe3'}`;
+const expectedThemeConfigSourceLinkResolver = expectedSourceLinkResolver.replace(
+  '#bools.isTrue(theme.config.basic.enable_source_link)',
+  'enableSourceLink'
+);
 const normalizeSourceLinkResolver = (value) => value.replace(/\s+/g, ' ').trim();
 const normalizedSourceLinkResolver = normalizeSourceLinkResolver(expectedSourceLinkResolver);
 const sourceLinkResolverPolicies = [
@@ -1584,8 +1921,12 @@ if (actualSourceLinkResolverPaths.join('\n') !== expectedSourceLinkResolverPaths
 }
 for (const [path, expectedCount] of sourceLinkResolverPolicies) {
   const source = activeHtmlTemplates.find((template) => template.path === path)?.source ?? '';
+  const expectedResolver =
+    path === 'modules/themeSettingVariable.html'
+      ? normalizeSourceLinkResolver(expectedThemeConfigSourceLinkResolver)
+      : normalizedSourceLinkResolver;
   const count = [...source.matchAll(/\$\{[^}]*\}/g)].filter(
-    ([expression]) => normalizeSourceLinkResolver(expression) === normalizedSourceLinkResolver
+    ([expression]) => normalizeSourceLinkResolver(expression) === expectedResolver
   ).length;
   if (count !== expectedCount) {
     throw new Error(
@@ -1708,6 +2049,2481 @@ for (const name of ['enable_toc', 'enable_share']) {
     );
   }
 }
+
+const getThemeSetting = (group, name) =>
+  sourceSettings.spec?.forms
+    ?.find((form) => form?.group === group)
+    ?.formSchema?.find((setting) => setting?.name === name);
+const enableCopySetting = getThemeSetting('post', 'enable_copy');
+const enableAdsenseSetting = getThemeSetting('ads', 'enable_adsense');
+const adsenseClientSetting = getThemeSetting('ads', 'adsense_client_id');
+const baiduEntrySetting = getThemeSetting('other', 'check_baidu_collect');
+const legacyBaiduTokenSetting = getThemeSetting('other', 'baidu_token');
+const enableSheetAsideSetting = getThemeSetting('aside', 'enable_sheet_aside');
+if (
+  enableCopySetting?.value !== true ||
+  enableAdsenseSetting?.if !== '$get(enable_ads).value == true' ||
+  adsenseClientSetting?.if !==
+    '$get(enable_ads).value == true && $get(enable_adsense).value == true' ||
+  !['百度', '查询', '提交', '入口'].every((term) => baiduEntrySetting?.label?.includes(term)) ||
+  !['不会自动', '检测', '推送'].every((term) => baiduEntrySetting?.help?.includes(term)) ||
+  !['兼容', '不使用'].every((term) => legacyBaiduTokenSetting?.label?.includes(term)) ||
+  !['不会读取', '输出', '使用'].every((term) => legacyBaiduTokenSetting?.help?.includes(term)) ||
+  enableSheetAsideSetting?.value !== true ||
+  !enableSheetAsideSetting?.help?.includes('默认开启') ||
+  enableSheetAsideSetting?.help?.includes('默认关闭')
+) {
+  throw new Error(
+    `${settingsPath}: copy, ad master switch and Baidu entry settings must keep their honest defaults and compatibility contract`
+  );
+}
+
+const contentAnnotationSettings = new Map(
+  sourceAnnotationSettings
+    .filter(
+      (document) =>
+        document?.kind === 'AnnotationSetting' &&
+        document.spec?.targetRef?.group === 'content.halo.run' &&
+        ['Post', 'SinglePage'].includes(document.spec?.targetRef?.kind)
+    )
+    .map((document) => [document.spec.targetRef.kind, document])
+);
+const readLimitHelpRequirements = new Map([
+  [
+    'Post',
+    ['仅普通文章', 'Halo 默认评论', '客户端视觉折叠/展开', '不适合私密或付费内容', 'Waline 不支持'],
+  ],
+  [
+    'SinglePage',
+    [
+      '仅普通自定义页',
+      'Halo 默认评论',
+      '客户端视觉折叠/展开',
+      '不适合私密或付费内容',
+      '留言板模板不启用',
+      'Waline 不支持',
+    ],
+  ],
+]);
+for (const kind of ['Post', 'SinglePage']) {
+  const formSchema = contentAnnotationSettings.get(kind)?.spec?.formSchema ?? [];
+  const baiduSetting = formSchema.find(({ name }) => name === 'enable_collect_check');
+  const readLimitSetting = formSchema.find(({ name }) => name === 'enable_read_limit');
+  if (
+    !['百度', '查询', '提交'].every((term) => baiduSetting?.label?.includes(term)) ||
+    !['评论', '展开'].every((term) => readLimitSetting?.label?.includes(term)) ||
+    !readLimitHelpRequirements
+      .get(kind)
+      .every((requirement) => readLimitSetting?.help?.includes(requirement))
+  ) {
+    throw new Error(
+      `${annotationSettingsPath}: ${kind} Baidu and comment-expand annotations must describe their actual client-side behavior`
+    );
+  }
+}
+
+const normalizeContractAttribute = (value) => value?.replace(/\s+/g, '') ?? '';
+const contractTemplatePaths = [
+  'templates/index.html',
+  'templates/author.html',
+  'templates/archives.html',
+  'templates/categories.html',
+  'templates/category.html',
+  'templates/friends.html',
+  'templates/links.html',
+  'templates/moment.html',
+  'templates/moments.html',
+  'templates/page.html',
+  'templates/page_leaving.html',
+  'templates/page_links.html',
+  'templates/photos.html',
+  'templates/post.html',
+  'templates/tag.html',
+  'templates/tags.html',
+  'templates/modules/layout.html',
+  'templates/modules/common/actions.html',
+  'templates/modules/macro/navbar.html',
+  'templates/modules/common/aside.html',
+  'templates/modules/common/aside_post.html',
+  'templates/modules/common/footer.html',
+  'templates/modules/themeSettingVariable.html',
+  'templates/modules/widgets/asideWidget.html',
+];
+const createContractDocument = (path, source = readFileSync(resolve(path), 'utf8')) => {
+  const activeMarkup = maskInactiveMarkup(source);
+  const elements = parseMarkupElements(activeMarkup, path);
+  return {
+    activeMarkup,
+    byStart: new Map(elements.map((element) => [element.start, element])),
+    elements,
+    path,
+    source,
+  };
+};
+const contractDocuments = new Map(
+  contractTemplatePaths.map((path) => [path, createContractDocument(path)])
+);
+const contractAttributes = (document, element) =>
+  readTagAttributes(element.openingTag, document.path);
+const contractParent = (document, element) => document.byStart.get(element.parentStart);
+const hasContractClass = (document, element, className) =>
+  (contractAttributes(document, element).get('class') ?? '').split(/\s+/).includes(className);
+const requireUniqueContractElement = (document, predicate, description) => {
+  const matches = document.elements.filter(predicate);
+  if (matches.length !== 1) {
+    throw new Error(`${document.path}: expected one ${description}, found ${matches.length}`);
+  }
+  return matches[0];
+};
+const requireContractAttribute = (document, element, name, expected, description) => {
+  if (element == null) {
+    throw new Error(`${document.path}: ${description}`);
+  }
+  const actual = contractAttributes(document, element).get(name);
+  if (normalizeContractAttribute(actual) !== normalizeContractAttribute(expected)) {
+    throw new Error(`${document.path}: ${description}`);
+  }
+};
+const requireContractAttributeAbsent = (document, element, name, description) => {
+  if (element == null || contractAttributes(document, element).has(name)) {
+    throw new Error(`${document.path}: ${description}`);
+  }
+};
+
+const layoutPagePaths = htmlTemplates
+  .filter(({ path, source }) => !path.includes('/') && source.includes('modules/layout :: html'))
+  .map(({ path }) => `templates/${path}`);
+for (const path of layoutPagePaths) {
+  const document = contractDocuments.get(path) ?? createContractDocument(path);
+  const landmarks = document.elements.filter((element) => {
+    const attributes = contractAttributes(document, element);
+    return element.name === 'main' || attributes.get('role') === 'main';
+  });
+  if (landmarks.length !== 1) {
+    throw new Error(`${path}: every shared-layout page must render exactly one main landmark`);
+  }
+  const main = landmarks[0];
+  if (
+    main.name !== 'main' ||
+    !hasContractClass(document, main, 'joe_main_container') ||
+    contractAttributes(document, main).get('id') !== 'joe-main-content' ||
+    contractAttributes(document, main).get('tabindex') !== '-1'
+  ) {
+    throw new Error(
+      `${path}: the existing joe_main_container must be <main id="joe-main-content" tabindex="-1">`
+    );
+  }
+}
+
+const navbarDocument = contractDocuments.get('templates/modules/macro/navbar.html');
+const skipLink = requireUniqueContractElement(
+  navbarDocument,
+  (element) => element.name === 'a' && hasContractClass(navbarDocument, element, 'joe_skip-link'),
+  'skip link'
+);
+requireContractAttribute(
+  navbarDocument,
+  skipLink,
+  'href',
+  '#joe-main-content',
+  'the skip link must target the shared main landmark'
+);
+const mobileMenuTriggers = navbarDocument.elements.filter((element) =>
+  hasContractClass(navbarDocument, element, 'joe_header__above-slideicon')
+);
+const mobileMenu = requireUniqueContractElement(
+  navbarDocument,
+  (element) => contractAttributes(navbarDocument, element).get('id') === 'joe-mobile-navigation',
+  'mobile menu container'
+);
+const mobileToc = requireUniqueContractElement(
+  navbarDocument,
+  (element) => contractAttributes(navbarDocument, element).get('id') === 'joe-mobile-toc',
+  'mobile TOC container'
+);
+const actionsDocument = contractDocuments.get('templates/modules/common/actions.html');
+const mobileTocTrigger = requireUniqueContractElement(
+  actionsDocument,
+  (element) => element.name === 'button' && hasContractClass(actionsDocument, element, 'toc'),
+  'mobile TOC trigger'
+);
+if (
+  mobileMenuTriggers.length !== 1 ||
+  mobileMenuTriggers[0].name !== 'button' ||
+  contractAttributes(navbarDocument, mobileMenuTriggers[0]).get('type') !== 'button' ||
+  contractAttributes(navbarDocument, mobileMenuTriggers[0]).get('aria-controls') !==
+    'joe-mobile-navigation' ||
+  contractAttributes(navbarDocument, mobileMenuTriggers[0]).get('aria-expanded') !== 'false' ||
+  !contractAttributes(navbarDocument, mobileMenuTriggers[0]).get('aria-label') ||
+  mobileMenu.name !== 'nav' ||
+  contractAttributes(navbarDocument, mobileMenu).get('aria-label') !== '移动端主导航' ||
+  mobileToc.name !== 'div' ||
+  contractAttributes(actionsDocument, mobileTocTrigger).get('aria-controls') !== 'joe-mobile-toc' ||
+  contractAttributes(actionsDocument, mobileTocTrigger).get('aria-expanded') !== 'false'
+) {
+  throw new Error(
+    'templates/modules/macro/navbar.html: mobile navigation must use one labelled native button controlling one stable menu id'
+  );
+}
+
+const drawerMobileMethod = commonScript.match(
+  /drawerMobile\(\)\s*\{([\s\S]*?)\n\t\},\n\t\/\* 小屏幕搜索框/
+)?.[1];
+const activeDrawerRuntime = stripSlashComments(drawerMobileMethod ?? '', true);
+const skipLinkMethod = commonScript.match(
+  /initSkipLink\(\)\s*\{([\s\S]*?)\n\t\},\n\t\/\* 小屏幕搜索框/
+)?.[1];
+const activeSkipLinkRuntime = stripSlashComments(skipLinkMethod ?? '', true);
+const maskCloseMethod = commonScript.match(
+  /maskClose\(\)\s*\{([\s\S]*?)\n\t\},\n\t\/\* 移动端侧边栏菜单手风琴/
+)?.[1];
+const activeMaskCloseRuntime = stripSlashComments(maskCloseMethod ?? '', true);
+const postTocMethod = postScript.match(
+  /initToc\(reload\)\s*\{([\s\S]*?)\n\t\},\n\t\/\*\*初始化左侧工具条/
+)?.[1];
+const activePostTocRuntime = stripSlashComments(postTocMethod ?? '', true);
+const landmarkOverrideStyles = readFileSync(
+  resolve('templates/assets/css/joe-next-overrides.less'),
+  'utf8'
+);
+const mobileTriggerStyles = landmarkOverrideStyles.match(
+  /#Joe\s+\.joe_header__above-slideicon\s*\{([\s\S]*?)\n\}/
+)?.[1];
+const commonRuntimeAst = parseAst(commonScript, { sourceType: 'script' }, commonScriptPath);
+const overlayStateFactories = [];
+walkEffectAst(commonRuntimeAst, (node) => {
+  if (node.type === 'FunctionDeclaration' && node.id?.name === 'createJoeOverlayScrollState') {
+    overlayStateFactories.push(node);
+  }
+});
+if (overlayStateFactories.length !== 1) {
+  throw new Error(`${commonScriptPath}: expected one overlay scroll-state factory`);
+}
+const overlayStateFactorySource = commonScript.slice(
+  overlayStateFactories[0].start,
+  overlayStateFactories[0].end
+);
+const overlayStateFactory = Function(`"use strict"; return (${overlayStateFactorySource});`)();
+let overlayOpen = false;
+const throwingStorage = {
+  getItem() {
+    throw new DOMException('denied', 'SecurityError');
+  },
+  setItem() {
+    throw new DOMException('denied', 'SecurityError');
+  },
+  removeItem() {
+    throw new DOMException('denied', 'SecurityError');
+  },
+};
+const failSoftState = overlayStateFactory(throwingStorage, () => overlayOpen);
+failSoftState.remember(120);
+overlayOpen = true;
+failSoftState.remember(999);
+const failSoftRestore = failSoftState.restore();
+const staleStorageValues = new Map([['joeOverlayScroll', 'garbage']]);
+const staleStorage = {
+  getItem(key) {
+    return staleStorageValues.get(key) ?? null;
+  },
+  setItem(key, value) {
+    staleStorageValues.set(key, value);
+  },
+  removeItem(key) {
+    staleStorageValues.delete(key);
+  },
+};
+overlayOpen = false;
+const staleState = overlayStateFactory(staleStorage, () => overlayOpen);
+const ignoredStaleRestore = staleState.restore();
+staleState.remember(Number.NaN);
+const garbageRestore = staleState.restore();
+staleState.remember(-1);
+const negativeRestore = staleState.restore();
+staleState.remember(Number.POSITIVE_INFINITY);
+const infiniteRestore = staleState.restore();
+staleState.remember(42);
+overlayOpen = true;
+staleState.remember(84);
+const switchedRestore = staleState.restore();
+const postRuntimeAst = parseAst(postScript, { sourceType: 'script' }, postScriptPath);
+const tocFocusFunctions = [];
+walkEffectAst(postRuntimeAst, (node) => {
+  if (node.type === 'FunctionDeclaration' && node.id?.name === 'focusJoeTocHeading') {
+    tocFocusFunctions.push(node);
+  }
+});
+if (tocFocusFunctions.length !== 1) {
+  throw new Error(`${postScriptPath}: expected one mobile TOC heading-focus function`);
+}
+const tocFocusSource = postScript.slice(tocFocusFunctions[0].start, tocFocusFunctions[0].end);
+const headingAttributes = new Map();
+let headingFocusOptions = null;
+let headingBlurHandler = null;
+let fallbackFocusCount = 0;
+const headingHarness = {
+  hasAttribute(name) {
+    return headingAttributes.has(name);
+  },
+  getAttribute(name) {
+    return headingAttributes.get(name) ?? null;
+  },
+  setAttribute(name, value) {
+    headingAttributes.set(name, value);
+  },
+  removeAttribute(name) {
+    headingAttributes.delete(name);
+  },
+  addEventListener(type, callback, options) {
+    if (type === 'blur' && options?.once === true) headingBlurHandler = callback;
+  },
+  focus(options) {
+    headingFocusOptions = options;
+  },
+};
+const tocFocusHarness = Function(
+  'document',
+  `"use strict"; return (${tocFocusSource});`
+)({
+  getElementById(id) {
+    return id === 'section 1' ? headingHarness : null;
+  },
+});
+const fallbackHarness = {
+  focus() {
+    fallbackFocusCount += 1;
+  },
+};
+tocFocusHarness({ currentTarget: { closest: () => ({ hash: '#section%201' }) } }, fallbackHarness);
+headingAttributes.set('tabindex', '-1');
+headingBlurHandler?.();
+const absentTabindexRestored = !headingAttributes.has('tabindex');
+headingAttributes.set('tabindex', '0');
+headingBlurHandler = null;
+tocFocusHarness({ currentTarget: { closest: () => ({ hash: '#section%201' }) } }, fallbackHarness);
+headingAttributes.set('tabindex', '-1');
+headingBlurHandler?.();
+const explicitTabindexRestored = headingAttributes.get('tabindex') === '0';
+tocFocusHarness({ target: { closest: () => ({ hash: '#missing' }) } }, fallbackHarness);
+tocFocusHarness({ target: { closest: () => ({ hash: '#%E0%A4' }) } }, fallbackHarness);
+const maskDrawerCaptureIndex = activeMaskCloseRuntime.indexOf('const drawerWasOpen');
+const maskTocCaptureIndex = activeMaskCloseRuntime.indexOf('const tocWasOpen');
+const maskDrawerCloseIndex = activeMaskCloseRuntime.indexOf(
+  '$(".joe_header__slideout").removeClass("active")'
+);
+const maskTocCloseIndex = activeMaskCloseRuntime.indexOf(
+  '$(".joe_header__toc").removeClass("active")'
+);
+const maskTocFocusIndex = activeMaskCloseRuntime.indexOf(
+  'if (tocWasOpen) $(".joe_action .toc").trigger("focus")'
+);
+const maskDrawerFocusIndex = activeMaskCloseRuntime.indexOf(
+  'else if (drawerWasOpen) $(".joe_header__above-slideicon").trigger("focus")'
+);
+const tocHiddenCloseIndex = activePostTocRuntime.indexOf('$mobile_toc.removeClass("active")');
+const tocStateClearIndex = activePostTocRuntime.indexOf('window.JoeOverlayScroll.clear()');
+const tocHeadingFocusIndex = activePostTocRuntime.indexOf(
+  'focusJoeTocHeading(e, $btn_mobile_toc[0])'
+);
+const drawerFocusSource = commonScript.match(/function scheduleJoeDrawerFocus\([\s\S]*?\n\}/)?.[0];
+const drawerFocusControllerSource = commonScript
+  .match(
+    /function createJoeDrawerFocusController\([\s\S]*?\n\}\n\nconst joeDrawerFocusController/
+  )?.[0]
+  .replace(/\n\nconst joeDrawerFocusController$/, '');
+const verifyDrawerFocusBehavior = (source) => {
+  const scheduler = Function(
+    'window',
+    `"use strict"; ${source}; return scheduleJoeDrawerFocus;`
+  )({ getComputedStyle: (node) => ({ visibility: node.visibility ?? 'visible' }) });
+  const createItem = ({ rect = true, closest = null, ancestorVisibility = 'visible' } = {}) => {
+    const item = {
+      focusCount: 0,
+      getClientRects: () => (rect ? [1] : []),
+      closest: (selector) => (selector === closest ? {} : null),
+      parentElement: null,
+      focus() {
+        this.focusCount += 1;
+      },
+    };
+    if (ancestorVisibility !== 'visible') {
+      item.parentElement = { visibility: ancestorVisibility, parentElement: null };
+    }
+    return item;
+  };
+  const flush = (frames) => {
+    while (frames.length) frames.shift()();
+  };
+  const verifyRejectedCandidate = (options) => {
+    const frames = [];
+    const rejected = createItem(options);
+    const visible = createItem();
+    scheduler(
+      (callback) => frames.push(callback),
+      () => true,
+      () => [rejected, visible],
+      1,
+      () => 1
+    );
+    flush(frames);
+    return rejected.focusCount === 0 && visible.focusCount === 1;
+  };
+  const frames = [];
+  let generation = 1;
+  const stale = createItem();
+  const current = createItem();
+  scheduler(
+    (callback) => frames.push(callback),
+    () => true,
+    () => [stale],
+    generation,
+    () => generation
+  );
+  generation += 1;
+  generation += 1;
+  scheduler(
+    (callback) => frames.push(callback),
+    () => true,
+    () => [current],
+    generation,
+    () => generation
+  );
+  flush(frames);
+  return (
+    stale.focusCount === 0 &&
+    current.focusCount === 1 &&
+    verifyRejectedCandidate({ ancestorVisibility: 'hidden' }) &&
+    verifyRejectedCandidate({ closest: '[hidden]' }) &&
+    verifyRejectedCandidate({ closest: '[inert]' }) &&
+    verifyRejectedCandidate({ closest: '[aria-hidden="true"]' }) &&
+    verifyRejectedCandidate({ rect: false })
+  );
+};
+const createDrawerFocusControllerHarness = (controllerSource = drawerFocusControllerSource) => {
+  const frames = [];
+  const createController = Function(
+    'window',
+    `"use strict"; ${drawerFocusSource}; ${controllerSource}; return createJoeDrawerFocusController;`
+  )({ getComputedStyle: () => ({ visibility: 'visible' }) });
+  const makeItem = () => ({
+    focusCount: 0,
+    getClientRects: () => [1],
+    closest: () => null,
+    parentElement: null,
+    focus() {
+      this.focusCount += 1;
+    },
+  });
+  return {
+    createController: () => createController((callback) => frames.push(callback)),
+    flush: () => {
+      while (frames.length) frames.shift()();
+    },
+    makeItem,
+  };
+};
+const verifyBeginInitCancelsQueuedFocus = (controllerSource) => {
+  const harness = createDrawerFocusControllerHarness(controllerSource);
+  const controller = harness.createController();
+  const contextA = controller.beginInit();
+  const stale = harness.makeItem();
+  contextA.schedule(
+    () => true,
+    () => [stale]
+  );
+  controller.beginInit();
+  harness.flush();
+  return stale.focusCount === 0;
+};
+const verifyInvalidateCancelsQueuedFocus = (controllerSource) => {
+  const harness = createDrawerFocusControllerHarness(controllerSource);
+  const context = harness.createController().beginInit();
+  const stale = harness.makeItem();
+  context.schedule(
+    () => true,
+    () => [stale]
+  );
+  context.invalidate();
+  harness.flush();
+  return stale.focusCount === 0;
+};
+const verifyLatestScheduleWins = (controllerSource) => {
+  const harness = createDrawerFocusControllerHarness(controllerSource);
+  const context = harness.createController().beginInit();
+  const stale = harness.makeItem();
+  const current = harness.makeItem();
+  context.schedule(
+    () => true,
+    () => [stale]
+  );
+  context.schedule(
+    () => true,
+    () => [current]
+  );
+  harness.flush();
+  return stale.focusCount === 0 && current.focusCount === 1;
+};
+const verifyDrawerFocusAcrossInitContexts = (useLocalControllers = false) => {
+  const harness = createDrawerFocusControllerHarness();
+  const sharedController = harness.createController();
+  const contextA = sharedController.beginInit();
+  const stale = harness.makeItem();
+  contextA.schedule(
+    () => true,
+    () => [stale]
+  );
+  const controllerB = useLocalControllers ? harness.createController() : sharedController;
+  const contextB = controllerB.beginInit();
+  contextB.invalidate();
+  const current = harness.makeItem();
+  contextB.schedule(
+    () => true,
+    () => [current]
+  );
+  harness.flush();
+  return stale.focusCount === 0 && current.focusCount === 1;
+};
+const mutateDrawerController = (target, replacement) => {
+  if (!drawerFocusControllerSource || drawerFocusControllerSource.split(target).length !== 2) {
+    return null;
+  }
+  return drawerFocusControllerSource.replace(target, replacement);
+};
+const beginInitGenerationMutation = mutateDrawerController(
+  'beginInit() {\n\t\t\tgeneration += 1;',
+  'beginInit() {\n\t\t\tgeneration += 0;'
+);
+const invalidateGenerationMutation = mutateDrawerController(
+  'invalidate() {\n\t\t\t\t\tgeneration += 1;',
+  'invalidate() {\n\t\t\t\t\tgeneration += 0;'
+);
+const scheduleGenerationMutation = mutateDrawerController(
+  'const focusGeneration = ++generation;',
+  'const focusGeneration = generation;'
+);
+const drawerLocalGenerationMutation = activeDrawerRuntime.replace(
+  'const drawerFocusContext = joeDrawerFocusController.beginInit();',
+  'const drawerFocusContext = createJoeDrawerFocusController(window.requestAnimationFrame).beginInit();'
+);
+const drawerFocusMutations = [
+  ['if (focusGeneration !== getGeneration() || !isOpen()) return;', 'if (!isOpen()) return;'],
+  ['if (!item.getClientRects().length) return false;', 'if (false) return false;'],
+  [`if (item.closest('[aria-hidden="true"]')) return false;`, 'if (false) return false;'],
+  ['if (item.closest("[inert]")) return false;', 'if (false) return false;'],
+  ['if (item.closest("[hidden]")) return false;', 'if (false) return false;'],
+  [
+    'if (window.getComputedStyle(node).visibility === "hidden") return false;',
+    'if (false) return false;',
+  ],
+].map(([guard, replacement]) => drawerFocusSource?.replace(guard, replacement));
+if (!drawerFocusSource || !drawerFocusControllerSource) {
+  throw new Error(`${commonScriptPath}: drawer focus implementation could not be verified`);
+}
+const beginInitCancellationPassed = verifyBeginInitCancelsQueuedFocus(drawerFocusControllerSource);
+if (
+  !beginInitCancellationPassed ||
+  !beginInitGenerationMutation ||
+  verifyBeginInitCancelsQueuedFocus(beginInitGenerationMutation)
+) {
+  throw new Error(`${commonScriptPath}: beginInit stale cancellation must invalidate queued focus`);
+}
+const invalidateCancellationPassed = verifyInvalidateCancelsQueuedFocus(
+  drawerFocusControllerSource
+);
+if (
+  !invalidateCancellationPassed ||
+  !invalidateGenerationMutation ||
+  verifyInvalidateCancelsQueuedFocus(invalidateGenerationMutation)
+) {
+  throw new Error(
+    `${commonScriptPath}: invalidate stale cancellation must invalidate queued focus`
+  );
+}
+const scheduleSupersessionPassed = verifyLatestScheduleWins(drawerFocusControllerSource);
+if (
+  !scheduleSupersessionPassed ||
+  !scheduleGenerationMutation ||
+  verifyLatestScheduleWins(scheduleGenerationMutation)
+) {
+  throw new Error(`${commonScriptPath}: schedule supersession must focus only the latest request`);
+}
+if (
+  !verifyDrawerFocusAcrossInitContexts() ||
+  drawerLocalGenerationMutation === activeDrawerRuntime ||
+  verifyDrawerFocusAcrossInitContexts(true)
+) {
+  throw new Error(
+    `${commonScriptPath}: drawer focus generation must be shared across initializations`
+  );
+}
+if (
+  !verifyDrawerFocusBehavior(drawerFocusSource) ||
+  drawerFocusMutations.some(
+    (mutation) => !mutation || mutation === drawerFocusSource || verifyDrawerFocusBehavior(mutation)
+  )
+) {
+  throw new Error(
+    `${commonScriptPath}: drawer focus must reject stale generations and hidden candidates`
+  );
+}
+const verifySkipLinkBehavior = (source) => {
+  const handlers = [];
+  let pushes = 0;
+  let focuses = 0;
+  let scrolls = 0;
+  const selection = {
+    off(event) {
+      if (event === 'click.joeSkipLink') handlers.length = 0;
+      return this;
+    },
+    on(event, handler) {
+      if (event === 'click.joeSkipLink') handlers.push(handler);
+      return this;
+    },
+  };
+  const target = {
+    focus: () => {
+      focuses += 1;
+    },
+    scrollIntoView: () => {
+      scrolls += 1;
+    },
+  };
+  const init = Function(
+    '$',
+    'document',
+    'history',
+    `"use strict"; return function () {${source}};`
+  )(() => selection, { getElementById: () => target }, { pushState: () => (pushes += 1) });
+  init();
+  init();
+  handlers.forEach((handler) =>
+    handler.call({ hash: '#joe-main-content' }, { preventDefault() {} })
+  );
+  return handlers.length === 1 && pushes === 1 && focuses === 1 && scrolls === 1;
+};
+const skipLinkMutation = activeSkipLinkRuntime.replace('.off("click.joeSkipLink")', '');
+if (!verifySkipLinkBehavior(activeSkipLinkRuntime) || verifySkipLinkBehavior(skipLinkMutation)) {
+  throw new Error(`${commonScriptPath}: skip-link initialization must be idempotent`);
+}
+if (
+  !activeDrawerRuntime.includes('.attr("aria-expanded", String(expanded))') ||
+  !activeDrawerRuntime.includes('e.key !== "Escape"') ||
+  !activeDrawerRuntime.includes('closeDrawer(true)') ||
+  !activeDrawerRuntime.includes('$trigger.trigger("focus")') ||
+  !activeDrawerRuntime.includes(".find('a[href], button:not([disabled])") ||
+  !activeDrawerRuntime.includes('joeDrawerFocusController.beginInit()') ||
+  !activeDrawerRuntime.includes('drawerFocusContext.invalidate()') ||
+  !activeDrawerRuntime.includes('drawerFocusContext.schedule(') ||
+  activeDrawerRuntime.includes('let drawerFocusGeneration') ||
+  !activeDrawerRuntime.includes('$mobileToc.removeClass("active")') ||
+  !activeDrawerRuntime.includes('window.JoeOverlayScroll.remember(') ||
+  !activeDrawerRuntime.includes('window.JoeOverlayScroll.restore()') ||
+  !activeDrawerRuntime.includes('$trigger.off("click.joeMobileDrawer").on(') ||
+  !activeDrawerRuntime.includes('$(document).off("keydown.joeMobileDrawer").on(') ||
+  !activeMaskCloseRuntime.includes('.attr("aria-expanded", "false")') ||
+  !activeMaskCloseRuntime.includes('.off("click.joeOverlay touchmove.joeOverlay")') ||
+  !activeMaskCloseRuntime.includes('.on("click.joeOverlay"') ||
+  !activeMaskCloseRuntime.includes('.on("touchmove.joeOverlay"') ||
+  !activeMaskCloseRuntime.includes('$(".joe_header__toc").removeClass("active")') ||
+  !activeMaskCloseRuntime.includes('const drawerWasOpen') ||
+  !activeMaskCloseRuntime.includes('const tocWasOpen') ||
+  !activeMaskCloseRuntime.includes('if (tocWasOpen)') ||
+  !activeMaskCloseRuntime.includes('else if (drawerWasOpen)') ||
+  !activeMaskCloseRuntime.includes('window.JoeOverlayScroll.restore()') ||
+  !activePostTocRuntime.includes('$drawer.removeClass("active")') ||
+  !activePostTocRuntime.includes('.attr("aria-expanded", "false")') ||
+  !activePostTocRuntime.includes('$btn_mobile_toc.off("click.joeMobileToc").on(') ||
+  !activePostTocRuntime.includes('if ($mobile_toc.hasClass("active"))') ||
+  !activePostTocRuntime.includes('closeMobileToc(true);\n\t\t\t\t\treturn;') ||
+  !activePostTocRuntime.includes('$(document).off("keydown.joeMobileToc").on(') ||
+  !activePostTocRuntime.includes('e.key !== "Escape"') ||
+  !activePostTocRuntime.includes('closeMobileToc(true)') ||
+  !activePostTocRuntime.includes('$btn_mobile_toc.trigger("focus")') ||
+  !activePostTocRuntime.includes('window.JoeOverlayScroll.remember(') ||
+  !activePostTocRuntime.includes('window.JoeOverlayScroll.restore()') ||
+  !activePostTocRuntime.includes('window.JoeOverlayScroll.clear()') ||
+  !activePostTocRuntime.includes('.attr("aria-expanded", "true")') ||
+  !activePostTocRuntime.includes('.attr("aria-expanded", "false")') ||
+  !activePostTocRuntime.includes('$mobile_toc.find(\'a[href]\').filter(":visible")') ||
+  !tocFocusSource.includes('document.getElementById(decodeURIComponent(hash.slice(1)))') ||
+  tocFocusSource.includes('document.querySelector') ||
+  headingFocusOptions?.preventScroll !== true ||
+  !absentTabindexRestored ||
+  !explicitTabindexRestored ||
+  fallbackFocusCount !== 2 ||
+  !mobileTriggerStyles?.includes('width: 44px;') ||
+  !mobileTriggerStyles.includes('height: 44px;') ||
+  !mobileTriggerStyles.includes('appearance: none;') ||
+  !/@media\s*\(max-width:\s*768px\)[\s\S]*?#Joe\s+\.joe_header__above-slideicon\s*\{[\s\S]*?display:\s*inline-flex;/.test(
+    landmarkOverrideStyles
+  ) ||
+  failSoftRestore !== 120 ||
+  ignoredStaleRestore !== null ||
+  garbageRestore !== null ||
+  negativeRestore !== null ||
+  infiniteRestore !== null ||
+  switchedRestore !== 42 ||
+  staleStorageValues.has('joeOverlayScroll') ||
+  maskDrawerCaptureIndex < 0 ||
+  maskTocCaptureIndex < 0 ||
+  maskDrawerCloseIndex <= maskDrawerCaptureIndex ||
+  maskTocCloseIndex <= maskTocCaptureIndex ||
+  maskTocFocusIndex <= maskTocCloseIndex ||
+  maskDrawerFocusIndex <= maskDrawerCloseIndex ||
+  tocHiddenCloseIndex < 0 ||
+  tocStateClearIndex <= tocHiddenCloseIndex ||
+  tocHeadingFocusIndex <= tocStateClearIndex
+) {
+  throw new Error(
+    `${commonScriptPath}: drawer and mobile TOC must be idempotent, mutually exclusive 44px controls with synchronized state, Escape close and focus restoration`
+  );
+}
+if (
+  !activeSkipLinkRuntime.includes('.off("click.joeSkipLink")') ||
+  !activeSkipLinkRuntime.includes('.on("click.joeSkipLink"') ||
+  !activeSkipLinkRuntime.includes('document.getElementById("joe-main-content")') ||
+  !activeSkipLinkRuntime.includes('e.preventDefault()') ||
+  !activeSkipLinkRuntime.includes('history.pushState(null, "", this.hash)') ||
+  !activeSkipLinkRuntime.includes('target.focus({ preventScroll: true })') ||
+  !activeSkipLinkRuntime.includes('target.scrollIntoView()')
+) {
+  throw new Error(
+    `${commonScriptPath}: skip-link click must update the fragment and programmatically focus the shared main landmark`
+  );
+}
+const readLimitPolicies = new Map([
+  ['templates/post.html', { entity: 'post' }],
+  ['templates/page.html', { entity: 'singlePage' }],
+]);
+const createReadLimitGuard = (entity) =>
+  `#annotations.getOrDefault(${entity}, 'enable_read_limit', 'false') == 'true' and (theme.config.basic.comment_option == 'default' or #strings.trim(theme.config.basic.waline.waline_serverURL) == '') and #bools.isTrue(theme.config.post.enable_comment) and #annotations.getOrDefault(${entity}, 'enable_comment', 'true') == 'true' and not #bools.isTrue(theme.config.other.enable_clean_mode) and (#authentication.name == 'anonymousUser' or contributor.name != #authentication.name)`;
+const validateReadLimitDocument = (document, entity) => {
+  const article = requireUniqueContractElement(
+    document,
+    (element) =>
+      element.name === 'article' &&
+      (contractAttributes(document, element).get('th:class') ?? '').includes('joe_detail__article'),
+    'article content element'
+  );
+  const cta = requireUniqueContractElement(
+    document,
+    (element) => element.name === 'joe-read-limited',
+    'joe-read-limited CTA'
+  );
+  const ctaVariables = contractParent(document, cta);
+  const ctaGuard = contractParent(document, ctaVariables);
+  const guard = createReadLimitGuard(entity);
+  const classAppend = contractAttributes(document, article).get('th:classappend') ?? '';
+  if (
+    classAppend.includes('enable_read_limit') ||
+    /['"]limited['"]/.test(classAppend) ||
+    ctaVariables?.name !== 'th:block' ||
+    ctaGuard?.name !== 'th:block' ||
+    !contractAttributes(document, ctaVariables).has('th:with')
+  ) {
+    throw new Error(
+      `${document.path}: read limiting must be progressive enhancement with a guarded CTA marker and no server-rendered limited class`
+    );
+  }
+  requireContractAttributeAbsent(
+    document,
+    ctaVariables,
+    'th:if',
+    'joe-read-limited variable scope must not share a tag with its conditional processor'
+  );
+  requireContractAttributeAbsent(
+    document,
+    ctaGuard,
+    'th:with',
+    'joe-read-limited guard must not share a tag with its variable processor'
+  );
+  requireContractAttribute(
+    document,
+    ctaGuard,
+    'th:if',
+    `\${${guard}}`,
+    'joe-read-limited parent must use the same complete available-comment guard'
+  );
+  requireContractAttribute(
+    document,
+    cta,
+    'comment-plugin',
+    'CommentWidgetPlugin',
+    'comment-expand must use the Halo CommentWidget state provider'
+  );
+  if (
+    document.elements.some((element) =>
+      [...contractAttributes(document, element).values()].some((value) =>
+        value.includes('WalinePlugin')
+      )
+    )
+  ) {
+    throw new Error(`${document.path}: Waline with a configured server must fail open`);
+  }
+  return { article, cta, ctaGuard, ctaVariables, guard };
+};
+for (const [path, { entity }] of readLimitPolicies) {
+  validateReadLimitDocument(contractDocuments.get(path), entity);
+}
+for (const document of contractDocuments.values()) {
+  if (document.elements.filter((element) => element.name === 'joe-read-limited').length > 1) {
+    throw new Error(
+      `${document.path}: each rendered page may contain at most one joe-read-limited`
+    );
+  }
+}
+const pageLeavingDocument = contractDocuments.get('templates/page_leaving.html');
+const pageLeavingArticle = requireUniqueContractElement(
+  pageLeavingDocument,
+  (element) =>
+    element.name === 'article' &&
+    (contractAttributes(pageLeavingDocument, element).get('th:class') ?? '').includes(
+      'joe_detail__article'
+    ),
+  'leaving article content element'
+);
+if (
+  pageLeavingDocument.elements.some((element) => element.name === 'joe-read-limited') ||
+  (
+    contractAttributes(pageLeavingDocument, pageLeavingArticle).get('th:classappend') ?? ''
+  ).includes('enable_read_limit')
+) {
+  throw new Error(
+    'templates/page_leaving.html: the leaving template has no unlock component and must never enable read limiting'
+  );
+}
+const asideMasterGuard = '#bools.isTrue(theme.config.aside.enable_aside)';
+const commonAsideDocument = contractDocuments.get('templates/modules/common/aside.html');
+const commonAside = requireUniqueContractElement(
+  commonAsideDocument,
+  (element) =>
+    element.name === 'aside' && hasContractClass(commonAsideDocument, element, 'joe_aside'),
+  'shared non-article aside root'
+);
+requireContractAttribute(
+  commonAsideDocument,
+  commonAside,
+  'th:if',
+  `\${${asideMasterGuard}}`,
+  'the shared non-article sidebar root must enforce enable_aside'
+);
+const asideCallerPolicies = new Map([
+  ['templates/index.html', `\${${asideMasterGuard}}`],
+  ['templates/archives.html', '${#bools.isTrue(theme.config.aside.enable_archives_aside)}'],
+  ['templates/categories.html', '${#bools.isTrue(theme.config.aside.enable_categories_aside)}'],
+  ['templates/friends.html', '${#bools.isTrue(theme.config.aside.enable_friends_aside)}'],
+  ['templates/links.html', '${#bools.isTrue(theme.config.aside.enable_links_aside)}'],
+  ['templates/moment.html', '${#bools.isTrue(theme.config.aside.enable_journals_aside)}'],
+  ['templates/moments.html', '${#bools.isTrue(theme.config.aside.enable_journals_aside)}'],
+  [
+    'templates/page.html',
+    "${#bools.isTrue(theme.config.aside.enable_sheet_aside)} and ${#annotations.getOrDefault(singlePage, 'enable_aside', 'true') == 'true'}",
+  ],
+  [
+    'templates/page_leaving.html',
+    "${#bools.isTrue(theme.config.aside.enable_sheet_aside)} and ${#annotations.getOrDefault(singlePage, 'enable_aside', 'true') == 'true'}",
+  ],
+  ['templates/page_links.html', '${#bools.isTrue(theme.config.aside.enable_links_aside)}'],
+  ['templates/photos.html', '${#bools.isTrue(theme.config.aside.enable_photos_aside)}'],
+  ['templates/tags.html', '${#bools.isTrue(theme.config.aside.enable_tags_aside)}'],
+]);
+for (const [path, expectedGuard] of asideCallerPolicies) {
+  const document = contractDocuments.get(path);
+  const replacement = requireUniqueContractElement(
+    document,
+    (element) =>
+      contractAttributes(document, element).get('th:replace') ===
+      '~{modules/common/aside :: aside}',
+    'common aside replacement'
+  );
+  const guard = contractParent(document, replacement);
+  if (guard?.name !== 'th:block') {
+    throw new Error(`${path}: common aside replacement must have a page-level guard`);
+  }
+  requireContractAttribute(
+    document,
+    guard,
+    'th:if',
+    expectedGuard,
+    'page-level aside switch must serialize through #bools.isTrue'
+  );
+}
+const asidePostDocument = contractDocuments.get('templates/modules/common/aside_post.html');
+const asidePostRoot = requireUniqueContractElement(
+  asidePostDocument,
+  (element) =>
+    element.name === 'aside' && hasContractClass(asidePostDocument, element, 'joe_aside'),
+  'article aside root'
+);
+if (
+  contractAttributes(asidePostDocument, asidePostRoot).has('th:if') ||
+  asidePostDocument.elements.some((element) =>
+    [...contractAttributes(asidePostDocument, element).values()].some((value) =>
+      value.includes(asideMasterGuard)
+    )
+  )
+) {
+  throw new Error(
+    'templates/modules/common/aside_post.html: article sidebar must remain independent of the non-article enable_aside master switch'
+  );
+}
+const postDocument = contractDocuments.get('templates/post.html');
+const postAsideReplacement = requireUniqueContractElement(
+  postDocument,
+  (element) =>
+    contractAttributes(postDocument, element).get('th:replace') ===
+    '~{modules/common/aside_post :: aside_post}',
+  'article aside replacement'
+);
+requireContractAttribute(
+  postDocument,
+  contractParent(postDocument, postAsideReplacement),
+  'th:if',
+  "${#bools.isTrue(theme.config.aside.enable_post_aside)} and ${#annotations.getOrDefault(post, 'enable_aside', 'true') == 'true'}",
+  'article sidebar must check only the article-level and per-post switches'
+);
+
+const adMasterGuard = '#bools.isTrue(theme.config.ads.enable_ads)';
+const repeatedAdPolicies = [
+  {
+    document: postDocument,
+    each: 'ads_data : ${theme.config.ads.ads_top}',
+    guard:
+      "${#bools.isTrue(theme.config.ads.enable_ads)} and ${theme.config.ads.enable_ads_top != 'none'} and ${not #lists.isEmpty(theme.config.ads.ads_top)}",
+  },
+  {
+    document: postDocument,
+    each: 'ads_data : ${theme.config.ads.ads_bottom}',
+    guard:
+      "${#bools.isTrue(theme.config.ads.enable_ads)} and ${theme.config.ads.enable_ads_bottom != 'none'} and ${not #lists.isEmpty(theme.config.ads.ads_bottom)}",
+  },
+  {
+    document: asidePostDocument,
+    each: 'ads_data : ${theme.config.ads.ads_aside}',
+    guard:
+      "${#bools.isTrue(theme.config.ads.enable_ads)} and ${theme.config.ads.enable_ads_aside != 'none'} and ${not #lists.isEmpty(theme.config.ads.ads_aside)}",
+  },
+];
+for (const { document, each, guard } of repeatedAdPolicies) {
+  const adBlock = requireUniqueContractElement(
+    document,
+    (element) => contractAttributes(document, element).get('th:each') === each,
+    `${each} ad producer`
+  );
+  const adGuard = contractParent(document, adBlock);
+  if (adGuard?.name !== 'th:block') {
+    throw new Error(`${document.path}: ${each} must be nested under its ad guard`);
+  }
+  requireContractAttribute(
+    document,
+    adGuard,
+    'th:if',
+    guard,
+    'ad producer parent must bind the master switch and its local settings'
+  );
+  requireContractAttributeAbsent(
+    document,
+    adBlock,
+    'th:if',
+    'ad iterator must not share a tag with its conditional processor'
+  );
+  requireContractAttributeAbsent(
+    document,
+    adGuard,
+    'th:each',
+    'ad guard must not share a tag with its iterator processor'
+  );
+}
+const asideWidgetDocument = contractDocuments.get('templates/modules/widgets/asideWidget.html');
+const asideAdFragment = requireUniqueContractElement(
+  asideWidgetDocument,
+  (element) =>
+    contractAttributes(asideWidgetDocument, element).get('th:fragment') ===
+    'enable_ads_aside(ads_data)',
+  'configurable aside ad fragment'
+);
+const asideAdGuard = asideWidgetDocument.elements.filter(
+  (element) => element.parentStart === asideAdFragment.start
+);
+if (asideAdGuard.length !== 1) {
+  throw new Error(
+    'templates/modules/widgets/asideWidget.html: aside ad fragment must have one direct master guard'
+  );
+}
+requireContractAttribute(
+  asideWidgetDocument,
+  asideAdGuard[0],
+  'th:if',
+  `\${${adMasterGuard}}`,
+  'configurable aside ads must bind enable_ads to the direct fragment child'
+);
+const layoutDocument = contractDocuments.get('templates/modules/layout.html');
+const adsenseScript = requireUniqueContractElement(
+  layoutDocument,
+  (element) =>
+    element.name === 'script' &&
+    (contractAttributes(layoutDocument, element).get('th:src') ?? '').includes(
+      'pagead2.googlesyndication.com/pagead/js/adsbygoogle.js'
+    ),
+  'AdSense script'
+);
+requireContractAttribute(
+  layoutDocument,
+  contractParent(layoutDocument, adsenseScript),
+  'th:if',
+  '${#bools.isTrue(theme.config.ads.enable_ads)} and ${#bools.isTrue(theme.config.ads.enable_adsense)} and ${!#strings.isEmpty(theme.config.ads.adsense_client_id)}',
+  'AdSense script parent must bind the master switch, local switch and client id'
+);
+
+const copyPolicies = new Map([
+  ['templates/post.html', 'post'],
+  ['templates/page.html', 'singlePage'],
+  ['templates/page_leaving.html', 'singlePage'],
+]);
+for (const [path, entity] of copyPolicies) {
+  const document = contractDocuments.get(path);
+  const article = requireUniqueContractElement(
+    document,
+    (element) =>
+      element.name === 'article' &&
+      (contractAttributes(document, element).get('th:class') ?? '').includes('joe_detail__article'),
+    'copy-controlled article element'
+  );
+  const classAppend = contractAttributes(document, article).get('th:classappend') ?? '';
+  const expectedCopyBinding = `\${(#annotations.getOrDefault(${entity}, 'enable_copy', 'true') == 'false' or not #bools.isTrue(theme.config.post.enable_copy)) ? 'uncopy' : ''}`;
+  if (
+    normalizeContractAttribute(classAppend).split(normalizeContractAttribute(expectedCopyBinding))
+      .length -
+      1 !==
+    1
+  ) {
+    throw new Error(
+      `${path}: uncopy must bind the explicit annotation and normalized global switch to the article start tag`
+    );
+  }
+}
+
+const commentPolicies = new Map([
+  ['templates/post.html', 'post'],
+  ['templates/page.html', 'singlePage'],
+  ['templates/page_leaving.html', 'singlePage'],
+]);
+for (const [path, entity] of commentPolicies) {
+  const document = contractDocuments.get(path);
+  const commentReplacement = requireUniqueContractElement(
+    document,
+    (element) =>
+      (contractAttributes(document, element).get('th:replace') ?? '').includes(
+        'modules/macro/comment :: comment'
+      ),
+    'comment component replacement'
+  );
+  const annotationGuard = contractParent(document, commentReplacement);
+  requireContractAttribute(
+    document,
+    annotationGuard,
+    'th:if',
+    `\${#annotations.getOrDefault(${entity}, 'enable_comment', 'true') == 'true'}`,
+    'comment component must bind the explicit content annotation'
+  );
+  const openComment = commentReplacement.ancestorStarts
+    .map((start) => document.byStart.get(start))
+    .find(
+      (element) => element.name === 'div' && hasContractClass(document, element, 'joe_comment')
+    );
+  const openGuard = openComment == null ? null : contractParent(document, openComment);
+  requireContractAttribute(
+    document,
+    openGuard,
+    'th:if',
+    '${not #bools.isTrue(theme.config.other.enable_clean_mode)} and ${#bools.isTrue(theme.config.post.enable_comment)}',
+    'comment container must bind normalized clean-mode and global comment switches'
+  );
+  const closedComment = requireUniqueContractElement(
+    document,
+    (element) => {
+      if (element.name !== 'div' || !hasContractClass(document, element, 'joe_comment'))
+        return false;
+      const parent = contractParent(document, element);
+      return (
+        normalizeContractAttribute(contractAttributes(document, parent).get('th:if')) ===
+        normalizeContractAttribute(
+          '${#bools.isTrue(theme.config.other.enable_clean_mode)} or ${not #bools.isTrue(theme.config.post.enable_comment)}'
+        )
+      );
+    },
+    'globally closed comment container'
+  );
+  if (closedComment == null) {
+    throw new Error(`${path}: missing globally closed comment state`);
+  }
+}
+
+const footerDocument = contractDocuments.get('templates/modules/common/footer.html');
+const footerElement = requireUniqueContractElement(
+  footerDocument,
+  (element) => element.name === 'footer' && hasContractClass(footerDocument, element, 'joe_footer'),
+  'shared footer root'
+);
+const validateFooterDocument = (document) => {
+  const footer = requireUniqueContractElement(
+    document,
+    (element) => element.name === 'footer' && hasContractClass(document, element, 'joe_footer'),
+    'shared footer root'
+  );
+  requireContractAttribute(
+    document,
+    footer,
+    'th:if',
+    '${#bools.isTrue(theme.config.footer.enable_footer)}',
+    'shared footer root must bind the normalized global footer switch'
+  );
+};
+validateFooterDocument(footerDocument);
+
+const baiduPolicies = new Map([
+  [
+    'templates/post.html',
+    "${#annotations.getOrDefault(post, 'enable_collect_check', 'true') == 'true'} and ${#bools.isTrue(theme.config.other.check_baidu_collect)}",
+  ],
+  [
+    'templates/page.html',
+    "${#annotations.getOrDefault(singlePage, 'enable_collect_check', 'true') == 'true'} and ${#bools.isTrue(theme.config.other.check_baidu_collect)}",
+  ],
+  [
+    'templates/page_leaving.html',
+    "${#annotations.getOrDefault(singlePage, 'enable_collect_check', 'true') == 'true'} and ${#bools.isTrue(theme.config.other.check_baidu_collect)}",
+  ],
+  ['templates/moment.html', '${#bools.isTrue(theme.config.other.check_baidu_collect)}'],
+  ['templates/moments.html', '${#bools.isTrue(theme.config.other.check_baidu_collect)}'],
+]);
+for (const [path, expectedGuard] of baiduPolicies) {
+  const document = contractDocuments.get(path);
+  const entry = requireUniqueContractElement(
+    document,
+    (element) =>
+      element.name === 'span' &&
+      contractAttributes(document, element).get('id') === 'joe_baidu_record',
+    'Baidu query/submit entry'
+  );
+  requireContractAttribute(
+    document,
+    contractParent(document, entry),
+    'th:if',
+    expectedGuard,
+    'Baidu entry guard must bind the normalized global switch and content annotation where applicable'
+  );
+  const entryText = document.activeMarkup.slice(entry.contentStart, entry.contentEnd);
+  if (
+    !['百度', '查询', '提交'].every((term) => entryText.includes(term)) ||
+    /正在检测|自动检测|自动推送/.test(entryText)
+  ) {
+    throw new Error(`${path}: Baidu entry must promise only manual query and submission`);
+  }
+}
+
+const booleanThemeAssignments = new Map([
+  ['enable_loading_bar', 'theme.config.theme.enable_loading_bar'],
+  ['enable_footer', 'theme.config.footer.enable_footer'],
+  ['check_baidu_collect', 'theme.config.other.check_baidu_collect'],
+  ['enable_back2top', 'theme.config.theme.enable_back2top'],
+  ['enable_back2top_smooth', 'theme.config.theme.enable_back2top_smooth'],
+  ['enable_weather', 'theme.config.blogger.enable_weather'],
+  ['enable_fixed_header', 'theme.config.navbar.enable_fixed_header'],
+  ['enable_clean_mode', 'theme.config.other.enable_clean_mode'],
+  ['enable_offscreen_tip', 'theme.config.theme.enable_offscreen_tip'],
+  ['enable_birthday', 'theme.config.footer.enable_birthday'],
+  ['enable_console_theme', 'theme.config.other.enable_console_theme'],
+  ['enable_big_banner', 'theme.config.beauty.enable_big_banner'],
+  ['enable_banner', 'theme.config.carousel.enable_banner'],
+  ['enable_banner_loop', 'theme.config.carousel.enable_banner_loop'],
+  ['enable_banner_handle', 'theme.config.carousel.enable_banner_handle'],
+  ['enable_banner_autoplay', 'theme.config.carousel.enable_banner_autoplay'],
+  ['enable_banner_switch_button', 'theme.config.carousel.enable_banner_switch_button'],
+  ['enable_banner_pagination', 'theme.config.carousel.enable_banner_pagination'],
+  ['enable_index_list_ajax', 'theme.config.home.enable_index_list_ajax'],
+  ['enable_index_list_effect', 'theme.config.home.enable_index_list_effect'],
+  ['show_loaded_time', 'theme.config.custom.show_loaded_time'],
+  ['enable_debug', 'theme.config.other.enable_debug'],
+  ['enable_copy', 'theme.config.post.enable_copy'],
+  ['enable_share', 'theme.config.post.enable_share'],
+  ['enable_share_link', 'theme.config.post.enable_share_link'],
+  ['enable_share_weixin', 'theme.config.post.enable_share_weixin'],
+  ['enable_like', 'theme.config.post.enable_like'],
+  ['enable_toc', 'theme.config.post.enable_toc'],
+  ['enable_progress_bar', 'theme.config.post.enable_progress_bar'],
+  ['enable_code_expander', 'theme.config.code_block.enable_code_expander'],
+  ['enable_fold_long_code', 'theme.config.code_block.enable_fold_long_code'],
+  ['enable_comment', 'theme.config.post.enable_comment'],
+  ['enable_code_title', 'theme.config.code_block.enable_code_title'],
+  ['enable_code_hr', 'theme.config.code_block.enable_code_hr'],
+  ['enable_code_macdot', 'theme.config.code_block.enable_code_macdot'],
+  ['enable_code_line_number', 'theme.config.code_block.enable_code_line_number'],
+  ['enable_code_newline', 'theme.config.code_block.enable_code_newline'],
+  ['show_tools_when_hover', 'theme.config.code_block.show_tools_when_hover'],
+  ['enable_code_copy', 'theme.config.code_block.enable_code_copy'],
+  ['enable_copy_right_text', 'theme.config.post.enable_copy_right_text'],
+  ['enable_journal_effect', 'theme.config.journals.enable_journal_effect'],
+  ['enable_friend_effect', 'theme.config.friends.enable_friend_effect'],
+  ['enable_like_journal', 'theme.config.journals.enable_like_journal'],
+  ['enable_comment_journal', 'theme.config.journals.enable_comment_journal'],
+]);
+const themeConfigAssignmentExpressions = new Map();
+for (const match of themeSettingVariable.matchAll(
+  /^\s*([A-Za-z_$][\w$]*):\s*\/\*\[\[\$\{(.+)\}\]\]\*\//gm
+)) {
+  const [, property, expression] = match;
+  if (themeConfigAssignmentExpressions.has(property)) {
+    throw new Error(
+      'templates/modules/themeSettingVariable.html: ThemeConfig properties must be unique'
+    );
+  }
+  themeConfigAssignmentExpressions.set(property, expression);
+}
+const serializedBooleanAssignments = new Map(
+  [...themeConfigAssignmentExpressions].filter(([, expression]) =>
+    /^#bools\.isTrue\([^)]+\)$/.test(expression.trim())
+  )
+);
+const validateNoBooleanThemeAliases = (assignments, label) => {
+  for (const [property, expression] of assignments) {
+    const configReferences = [
+      ...expression.matchAll(/theme\.config\.([A-Za-z0-9_]+)\.([A-Za-z0-9_.]+)/g),
+    ];
+    const booleanReferences = [];
+    for (const [, group, name] of configReferences) {
+      const setting = getThemeSetting(group, name);
+      const schemaStoresBoolean =
+        setting?.$formkit === 'switch' ||
+        (setting?.$formkit === 'radio' &&
+          setting.options?.length > 0 &&
+          setting.options.every((option) => typeof option.value === 'boolean'));
+      if (schemaStoresBoolean) booleanReferences.push(`theme.config.${group}.${name}`);
+    }
+    const expectedBooleanPath = booleanThemeAssignments.get(property);
+    if (
+      expectedBooleanPath == null
+        ? booleanReferences.length > 0
+        : booleanReferences.length !== 1 ||
+          booleanReferences[0] !== expectedBooleanPath ||
+          expression.trim() !== `#bools.isTrue(${expectedBooleanPath})`
+    ) {
+      throw new Error(`${label}: ${property} must not alias Boolean schema field`);
+    }
+  }
+};
+validateNoBooleanThemeAliases(
+  themeConfigAssignmentExpressions,
+  'templates/modules/themeSettingVariable.html'
+);
+for (const [property, configPath] of booleanThemeAssignments) {
+  const [, group, name] = /^theme\.config\.([^.]+)\.(.+)$/.exec(configPath) ?? [];
+  const setting = getThemeSetting(group, name);
+  const schemaStoresBoolean =
+    setting?.$formkit === 'switch' ||
+    (setting?.$formkit === 'radio' &&
+      setting.options?.length > 0 &&
+      setting.options.every((option) => typeof option.value === 'boolean'));
+  if (
+    !schemaStoresBoolean ||
+    themeConfigAssignmentExpressions.get(property)?.trim() !== `#bools.isTrue(${configPath})`
+  ) {
+    throw new Error(
+      `templates/modules/themeSettingVariable.html: ${property} must serialize Boolean schema field ${configPath} through #bools.isTrue`
+    );
+  }
+}
+if (
+  serializedBooleanAssignments.size !== booleanThemeAssignments.size ||
+  [...serializedBooleanAssignments].some(
+    ([property, expression]) =>
+      expression.trim() !== `#bools.isTrue(${booleanThemeAssignments.get(property)})`
+  ) ||
+  ['baidu_token', 'post_index_page_size', 'access_key'].some((property) =>
+    themeConfigAssignmentExpressions.has(property)
+  )
+) {
+  throw new Error(
+    'templates/modules/themeSettingVariable.html: only real Boolean schema fields may use top-level #bools.isTrue serialization, and retired properties must not be exposed'
+  );
+}
+
+const activeCommonScript = stripSlashComments(commonScript, true);
+const activePostScript = stripSlashComments(postScript, true);
+const activeCustomScript = stripSlashComments(customScript, true);
+const isThisMethodCall = (node, method) =>
+  node?.type === 'CallExpression' &&
+  node.callee?.type === 'MemberExpression' &&
+  node.callee.object?.type === 'ThisExpression' &&
+  readEffectPropertyName(node.callee.property) === method;
+const astContains = (node, predicate) => {
+  let matched = false;
+  walkEffectAst(node, (candidate) => {
+    if (predicate(candidate)) matched = true;
+  });
+  return matched;
+};
+const astContainsReachable = (node, predicate) => {
+  const visit = (candidate) => {
+    if (candidate == null || typeof candidate !== 'object') return false;
+    if (Array.isArray(candidate)) {
+      for (const item of candidate) {
+        if (visit(item)) return true;
+        if (['ReturnStatement', 'ThrowStatement'].includes(item?.type)) break;
+      }
+      return false;
+    }
+    if (predicate(candidate)) return true;
+    if (
+      ['FunctionExpression', 'ArrowFunctionExpression', 'FunctionDeclaration'].includes(
+        candidate.type
+      )
+    ) {
+      return false;
+    }
+    if (candidate.type === 'BlockStatement') return visit(candidate.body);
+    if (candidate.type === 'IfStatement') {
+      if (candidate.test?.type === 'Literal' && candidate.test.value === false) {
+        return visit(candidate.alternate);
+      }
+      if (candidate.test?.type === 'Literal' && candidate.test.value === true) {
+        return visit(candidate.consequent);
+      }
+      return visit(candidate.consequent) || visit(candidate.alternate);
+    }
+    if (
+      candidate.type === 'LogicalExpression' &&
+      ((candidate.operator === '&&' && candidate.left?.value === false) ||
+        (candidate.operator === '||' && candidate.left?.value === true))
+    ) {
+      return visit(candidate.left);
+    }
+    for (const value of Object.values(candidate)) {
+      if (visit(value)) return true;
+    }
+    return false;
+  };
+  return visit(node);
+};
+const isThisMember = (node, property) =>
+  node?.type === 'MemberExpression' &&
+  node.object?.type === 'ThisExpression' &&
+  readEffectPropertyName(node.property) === property;
+const isThisArticleClassCall = (node, method, className) =>
+  node?.type === 'CallExpression' &&
+  readEffectPropertyName(node.callee?.property) === method &&
+  readEffectStaticString(node.arguments?.[0]) === className &&
+  astContains(node.callee?.object, (candidate) => isThisMember(candidate, '$article'));
+const validateReadLimitRuntime = (script, label) => {
+  const ast = parseAst(script, { sourceType: 'script' }, label);
+  const definitions = [];
+  walkEffectAst(ast, (node) => {
+    if (
+      node.type === 'CallExpression' &&
+      isEffectMember(node.callee, 'customElements', 'define') &&
+      readEffectStaticString(node.arguments?.[0]) === 'joe-read-limited' &&
+      node.arguments?.[1]?.type === 'ClassExpression'
+    ) {
+      definitions.push(node.arguments[1]);
+    }
+  });
+  const definition = definitions.length === 1 ? definitions[0] : null;
+  const methods = new Map(
+    (definition?.body?.body ?? [])
+      .filter((node) => node.type === 'MethodDefinition')
+      .map((node) => [readEffectPropertyName(node.key), node.value?.body])
+  );
+  const initializeBody = methods.get('initialize');
+  const claimBody = methods.get('claimOwnership');
+  const waitBody = methods.get('waitForCommentHost');
+  const hostRootBody = methods.get('getCommentHostRoot');
+  const mountIdBody = methods.get('getCommentMountId');
+  const mountReadyBody = methods.get('isCommentMountReady');
+  const activatedWidgetBody = methods.get('isActivatedCommentWidgetReady');
+  const activationBody = methods.get('waitForMountActivation');
+  const readinessBody = methods.get('isCommentHostReady');
+  const requestBody = methods.get('isCommentSubmissionRequest');
+  const observerBody = methods.get('startCommentHostObserver');
+  const checkBody = methods.get('commentWidgetPluginCheckComment');
+  const intervalBody = methods.get('runIntervalTask');
+  const cleanupBody = methods.get('cleanupRuntime');
+  const disconnectedBody = methods.get('disconnectedCallback');
+  const failOpenBody = methods.get('failOpen');
+  const removeLimitedBody = methods.get('removeReadLimited');
+  const lookupBody = methods.get('findFirstMyComment');
+  const renderBody = methods.get('render');
+  const selectors = [];
+  walkEffectAst(waitBody, (node) => {
+    if (
+      node.type === 'CallExpression' &&
+      isEffectMember(node.callee, 'document', 'querySelector')
+    ) {
+      const selector = readEffectStaticString(node.arguments?.[0]);
+      if (selector != null) selectors.push(selector);
+    }
+  });
+  const readinessReturn = readinessBody?.body?.find((node) => node.type === 'ReturnStatement');
+  const readinessExpression = readinessReturn?.argument;
+  const readinessChecksOpenShadow =
+    astContains(
+      hostRootBody,
+      (node) =>
+        node.type === 'MemberExpression' && readEffectPropertyName(node.property) === 'shadowRoot'
+    ) &&
+    astContains(
+      hostRootBody,
+      (node) =>
+        node.type === 'CallExpression' &&
+        readEffectPropertyName(node.callee?.property) === 'querySelector' &&
+        readEffectStaticString(node.arguments?.[0]) === '#halo-comment'
+    ) &&
+    astContainsReachable(readinessExpression, (node) =>
+      isThisMethodCall(node, 'getCommentHostRoot')
+    );
+  const commentWidgetRootSelectors = [];
+  walkEffectAst(hostRootBody, (node) => {
+    if (
+      node.type === 'CallExpression' &&
+      readEffectPropertyName(node.callee?.property) === 'querySelector'
+    ) {
+      const selector = readEffectStaticString(node.arguments?.[0]);
+      if (selector?.includes('.comment-widget')) commentWidgetRootSelectors.push(node.arguments[0]);
+    }
+  });
+  const readinessChecksDefinition = astContains(readinessExpression, (node) =>
+    isEffectMember(node.callee, 'customElements', 'get')
+  );
+  const readinessChecksConnection = astContains(
+    readinessExpression,
+    (node) =>
+      node.type === 'MemberExpression' && readEffectPropertyName(node.property) === 'isConnected'
+  );
+  const mountReadinessIsBound =
+    astContains(mountIdBody, (node) => isThisMember(node, 'options')) &&
+    astContains(mountIdBody, (node) => readEffectPropertyName(node.property) === 'commentKind') &&
+    astContains(mountIdBody, (node) => readEffectPropertyName(node.property) === 'commentName') &&
+    astContains(mountReadyBody, (node) => isThisMethodCall(node, 'getCommentMountId')) &&
+    astContains(
+      mountReadyBody,
+      (node) =>
+        node.type === 'CallExpression' &&
+        readEffectPropertyName(node.callee?.property) === 'contains' &&
+        astContains(node.callee?.object, (candidate) => isThisMember(candidate, '$comment'))
+    ) &&
+    astContains(
+      mountReadyBody,
+      (node) =>
+        isEffectMember(node.callee, 'customElements', 'get') &&
+        readEffectStaticString(node.arguments?.[0]) === 'comment-widget'
+    ) &&
+    astContains(readinessBody, (node) => isThisMethodCall(node, 'isCommentMountReady')) &&
+    astContains(
+      waitBody,
+      (node) =>
+        node.type === 'CallExpression' &&
+        isEffectMember(node.callee, 'document', 'getElementById') &&
+        astContains(node.arguments?.[0], (candidate) =>
+          isThisMethodCall(candidate, 'getCommentMountId')
+        )
+    );
+  const activationTimeoutBranches = [];
+  walkEffectAst(activationBody, (node) => {
+    if (
+      node.type === 'IfStatement' &&
+      astContains(
+        node.test,
+        (candidate) => candidate.type === 'Identifier' && candidate.name === 'deadline'
+      ) &&
+      astContainsReachable(node.consequent, (candidate) => isThisMethodCall(candidate, 'failOpen'))
+    )
+      activationTimeoutBranches.push(node);
+  });
+  const activationSuccessBranches = [];
+  walkEffectAst(activationBody, (node) => {
+    if (
+      node.type === 'IfStatement' &&
+      astContains(node.test, (candidate) =>
+        isThisMethodCall(candidate, 'isActivatedCommentWidgetReady')
+      ) &&
+      astContainsReachable(node.consequent, (candidate) => candidate.type === 'ReturnStatement')
+    )
+      activationSuccessBranches.push(node);
+  });
+  const mountActivationIsBounded =
+    astContains(activationBody, (node) => node.type === 'Literal' && node.value === 3000) &&
+    astContains(
+      activationBody,
+      (node) =>
+        node.type === 'CallExpression' &&
+        node.callee?.name === 'setTimeout' &&
+        node.arguments?.[1]?.value === 50
+    ) &&
+    astContains(
+      activationBody,
+      (node) =>
+        node.type === 'CallExpression' &&
+        readEffectPropertyName(node.callee?.property) === 'querySelector' &&
+        readEffectStaticString(node.arguments?.[0]) === 'comment-widget'
+    ) &&
+    astContains(activatedWidgetBody, (node) => isThisMethodCall(node, 'getCommentHostRoot')) &&
+    astContains(renderBody, (node) => isThisMethodCall(node, 'waitForMountActivation')) &&
+    astContains(
+      activationBody,
+      (node) =>
+        node.type === 'IfStatement' &&
+        astContains(node.test, (candidate) => isThisMember(candidate, 'activationTimer')) &&
+        astContainsReachable(node.consequent, (candidate) => candidate.type === 'ReturnStatement')
+    ) &&
+    astContains(
+      cleanupBody,
+      (node) =>
+        node.type === 'CallExpression' &&
+        node.callee?.name === 'clearTimeout' &&
+        astContains(node.arguments?.[0], (candidate) => isThisMember(candidate, 'activationTimer'))
+    ) &&
+    activationTimeoutBranches.length === 1 &&
+    activationSuccessBranches.length === 1;
+  const waitIsBounded =
+    astContains(waitBody, (node) => node.type === 'Literal' && node.value === 2500) &&
+    astContains(
+      waitBody,
+      (node) =>
+        node.type === 'CallExpression' &&
+        node.callee?.type === 'Identifier' &&
+        node.callee.name === 'setTimeout' &&
+        node.arguments?.[1]?.type === 'Literal' &&
+        node.arguments[1].value === 50
+    ) &&
+    astContains(
+      waitBody,
+      (node) =>
+        node.type === 'CallExpression' &&
+        node.callee?.type === 'Identifier' &&
+        node.callee.name === 'resolve' &&
+        node.arguments?.[0]?.type === 'Literal' &&
+        node.arguments[0].value == null
+    );
+  const initializeGuards = (initializeBody?.body ?? []).filter(
+    (node) =>
+      node.type === 'IfStatement' &&
+      astContains(node.test, (candidate) => isThisMethodCall(candidate, 'isCommentHostReady')) &&
+      astContainsReachable(node.consequent, (candidate) =>
+        isThisMethodCall(candidate, 'failOpen')
+      ) &&
+      astContainsReachable(node.consequent, (candidate) => candidate.type === 'ReturnStatement')
+  );
+  const ownershipGuard = (initializeBody?.body ?? []).find(
+    (node) =>
+      node.type === 'IfStatement' &&
+      node.test?.type === 'UnaryExpression' &&
+      isThisMethodCall(node.test.argument, 'claimOwnership') &&
+      astContainsReachable(node.consequent, (candidate) =>
+        isThisMethodCall(candidate, 'failOpen')
+      ) &&
+      astContainsReachable(node.consequent, (candidate) => candidate.type === 'ReturnStatement')
+  );
+  const ownershipClaimIsExclusive =
+    astContainsReachable(claimBody, (node) =>
+      isEffectMember(node, 'window', '__joeReadLimitedOwner')
+    ) &&
+    astContainsReachable(
+      claimBody,
+      (node) =>
+        node.type === 'AssignmentExpression' &&
+        isEffectMember(node.left, 'window', '__joeReadLimitedOwner') &&
+        node.right?.type === 'ThisExpression'
+    ) &&
+    astContainsReachable(
+      claimBody,
+      (node) =>
+        node.type === 'AssignmentExpression' &&
+        isThisMember(node.left, 'ownsRuntime') &&
+        node.right?.value === true
+    );
+  const renderGate = (initializeBody?.body ?? []).find(
+    (node) =>
+      node.type === 'IfStatement' &&
+      node.test?.type === 'UnaryExpression' &&
+      node.test.operator === '!' &&
+      isThisMethodCall(node.test.argument, 'render') &&
+      astContainsReachable(node.consequent, (candidate) => candidate.type === 'ReturnStatement')
+  );
+  const addLimitedCalls = [];
+  walkEffectAst(initializeBody, (node) => {
+    if (isThisArticleClassCall(node, 'add', 'limited')) addLimitedCalls.push(node);
+  });
+  const addLimited = addLimitedCalls.length === 1 ? addLimitedCalls[0] : null;
+  const observerStart = [];
+  walkEffectAst(initializeBody, (node) => {
+    if (isThisMethodCall(node, 'startCommentHostObserver')) observerStart.push(node);
+  });
+  const usernameBranch = (initializeBody?.body ?? []).find(
+    (node) =>
+      node.type === 'IfStatement' &&
+      astContains(
+        node.test,
+        (candidate) => candidate.type === 'Literal' && candidate.value === 'anonymousUser'
+      ) &&
+      astContains(node.consequent, (candidate) =>
+        isThisMethodCall(candidate, 'commentWidgetPluginCheckComment')
+      )
+  );
+  const renderFailureBranch = (renderBody?.body ?? []).find(
+    (node) =>
+      node.type === 'IfStatement' &&
+      astContains(node.test, (candidate) => isThisMember(candidate, '$commentHost')) &&
+      astContainsReachable(node.consequent, (candidate) =>
+        isThisMethodCall(candidate, 'failOpen')
+      ) &&
+      astContainsReachable(
+        node.consequent,
+        (candidate) =>
+          candidate.type === 'ReturnStatement' &&
+          candidate.argument?.type === 'Literal' &&
+          candidate.argument.value === false
+      )
+  );
+  const renderReturnsTrue = astContainsReachable(
+    renderBody,
+    (node) =>
+      node.type === 'ReturnStatement' &&
+      node.argument?.type === 'Literal' &&
+      node.argument.value === true
+  );
+  const failOpenRemovesClass = astContains(
+    failOpenBody,
+    (node) =>
+      node.type === 'CallExpression' &&
+      readEffectPropertyName(node.callee?.property) === 'remove' &&
+      readEffectStaticString(node.arguments?.[0]) === 'limited' &&
+      astContains(
+        node.callee?.object,
+        (candidate) =>
+          candidate.type === 'MemberExpression' &&
+          candidate.object?.type === 'ThisExpression' &&
+          readEffectPropertyName(candidate.property) === '$article'
+      )
+  );
+  const failOpenRemovesCta = astContains(failOpenBody, (node) => isThisMethodCall(node, 'remove'));
+  const cleanupCalls = (body, method) =>
+    astContainsReachable(body, (node) => isThisMethodCall(node, method));
+  const cleanupClearsResources =
+    astContainsReachable(
+      cleanupBody,
+      (node) => node.type === 'CallExpression' && node.callee?.name === 'clearTimeout'
+    ) &&
+    astContainsReachable(
+      cleanupBody,
+      (node) => node.type === 'CallExpression' && node.callee?.name === 'clearInterval'
+    ) &&
+    astContainsReachable(
+      cleanupBody,
+      (node) => readEffectPropertyName(node.callee?.property) === 'disconnect'
+    ) &&
+    astContainsReachable(
+      cleanupBody,
+      (node) => node.type === 'AssignmentExpression' && isEffectMember(node.left, 'window', 'fetch')
+    );
+  const cleanupOwnerGuard = cleanupBody?.body?.[0];
+  const cleanupOnlyForOwner =
+    cleanupOwnerGuard?.type === 'IfStatement' &&
+    astContains(cleanupOwnerGuard.test, (node) => isThisMember(node, 'ownsRuntime')) &&
+    astContainsReachable(cleanupOwnerGuard.consequent, (node) => node.type === 'ReturnStatement');
+  const ownerReleaseGuard = (cleanupBody?.body ?? []).find(
+    (node) =>
+      node.type === 'IfStatement' &&
+      astContains(node.test, (candidate) =>
+        isEffectMember(candidate, 'window', '__joeReadLimitedOwner')
+      ) &&
+      astContains(node.test, (candidate) => candidate.type === 'ThisExpression') &&
+      astContainsReachable(
+        node.consequent,
+        (candidate) => candidate.type === 'UnaryExpression' && candidate.operator === 'delete'
+      )
+  );
+  const failOpenOwnerGuard = (failOpenBody?.body ?? []).find(
+    (node) =>
+      node.type === 'IfStatement' &&
+      astContains(
+        node.test,
+        (candidate) => candidate.type === 'Identifier' && candidate.name === 'ownsRuntime'
+      ) &&
+      astContainsReachable(node.consequent, (candidate) =>
+        isThisArticleClassCall(candidate, 'remove', 'limited')
+      )
+  );
+  const disconnectedCleansOwner =
+    astContains(disconnectedBody, (node) => isThisMethodCall(node, 'cleanupRuntime')) &&
+    astContains(
+      disconnectedBody,
+      (node) =>
+        node.type === 'CallExpression' &&
+        readEffectPropertyName(node.callee?.property) === 'remove' &&
+        readEffectStaticString(node.arguments?.[0]) === 'limited'
+    ) &&
+    astContains(disconnectedBody, (node) => isThisMember(node, 'ownsRuntime'));
+  const failOpenRemovalIsGuarded =
+    astContains(failOpenBody, (node) => isThisMember(node, 'isRemoving')) &&
+    astContainsReachable(failOpenBody, (node) => node.type === 'TryStatement') &&
+    astContainsReachable(
+      failOpenBody,
+      (node) => node.type === 'AssignmentExpression' && isThisMember(node.left, 'isRemoving')
+    );
+  const requestSupportsString = astContains(
+    requestBody,
+    (node) => node.type === 'Literal' && node.value === 'string'
+  );
+  const requestSupportsUrl = astContains(
+    requestBody,
+    (node) =>
+      node.type === 'BinaryExpression' &&
+      node.operator === 'instanceof' &&
+      node.right?.name === 'URL'
+  );
+  const requestSupportsRequest = astContains(
+    requestBody,
+    (node) =>
+      node.type === 'BinaryExpression' &&
+      node.operator === 'instanceof' &&
+      node.right?.name === 'Request'
+  );
+  const nullResultBranches = [];
+  walkEffectAst(intervalBody, (node) => {
+    if (
+      node.type === 'IfStatement' &&
+      astContains(
+        node.test,
+        (candidate) => candidate.type === 'Identifier' && candidate.name === 'isFinduserComment'
+      ) &&
+      astContains(node.test, (candidate) => candidate.type === 'Literal' && candidate.value == null)
+    ) {
+      nullResultBranches.push(node);
+    }
+  });
+  const nullResultBranch = nullResultBranches.length === 1 ? nullResultBranches[0] : null;
+  const lookupCatchReturnsNull = astContains(
+    lookupBody,
+    (node) =>
+      node.type === 'CallExpression' &&
+      readEffectPropertyName(node.callee?.property) === 'catch' &&
+      astContains(
+        node.arguments,
+        (candidate) =>
+          candidate.type === 'CallExpression' &&
+          candidate.callee?.type === 'Identifier' &&
+          candidate.callee.name === 'onCallback' &&
+          candidate.arguments?.[0]?.type === 'Literal' &&
+          candidate.arguments[0].value == null
+      )
+  );
+  const unavailableLookupReturnsNull = astContains(
+    lookupBody,
+    (node) =>
+      node.type === 'IfStatement' &&
+      astContains(
+        node.test,
+        (candidate) =>
+          candidate.type === 'MemberExpression' &&
+          readEffectPropertyName(candidate.property) === 'ajax'
+      ) &&
+      astContains(
+        node.consequent,
+        (candidate) =>
+          candidate.type === 'CallExpression' &&
+          candidate.callee?.type === 'Identifier' &&
+          candidate.callee.name === 'onCallback' &&
+          candidate.arguments?.[0]?.type === 'Literal' &&
+          candidate.arguments[0].value == null
+      )
+  );
+  const invalidResponseReturnsNull = astContains(
+    lookupBody,
+    (node) =>
+      node.type === 'IfStatement' &&
+      astContains(node.test, (candidate) => isEffectMember(candidate.callee, 'Array', 'isArray')) &&
+      astContains(
+        node.consequent,
+        (candidate) =>
+          candidate.type === 'CallExpression' &&
+          candidate.callee?.type === 'Identifier' &&
+          candidate.callee.name === 'onCallback' &&
+          candidate.arguments?.[0]?.type === 'Literal' &&
+          candidate.arguments[0].value == null
+      )
+  );
+  const renderGuardFailsOpen = astContains(
+    renderBody,
+    (node) =>
+      node.type === 'IfStatement' &&
+      astContains(
+        node.test,
+        (candidate) =>
+          candidate.type === 'MemberExpression' &&
+          candidate.object?.type === 'ThisExpression' &&
+          ['$commentHost', '$header'].includes(readEffectPropertyName(candidate.property))
+      ) &&
+      astContains(node.consequent, (candidate) => isThisMethodCall(candidate, 'failOpen'))
+  );
+  const runCheckCall = [];
+  const fetchWrapperAssignments = [];
+  const fetchInstallAssignments = [];
+  walkEffectAst(checkBody, (node) => {
+    if (isThisMethodCall(node, 'runIntervalTask')) runCheckCall.push(node);
+    if (node.type === 'AssignmentExpression' && isThisMember(node.left, 'fetchWrapper')) {
+      fetchWrapperAssignments.push(node);
+    }
+    if (
+      node.type === 'AssignmentExpression' &&
+      isEffectMember(node.left, 'window', 'fetch') &&
+      isThisMember(node.right, 'fetchWrapper')
+    )
+      fetchInstallAssignments.push(node);
+  });
+  const fetchRestoreGuards = [];
+  walkEffectAst(cleanupBody, (node) => {
+    if (
+      node.type === 'IfStatement' &&
+      astContains(
+        node.test,
+        (candidate) =>
+          candidate.type === 'BinaryExpression' &&
+          candidate.operator === '===' &&
+          astContains(candidate.left, (part) => isEffectMember(part, 'window', 'fetch')) &&
+          astContains(candidate.right, (part) => isThisMember(part, 'fetchWrapper'))
+      ) &&
+      astContainsReachable(
+        node.consequent,
+        (candidate) =>
+          candidate.type === 'AssignmentExpression' &&
+          isEffectMember(candidate.left, 'window', 'fetch') &&
+          isThisMember(candidate.right, 'originalFetch')
+      )
+    )
+      fetchRestoreGuards.push(node);
+  });
+  const initialRunCheck = (checkBody?.body ?? []).find(
+    (node) =>
+      node.type === 'ExpressionStatement' && isThisMethodCall(node.expression, 'runIntervalTask')
+  )?.expression;
+  const postCheckGuard = (checkBody?.body ?? []).find(
+    (node) => node.type === 'IfStatement' && node.consequent?.type === 'ReturnStatement'
+  );
+  const postCheckConditions = flattenEffectOr(postCheckGuard?.test);
+  const postCheckContainsCall = postCheckConditions[1]?.argument?.expression;
+  const postCheckIsComplete =
+    postCheckConditions.length === 3 &&
+    postCheckConditions.every((condition) => condition?.type === 'UnaryExpression') &&
+    readEffectPropertyName(postCheckConditions[0]?.argument?.property) === 'isConnected' &&
+    postCheckContainsCall?.type === 'CallExpression' &&
+    readEffectPropertyName(postCheckContainsCall.callee?.property) === 'contains' &&
+    readEffectStaticString(postCheckContainsCall.arguments?.[0]) === 'limited' &&
+    readEffectPropertyName(postCheckConditions[2]?.argument?.callee?.property) ===
+      'isCommentHostReady';
+  const fetchWrapper = fetchWrapperAssignments[0]?.right;
+  const wrapperBody = fetchWrapper?.type === 'ArrowFunctionExpression' ? fetchWrapper.body : null;
+  const requestClassificationTry = (wrapperBody?.body ?? []).find(
+    (node) =>
+      node.type === 'TryStatement' &&
+      astContainsReachable(node.block, (candidate) =>
+        isThisMethodCall(candidate, 'isCommentSubmissionRequest')
+      ) &&
+      astContainsReachable(node.handler?.body, (candidate) =>
+        isThisMethodCall(candidate, 'failOpen')
+      ) &&
+      astContainsReachable(node.handler?.body, (candidate) => candidate.type === 'ThrowStatement')
+  );
+  const syncCatch = (wrapperBody?.body ?? [])
+    .filter((node) => node.type === 'TryStatement')
+    .map((node) => node.handler)
+    .find(
+      (handler) =>
+        astContainsReachable(handler?.body, (node) => isThisMethodCall(node, 'failOpen')) &&
+        astContainsReachable(handler?.body, (node) => node.type === 'ThrowStatement')
+    );
+  const wrapperIfStatements = [];
+  walkEffectAst(wrapperBody, (node) => {
+    if (node.type === 'IfStatement') wrapperIfStatements.push(node);
+  });
+  const unrelatedFetchReturn = wrapperIfStatements.find(
+    (node) =>
+      node.type === 'IfStatement' &&
+      node.test?.type === 'UnaryExpression' &&
+      node.test.operator === '!' &&
+      node.test.argument?.type === 'Identifier' &&
+      node.test.argument.name === 'isCommentSubmission' &&
+      astContainsReachable(
+        node.consequent,
+        (candidate) => candidate.type === 'ReturnStatement' && candidate.argument?.name === 'pro'
+      )
+  );
+  const nonPromiseGuard = wrapperIfStatements.find(
+    (node) =>
+      node.type === 'IfStatement' &&
+      astContains(
+        node.test,
+        (candidate) =>
+          candidate.type === 'MemberExpression' &&
+          readEffectPropertyName(candidate.property) === 'then'
+      ) &&
+      astContainsReachable(node.consequent, (candidate) =>
+        isThisMethodCall(candidate, 'failOpen')
+      ) &&
+      astContainsReachable(
+        node.consequent,
+        (candidate) => candidate.type === 'ReturnStatement' && candidate.argument?.name === 'pro'
+      )
+  );
+  const promiseThen = [];
+  walkEffectAst(wrapperBody, (node) => {
+    if (
+      node.type === 'CallExpression' &&
+      node.callee?.object?.type === 'Identifier' &&
+      node.callee.object.name === 'pro' &&
+      readEffectPropertyName(node.callee.property) === 'then'
+    )
+      promiseThen.push(node);
+  });
+  const fulfilledCallback = promiseThen[0]?.arguments?.[0];
+  const rejectedCallback = promiseThen[0]?.arguments?.[1];
+  const fulfilledIfStatements = [];
+  walkEffectAst(fulfilledCallback?.body, (node) => {
+    if (node.type === 'IfStatement') fulfilledIfStatements.push(node);
+  });
+  const invalidResponseBranch = fulfilledIfStatements.find(
+    (node) =>
+      node.type === 'IfStatement' &&
+      astContains(
+        node.test,
+        (candidate) =>
+          candidate.type === 'MemberExpression' &&
+          readEffectPropertyName(candidate.property) === 'ok'
+      ) &&
+      astContainsReachable(node.consequent, (candidate) => isThisMethodCall(candidate, 'failOpen'))
+  );
+  const wrapperTryStatements = (wrapperBody?.body ?? []).filter(
+    (node) => node.type === 'TryStatement'
+  );
+  const promiseAccessInsideTry = wrapperTryStatements.some(
+    (node) =>
+      nonPromiseGuard != null &&
+      promiseThen[0] != null &&
+      node.block.start <= nonPromiseGuard.start &&
+      promiseThen[0].end <= node.block.end
+  );
+  const responseOkInsideTry = astContains(
+    fulfilledCallback?.body,
+    (node) =>
+      node.type === 'TryStatement' &&
+      astContainsReachable(
+        node.block,
+        (candidate) =>
+          candidate.type === 'MemberExpression' &&
+          readEffectPropertyName(candidate.property) === 'ok'
+      ) &&
+      astContainsReachable(node.handler?.body, (candidate) =>
+        isThisMethodCall(candidate, 'failOpen')
+      ) &&
+      astContainsReachable(node.handler?.body, (candidate) => candidate.type === 'ThrowStatement')
+  );
+  const nullResultFailsOpen = astContainsReachable(nullResultBranch?.consequent, (candidate) =>
+    isThisMethodCall(candidate, 'failOpen')
+  );
+  const rejectedPromiseFailsOpen =
+    astContainsReachable(rejectedCallback?.body, (node) => isThisMethodCall(node, 'failOpen')) &&
+    astContainsReachable(rejectedCallback?.body, (node) => node.type === 'ThrowStatement');
+  const successfulCommentExpands = astContainsReachable(fulfilledCallback?.body, (node) =>
+    isThisMethodCall(node, 'removeReadLimited')
+  );
+  const observerCreations = [];
+  walkEffectAst(observerBody, (node) => {
+    if (
+      node.type === 'NewExpression' &&
+      node.callee?.type === 'Identifier' &&
+      node.callee.name === 'MutationObserver'
+    )
+      observerCreations.push(node);
+  });
+  const observerCallback = observerCreations[0]?.arguments?.[0];
+  const observerFailsOpen = astContainsReachable(observerCallback?.body, (node) =>
+    isThisMethodCall(node, 'failOpen')
+  );
+  const observerStarts = astContainsReachable(
+    observerBody,
+    (node) => readEffectPropertyName(node.callee?.property) === 'observe'
+  );
+  const usesShadowInternalId = astContains(
+    definition,
+    (node) =>
+      node.type === 'CallExpression' &&
+      readEffectPropertyName(node.callee?.property) === 'getElementById' &&
+      astContains(
+        node.callee?.object,
+        (candidate) => readEffectPropertyName(candidate.property) === 'shadowRoot'
+      )
+  );
+  const failures = [
+    [definitions.length === 1, 'definition'],
+    [methods.size >= 14, 'methods'],
+    [
+      selectors.filter((selector) => selector === '.joe_comment halo-comment').length === 1,
+      'halo-host',
+    ],
+    [
+      selectors.filter((selector) => selector === '.joe_comment comment-widget').length === 1,
+      'compat-host',
+    ],
+    [readinessChecksOpenShadow, 'open-shadow'],
+    [commentWidgetRootSelectors.length === 1, 'real-comment-widget-root'],
+    [readinessChecksDefinition, 'defined-host'],
+    [readinessChecksConnection, 'connected-host'],
+    [mountReadinessIsBound, 'bound-mount'],
+    [mountActivationIsBounded, 'mount-activation'],
+    [waitIsBounded, 'bounded-readiness'],
+    [ownershipGuard != null && ownershipClaimIsExclusive, 'runtime-ownership'],
+    [disconnectedCleansOwner, 'disconnect-cleanup'],
+    [failOpenRemovalIsGuarded, 'guarded-removal'],
+    [initializeGuards.length >= 2, 'readiness-guards'],
+    [renderGate != null, 'render-gate'],
+    [renderFailureBranch != null && renderReturnsTrue, 'render-result'],
+    [addLimitedCalls.length === 1, 'progressive-class'],
+    [
+      renderGate != null &&
+        initializeGuards.length >= 2 &&
+        addLimited != null &&
+        renderGate.end < initializeGuards.at(-1).start &&
+        initializeGuards.at(-1).end < addLimited.start,
+      'guard-order',
+    ],
+    [
+      observerStart.length === 1 &&
+        addLimited != null &&
+        usernameBranch != null &&
+        addLimited.end < observerStart[0].start &&
+        observerStart[0].end < usernameBranch.start,
+      'observer-order',
+    ],
+    [observerCreations.length === 1 && observerFailsOpen && observerStarts, 'host-observer'],
+    [initialRunCheck != null && postCheckGuard != null && postCheckIsComplete, 'post-check'],
+    [
+      initialRunCheck != null &&
+        postCheckGuard != null &&
+        fetchWrapperAssignments.length === 1 &&
+        initialRunCheck.end < postCheckGuard.start &&
+        postCheckGuard.end < fetchWrapperAssignments[0].start,
+      'post-check-order',
+    ],
+    [syncCatch != null, 'fetch-sync-throw'],
+    [requestClassificationTry != null, 'request-classification-throw'],
+    [unrelatedFetchReturn != null, 'unrelated-fetch'],
+    [nonPromiseGuard != null, 'non-promise'],
+    [fetchInstallAssignments.length === 1, 'fetch-install'],
+    [fetchRestoreGuards.length === 1, 'fetch-restore'],
+    [promiseAccessInsideTry, 'promise-access'],
+    [responseOkInsideTry, 'response-ok-access'],
+    [promiseThen.length === 1 && promiseThen[0].arguments?.length === 2, 'promise-shape'],
+    [invalidResponseBranch != null, 'invalid-response-fetch'],
+    [rejectedPromiseFailsOpen, 'promise-reject'],
+    [failOpenRemovesClass, 'fail-open-class'],
+    [failOpenRemovesCta, 'fail-open-cta'],
+    [cleanupCalls(failOpenBody, 'cleanupRuntime'), 'fail-open-cleanup'],
+    [cleanupCalls(removeLimitedBody, 'cleanupRuntime'), 'expand-cleanup'],
+    [cleanupClearsResources, 'resource-cleanup'],
+    [
+      cleanupOnlyForOwner && ownerReleaseGuard != null && failOpenOwnerGuard != null,
+      'owner-cleanup',
+    ],
+    [requestSupportsString && requestSupportsUrl && requestSupportsRequest, 'request-inputs'],
+    [nullResultFailsOpen, 'null-result'],
+    [lookupCatchReturnsNull, 'lookup-catch'],
+    [unavailableLookupReturnsNull, 'lookup-unavailable'],
+    [invalidResponseReturnsNull, 'invalid-response'],
+    [renderGuardFailsOpen, 'render-guard'],
+    [successfulCommentExpands, 'comment-success'],
+    [!usesShadowInternalId, 'shadow-internal-id'],
+  ].filter(([passed]) => !passed);
+  if (failures.length > 0) {
+    throw new Error(
+      `${label}: comment-expand runtime must progressively enhance from the real Halo host and fail open on unavailable or exceptional checks (${failures.map(([, name]) => name).join(', ')})`
+    );
+  }
+  return {
+    definition,
+    disconnectedBody,
+    fetchWrapperAssignment: fetchWrapperAssignments[0],
+    fetchInstallAssignment: fetchInstallAssignments[0],
+    fetchRestoreGuard: fetchRestoreGuards[0],
+    requestClassificationTry,
+    hostRootBody,
+    commentWidgetRootSelector: commentWidgetRootSelectors[0],
+    mountIdBody,
+    mountReadyBody,
+    activationTimeoutBranch: activationTimeoutBranches[0],
+    initializeBody,
+    observerCallback,
+    nullResultBranch,
+    postCheckGuard,
+    ownershipGuard,
+    rejectedCallback,
+    renderGate,
+    readinessReturn,
+  };
+};
+const readLimitRuntimeContract = validateReadLimitRuntime(customScript, customScriptPath);
+if (
+  !['百度收录', '查询', '提交'].every((term) => activeCommonScript.includes(term)) ||
+  !activePostScript.includes('CC BY-NC-SA 4.0 版权协议') ||
+  activePostScript.includes('CC 4.0 BY-SA 版权协议') ||
+  !['目录', '评论', '展开'].every((term) => activePostScript.includes(term)) ||
+  !['客户端视觉折叠', '客户端视觉效果', '不适合私密或付费内容'].every((term) =>
+    activeCustomScript.includes(term)
+  ) ||
+  activeCustomScript.includes('不适合私密或付费内容，Waline') ||
+  /登陆|评论后可见/.test(`${activePostScript}\n${activeCustomScript}`)
+) {
+  throw new Error(
+    'runtime contract: Baidu, copyright and comment-expand behavior must remain honest and fail open when the real comment component is absent'
+  );
+}
+
+const expectContractMutationRejected = (label, expectedFailure, validateMutation) => {
+  let rejected = false;
+  try {
+    validateMutation();
+  } catch (error) {
+    rejected = error instanceof Error && error.message.includes(expectedFailure);
+  }
+  if (!rejected) {
+    throw new Error(`contract mutation survived: ${label}`);
+  }
+};
+const replaceAstRange = (source, node, replacement) => {
+  return source.slice(0, node.start) + replacement + source.slice(node.end);
+};
+const booleanAliasMutationAssignments = new Map(themeConfigAssignmentExpressions);
+booleanAliasMutationAssignments.set(
+  'post_index_page_size',
+  'theme.config.home.enable_index_list_ajax'
+);
+expectContractMutationRejected(
+  'non-Boolean ThemeConfig property aliases a Boolean schema field',
+  'post_index_page_size must not alias Boolean schema field',
+  () =>
+    validateNoBooleanThemeAliases(
+      booleanAliasMutationAssignments,
+      'templates/modules/themeSettingVariable.html mutation'
+    )
+);
+const customRuntimeMutationAst = parseAst(
+  customScript,
+  { sourceType: 'script' },
+  `${customScriptPath} fail-open mutation`
+);
+const nullResultFailOpenCalls = [];
+walkEffectAst(customRuntimeMutationAst, (node) => {
+  if (
+    node.type === 'IfStatement' &&
+    astContains(
+      node.test,
+      (candidate) => candidate.type === 'Identifier' && candidate.name === 'isFinduserComment'
+    ) &&
+    astContains(node.test, (candidate) => candidate.type === 'Literal' && candidate.value == null)
+  ) {
+    walkEffectAst(node.consequent, (candidate) => {
+      if (isThisMethodCall(candidate, 'failOpen')) nullResultFailOpenCalls.push(candidate);
+    });
+  }
+});
+if (nullResultFailOpenCalls.length !== 1) {
+  throw new Error(`${customScriptPath}: expected one null-result fail-open mutation target`);
+}
+const nullResultFailOpenCall = nullResultFailOpenCalls[0];
+const customRuntimeMutationSource = `${replaceAstRange(
+  customScript,
+  nullResultFailOpenCall,
+  'this.remove()'
+)}\nconst joeReadLimitedDeadText = "this.failOpen();";\n`;
+expectContractMutationRejected(
+  'comment-expand null-result fail-open replaced while original text survives in a dead string',
+  'comment-expand runtime must progressively enhance',
+  () => validateReadLimitRuntime(customRuntimeMutationSource, `${customScriptPath} mutation`)
+);
+const renderGateMutationSource = `${replaceAstRange(
+  customScript,
+  readLimitRuntimeContract.renderGate,
+  'this.render();'
+)}\nconst joeReadLimitedRenderGateDeadText = "if (!this.render()) return;";\n`;
+expectContractMutationRejected(
+  'comment-expand continues to add limited after render reports failure',
+  'comment-expand runtime must progressively enhance',
+  () => validateReadLimitRuntime(renderGateMutationSource, `${customScriptPath} render mutation`)
+);
+const ownershipMutationSource = `${replaceAstRange(
+  customScript,
+  readLimitRuntimeContract.ownershipGuard,
+  'this.claimOwnership();'
+)}\nconst joeReadLimitedOwnershipDeadText = "if (!this.claimOwnership()) { this.failOpen(); return; }";\n`;
+expectContractMutationRejected(
+  'comment-expand second instance continues without exclusive ownership',
+  'comment-expand runtime must progressively enhance',
+  () => validateReadLimitRuntime(ownershipMutationSource, `${customScriptPath} ownership mutation`)
+);
+const disconnectedCleanupCalls = [];
+walkEffectAst(readLimitRuntimeContract.disconnectedBody, (node) => {
+  if (isThisMethodCall(node, 'cleanupRuntime')) disconnectedCleanupCalls.push(node);
+});
+if (disconnectedCleanupCalls.length !== 1) {
+  throw new Error(`${customScriptPath}: expected one disconnect cleanup mutation target`);
+}
+const disconnectedMutationSource = `${replaceAstRange(
+  customScript,
+  disconnectedCleanupCalls[0],
+  'this.remove()'
+)}\nconst joeReadLimitedDisconnectDeadText = "this.cleanupRuntime();";\n`;
+expectContractMutationRejected(
+  'comment-expand disconnect leaves owner runtime installed',
+  'comment-expand runtime must progressively enhance',
+  () =>
+    validateReadLimitRuntime(disconnectedMutationSource, `${customScriptPath} disconnect mutation`)
+);
+const postCheckMutationSource = `${replaceAstRange(
+  customScript,
+  readLimitRuntimeContract.postCheckGuard,
+  'this.failOpen();'
+)}\nconst joeReadLimitedPostCheckDeadText = "if (removed) return;";\n`;
+expectContractMutationRejected(
+  'comment-expand installs the fetch wrapper after a synchronous fail-open',
+  'comment-expand runtime must progressively enhance',
+  () => validateReadLimitRuntime(postCheckMutationSource, `${customScriptPath} post-check mutation`)
+);
+const classificationFailOpenCalls = [];
+walkEffectAst(readLimitRuntimeContract.requestClassificationTry?.handler?.body, (node) => {
+  if (isThisMethodCall(node, 'failOpen')) classificationFailOpenCalls.push(node);
+});
+if (classificationFailOpenCalls.length !== 1) {
+  throw new Error(
+    `${customScriptPath}: expected one request-classification fail-open mutation target`
+  );
+}
+const classificationMutationSource = `${replaceAstRange(
+  customScript,
+  classificationFailOpenCalls[0],
+  'false && this.failOpen()'
+)}\nconst joeReadLimitedClassificationDeadText = "this.failOpen();";\n`;
+expectContractMutationRejected(
+  'comment-expand request-classification fail-open survives only behind false-and dead control',
+  'comment-expand runtime must progressively enhance',
+  () =>
+    validateReadLimitRuntime(
+      classificationMutationSource,
+      `${customScriptPath} classification mutation`
+    )
+);
+const rejectedFailOpenCalls = [];
+walkEffectAst(readLimitRuntimeContract.rejectedCallback?.body, (node) => {
+  if (isThisMethodCall(node, 'failOpen')) rejectedFailOpenCalls.push(node);
+});
+if (rejectedFailOpenCalls.length !== 1) {
+  throw new Error(`${customScriptPath}: expected one Promise-rejection fail-open mutation target`);
+}
+const rejectedPromiseMutationSource = `${replaceAstRange(
+  customScript,
+  rejectedFailOpenCalls[0],
+  '(() => { return; this.failOpen(); })()'
+)}\nconst joeReadLimitedPromiseRejectDeadText = "this.failOpen();";\n`;
+expectContractMutationRejected(
+  'comment-expand Promise rejection keeps fail-open only after an unreachable return',
+  'comment-expand runtime must progressively enhance',
+  () =>
+    validateReadLimitRuntime(
+      rejectedPromiseMutationSource,
+      `${customScriptPath} Promise rejection mutation`
+    )
+);
+const readinessShadowMembers = [];
+walkEffectAst(readLimitRuntimeContract.hostRootBody, (node) => {
+  if (node.type === 'Literal' && node.value === '#halo-comment') {
+    readinessShadowMembers.push(node);
+  }
+});
+if (readinessShadowMembers.length !== 1) {
+  throw new Error(`${customScriptPath}: expected one open-shadow readiness mutation target`);
+}
+const virtualHostMutationSource = `${replaceAstRange(
+  customScript,
+  readinessShadowMembers[0],
+  "'#missing-halo-comment'"
+)}\nconst joeReadLimitedVirtualHostDeadText = "host.shadowRoot";\n`;
+expectContractMutationRejected(
+  'comment-expand accepts a defined but unready virtual host without an open shadow root',
+  'comment-expand runtime must progressively enhance',
+  () => validateReadLimitRuntime(virtualHostMutationSource, `${customScriptPath} host mutation`)
+);
+const realCommentWidgetRootMutationSource = `${replaceAstRange(
+  customScript,
+  readLimitRuntimeContract.commentWidgetRootSelector,
+  "'#comment-widget, [data-comment-widget-root]'"
+)}\nconst joeReadLimitedRealWidgetRootDeadText = ".comment-widget";\n`;
+expectContractMutationRejected(
+  'comment-expand activation ignores PluginCommentWidget 3.2.2 real shadow root',
+  'comment-expand runtime must progressively enhance',
+  () =>
+    validateReadLimitRuntime(
+      realCommentWidgetRootMutationSource,
+      `${customScriptPath} real widget root mutation`
+    )
+);
+const mountCommentNameReferences = [];
+walkEffectAst(readLimitRuntimeContract.mountIdBody, (node) => {
+  if (node.type === 'MemberExpression' && readEffectPropertyName(node.property) === 'commentName') {
+    mountCommentNameReferences.push(node);
+  }
+});
+if (mountCommentNameReferences.length !== 1) {
+  throw new Error(`${customScriptPath}: expected one mount comment-name mutation target`);
+}
+const mountOptionsMutationSource = `${replaceAstRange(
+  customScript,
+  mountCommentNameReferences[0],
+  'this.options.username'
+)}\nconst joeReadLimitedMountOptionsDeadText = "this.options.commentName";\n`;
+expectContractMutationRejected(
+  'comment-expand accepts an empty mount not bound to the current comment name',
+  'comment-expand runtime must progressively enhance',
+  () => validateReadLimitRuntime(mountOptionsMutationSource, `${customScriptPath} mount mutation`)
+);
+const mountDefinitionLiterals = [];
+walkEffectAst(readLimitRuntimeContract.mountReadyBody, (node) => {
+  if (node.type === 'Literal' && node.value === 'comment-widget')
+    mountDefinitionLiterals.push(node);
+});
+if (mountDefinitionLiterals.length !== 1) {
+  throw new Error(`${customScriptPath}: expected one mount definition mutation target`);
+}
+const mountDefinitionMutationSource = `${replaceAstRange(
+  customScript,
+  mountDefinitionLiterals[0],
+  "'halo-comment'"
+)}\nconst joeReadLimitedMountDefinitionDeadText = "customElements.get('comment-widget')";\n`;
+expectContractMutationRejected(
+  'comment-expand accepts an empty mount before comment-widget is defined',
+  'comment-expand runtime must progressively enhance',
+  () =>
+    validateReadLimitRuntime(
+      mountDefinitionMutationSource,
+      `${customScriptPath} mount definition mutation`
+    )
+);
+const activationTimeoutFailOpenCalls = [];
+walkEffectAst(readLimitRuntimeContract.activationTimeoutBranch?.consequent, (node) => {
+  if (isThisMethodCall(node, 'failOpen')) activationTimeoutFailOpenCalls.push(node);
+});
+if (activationTimeoutFailOpenCalls.length !== 1) {
+  throw new Error(`${customScriptPath}: expected one mount activation timeout mutation target`);
+}
+const activationTimeoutMutationSource = `${replaceAstRange(
+  customScript,
+  activationTimeoutFailOpenCalls[0],
+  'this.remove()'
+)}\nconst joeReadLimitedActivationTimeoutDeadText = "this.failOpen();";\n`;
+expectContractMutationRejected(
+  'comment-expand leaves content limited after empty mount activation times out',
+  'comment-expand runtime must progressively enhance',
+  () =>
+    validateReadLimitRuntime(
+      activationTimeoutMutationSource,
+      `${customScriptPath} activation timeout mutation`
+    )
+);
+const readinessRootCalls = [];
+walkEffectAst(readLimitRuntimeContract.readinessReturn?.argument, (node) => {
+  if (isThisMethodCall(node, 'getCommentHostRoot')) readinessRootCalls.push(node);
+});
+if (readinessRootCalls.length !== 1) {
+  throw new Error(`${customScriptPath}: expected one readiness root-call mutation target`);
+}
+const deadReadinessMutationSource = `${replaceAstRange(
+  customScript,
+  readinessRootCalls[0],
+  '(() => { return null; this.getCommentHostRoot(host); })()'
+)}\nconst joeReadLimitedReadinessDeadText = "this.getCommentHostRoot(host)";\n`;
+expectContractMutationRejected(
+  'comment-expand readiness check survives only after an unreachable return',
+  'comment-expand runtime must progressively enhance',
+  () =>
+    validateReadLimitRuntime(deadReadinessMutationSource, `${customScriptPath} readiness mutation`)
+);
+const observerFailOpenCalls = [];
+walkEffectAst(readLimitRuntimeContract.observerCallback?.body, (node) => {
+  if (isThisMethodCall(node, 'failOpen')) observerFailOpenCalls.push(node);
+});
+if (observerFailOpenCalls.length !== 1) {
+  throw new Error(`${customScriptPath}: expected one host-removal fail-open mutation target`);
+}
+const hostRemovalMutationSource = `${replaceAstRange(
+  customScript,
+  observerFailOpenCalls[0],
+  '(() => { if (false) this.failOpen(); })()'
+)}\nconst joeReadLimitedHostRemovalDeadText = "this.failOpen();";\n`;
+expectContractMutationRejected(
+  'comment-expand host-removal fail-open survives only in an unreachable false branch',
+  'comment-expand runtime must progressively enhance',
+  () => validateReadLimitRuntime(hostRemovalMutationSource, `${customScriptPath} removal mutation`)
+);
+const fetchInstallMutationSource = `${replaceAstRange(
+  customScript,
+  readLimitRuntimeContract.fetchInstallAssignment,
+  'window.fetch = this.originalFetch'
+)}\nconst joeReadLimitedFetchInstallDeadText = "window.fetch = this.fetchWrapper";\n`;
+expectContractMutationRejected(
+  'comment-expand does not install its recorded fetch wrapper',
+  'comment-expand runtime must progressively enhance',
+  () => validateReadLimitRuntime(fetchInstallMutationSource, `${customScriptPath} install mutation`)
+);
+const fetchRestoreMutationSource = `${replaceAstRange(
+  customScript,
+  readLimitRuntimeContract.fetchRestoreGuard.test,
+  'this.fetchWrapper && this.originalFetch'
+)}\nconst joeReadLimitedFetchRestoreDeadText = "window.fetch === this.fetchWrapper";\n`;
+expectContractMutationRejected(
+  'comment-expand restores fetch without wrapper identity ownership',
+  'comment-expand runtime must progressively enhance',
+  () => validateReadLimitRuntime(fetchRestoreMutationSource, `${customScriptPath} restore mutation`)
+);
+const removeThIfFromOpeningTag = (openingTag) => {
+  const mutated = openingTag.replace(/\s+th:if\s*=\s*(?:"[^"]*"|'[^']*'|[^\s>]+)/, '');
+  if (mutated === openingTag) throw new Error('contract mutation target has no th:if');
+  return mutated;
+};
+const footerMutationSource =
+  footerDocument.source.replace(
+    footerElement.openingTag,
+    removeThIfFromOpeningTag(footerElement.openingTag)
+  ) + `\n<!-- ${footerElement.openingTag}</footer> -->\n`;
+expectContractMutationRejected(
+  'footer guard moved into an inactive HTML comment',
+  'shared footer root must bind the normalized global footer switch',
+  () =>
+    validateFooterDocument(
+      createContractDocument('templates/modules/common/footer.html', footerMutationSource)
+    )
+);
+const postReadLimitContract = validateReadLimitDocument(postDocument, 'post');
+const postReadLimitMutationSource =
+  postDocument.source.replace(
+    postReadLimitContract.ctaGuard.openingTag,
+    removeThIfFromOpeningTag(postReadLimitContract.ctaGuard.openingTag)
+  ) +
+  `\n<!-- <th:block th:if="\${${postReadLimitContract.guard}}"><joe-read-limited comment-plugin="CommentWidgetPlugin"></joe-read-limited></th:block> -->\n`;
+expectContractMutationRejected(
+  'comment-expand CTA guard moved into an inactive HTML comment',
+  'joe-read-limited parent must use the same complete available-comment guard',
+  () =>
+    validateReadLimitDocument(
+      createContractDocument('templates/post.html', postReadLimitMutationSource),
+      'post'
+    )
+);
 const thumbnailConfigPath = 'theme.config.home.lazyload_thumbnail';
 const thumbnailDefaultUrl = '/themes/theme-Joe3/assets/img/lazyload.gif';
 const bannerConfigPath = 'theme.config.carousel.banner_lazyload_img';
@@ -1727,7 +4543,7 @@ const placeholderPolicies = [
       },
       {
         path: 'templates/modules/macro/post_item.html',
-        allowedWrappers: [['direct', 1]],
+        allowedWrappers: [['prioritize', 1]],
       },
       {
         path: 'templates/modules/macro/relate_cards.html',
@@ -2165,6 +4981,30 @@ const guardedPackageSources = new Map(
     'templates/modules/postMetaVariable.html',
     'templates/modules/post_operate.html',
     'templates/modules/post_operate_aside.html',
+    indexScriptPath,
+    journalsScriptPath,
+    indexTemplatePath,
+    favoriteTemplatePath,
+    paginationTemplatePath,
+    'templates/moment.html',
+    'templates/moments.html',
+    'templates/assets/css/global.less',
+    'templates/assets/css/post.less',
+    'templates/assets/css/journals.less',
+    'templates/friends.html',
+    'templates/links.html',
+    'templates/page.html',
+    'templates/page_links.html',
+    'templates/photos.html',
+    'templates/post.html',
+    'templates/modules/ads/ads_post.html',
+    'templates/modules/common/blogger.html',
+    'templates/modules/common/footer.html',
+    'templates/modules/donate.html',
+    'templates/modules/macro/banner.html',
+    'templates/modules/macro/hot_category.html',
+    'templates/modules/macro/navbar.html',
+    'templates/modules/widgets/asideWidget.html',
     ...new Set(placeholderPolicies.flatMap(({ producers }) => producers.map(({ path }) => path))),
   ].map((path) => [path, readFileSync(resolve(path))])
 );
@@ -2175,6 +5015,12 @@ if (sourceCustomMinScript != null) {
 }
 if (sourceCommonMinScript != null) {
   guardedPackageSources.set(commonMinScriptPath, sourceCommonMinScript);
+}
+if (sourceJournalsMinScript != null) {
+  guardedPackageSources.set(journalsMinScriptPath, sourceJournalsMinScript);
+}
+if (sourcePhotosMinScript != null) {
+  guardedPackageSources.set(photosMinScriptPath, sourcePhotosMinScript);
 }
 if (sourcePostMinScript != null) {
   guardedPackageSources.set(postMinScriptPath, sourcePostMinScript);
@@ -2827,7 +5673,7 @@ const qrcodeDomConsumersAreExact =
   qrcodeDomConsumers.length === expectedQrcodeConsumers.length &&
   expectedQrcodeConsumers.every(({ path, shareCondition }) => {
     const matches = qrcodeDomConsumers.filter((consumer) => consumer.path === path);
-    if (matches.length !== 1 || matches[0].element.name !== 'div') return false;
+    if (matches.length !== 1 || matches[0].element.name !== 'span') return false;
     const ancestorConditions = matches[0].element.ancestorStarts
       .map((start) => matches[0].elements.find((element) => element.start === start))
       .filter(Boolean)
@@ -3298,14 +6144,415 @@ for (const source of ['category.spec.cover', 'custom_data.hot_custom_img']) {
 const postItem = readFileSync(resolve('templates/modules/macro/post_item.html'), 'utf8');
 const expectedPostItemSizes = 'sizes="(max-width: 768px) 120px, (max-width: 1200px) 185px, 210px"';
 if (
-  !postItem.includes('th:data-srcset=') ||
-  /th:srcset\s*=/.test(postItem) ||
+  !postItem.includes('prioritize = ${iteration.first and') ||
+  !postItem.includes("htmlType == 'index'") ||
+  !postItem.includes("htmlType == 'category' or htmlType == 'tag'") ||
+  !postItem.includes("htmlType == 'author'") ||
+  !postItem.includes('theme.config.beauty.enable_big_banner') ||
+  !postItem.includes('theme.config.carousel.enable_banner') ||
+  !postItem.includes('#lists.isEmpty(theme.config.carousel.banner_data_group)') ||
+  !postItem.includes('theme.config.tags.larger_tabs_image') ||
+  !postItem.includes("th:class=\"${prioritize ? '' : 'lazyload'}\"") ||
+  !postItem.includes('th:data-src="${prioritize ? null : cover}"') ||
+  !postItem.includes("th:srcset=\"${prioritize ? thumbnail.gen(cover, 's')") ||
+  !postItem.includes("th:data-srcset=\"${prioritize ? null : thumbnail.gen(cover, 's')") ||
   !postItem.includes(expectedPostItemSizes) ||
-  !postItem.includes('loading="lazy"') ||
-  !postItem.includes('decoding="async"')
+  !postItem.includes('th:src="${prioritize ? cover : (theme.config.home.lazyload_thumbnail') ||
+  !postItem.includes(
+    "th:attr=\"loading=${prioritize ? 'eager' : 'lazy'},fetchpriority=${prioritize ? 'high' : null},decoding=${prioritize ? null : 'async'}\""
+  ) ||
+  (postItem.match(/fetchpriority/g)?.length ?? 0) !== 1
 ) {
   throw new Error(
-    'templates/modules/macro/post_item.html: list covers must use data-srcset, exact responsive sizes, loading=lazy, and decoding=async'
+    'templates/modules/macro/post_item.html: only the first eligible list cover may load eagerly at high priority; later covers must preserve the lazy responsive pipeline'
+  );
+}
+
+const bannerTemplate = readFileSync(resolve('templates/modules/macro/banner.html'), 'utf8');
+const bannerItemData = readFileSync(
+  resolve('templates/modules/macro/banner_item_data.html'),
+  'utf8'
+);
+if (
+  (bannerTemplate.match(
+    /eager\s*=\s*\$\{bannerIteration\.first and not #bools\.isTrue\(theme\.config\.beauty\.enable_big_banner\)\}/g
+  )?.length ?? 0) !== 3 ||
+  (bannerItemData.match(/fetchpriority=\$\{(?:eager|prioritize) \? 'high' : null\}/g)?.length ??
+    0) !== 3 ||
+  (bannerItemData.match(/decoding=\$\{(?:eager|prioritize) \? null : 'async'\}/g)?.length ?? 0) !==
+    3 ||
+  !bannerItemData.includes('prioritize = ${eager and postIteration.first}')
+) {
+  throw new Error(
+    'templates/modules/macro/banner_item_data.html: without a big hero, exactly one configured first slide may be eager/high while every carousel image decodes asynchronously'
+  );
+}
+
+const promoteJoeLcpImageSource = commonScript.match(
+  /function promoteJoeLcpImage\(root = document\) \{[\s\S]*?\n\}/
+)?.[0];
+const promoteJoeLcpImage = promoteJoeLcpImageSource
+  ? Function(`return (${promoteJoeLcpImageSource})`)()
+  : null;
+const createPriorityHarnessImage = () => {
+  const attributes = new Map([
+    ['src', 'placeholder.gif'],
+    ['data-src', 'actual.webp'],
+    ['data-srcset', 'actual-400.webp 400w, actual-800.webp 800w'],
+    ['loading', 'lazy'],
+  ]);
+  const classes = new Set(['lazyload', 'lazyloading']);
+  const operations = [];
+  return {
+    attributes,
+    classes,
+    operations,
+    classList: {
+      remove: (...names) => {
+        operations.push(`remove-class:${names.join(',')}`);
+        names.forEach((name) => classes.delete(name));
+      },
+    },
+    getAttribute: (name) => attributes.get(name) ?? null,
+    removeAttribute: (name) => {
+      operations.push(`remove:${name}`);
+      attributes.delete(name);
+    },
+    setAttribute: (name, value) => {
+      operations.push(`set:${name}`);
+      attributes.set(name, String(value));
+    },
+  };
+};
+const createPriorityHarnessRoot = ({ hero = false, high = null, banner = null, list = null }) => ({
+  querySelector(selector) {
+    if (selector === '#EvanBigBanner') return hero ? {} : null;
+    if (selector === 'img[fetchpriority="high"]') return high;
+    if (selector === '.joe_index__banner .swiper-slide img') return banner;
+    if (selector === '.joe_list__item .thumbnail img') return list;
+    return null;
+  },
+});
+const heroCandidate = createPriorityHarnessImage();
+const invalidFirstBannerCandidate = createPriorityHarnessImage();
+const secondPostCandidate = createPriorityHarnessImage();
+const existingHigh = createPriorityHarnessImage();
+existingHigh.setAttribute('fetchpriority', 'high');
+const existingHighSibling = createPriorityHarnessImage();
+const promotedBanner = promoteJoeLcpImage?.(
+  createPriorityHarnessRoot({ banner: invalidFirstBannerCandidate })
+);
+const promotedList = promoteJoeLcpImage?.(createPriorityHarnessRoot({ list: secondPostCandidate }));
+const promotionOperations = invalidFirstBannerCandidate.operations;
+const removeLazyIndex = promotionOperations.indexOf('remove-class:lazyload,lazyloading');
+const setLoadingIndex = promotionOperations.indexOf('set:loading');
+const setPriorityIndex = promotionOperations.indexOf('set:fetchpriority');
+const setSourceIndex = promotionOperations.indexOf('set:src');
+const setSourceSetIndex = promotionOperations.indexOf('set:srcset');
+const removeDataSourceIndex = promotionOperations.indexOf('remove:data-src');
+const removeDataSourceSetIndex = promotionOperations.indexOf('remove:data-srcset');
+if (
+  !promoteJoeLcpImage ||
+  !commonScript.includes(
+    '}\n\npromoteJoeLcpImage(document);\n\nfunction createJoeOverlayScrollState'
+  ) ||
+  commonScript.includes('\tpromoteLcpImage() {') ||
+  promoteJoeLcpImage(createPriorityHarnessRoot({ hero: true, banner: heroCandidate })) !== null ||
+  heroCandidate.getAttribute('fetchpriority') != null ||
+  promotedBanner !== invalidFirstBannerCandidate ||
+  invalidFirstBannerCandidate.getAttribute('src') !== 'actual.webp' ||
+  invalidFirstBannerCandidate.getAttribute('srcset') !==
+    'actual-400.webp 400w, actual-800.webp 800w' ||
+  invalidFirstBannerCandidate.getAttribute('loading') !== 'eager' ||
+  invalidFirstBannerCandidate.getAttribute('fetchpriority') !== 'high' ||
+  invalidFirstBannerCandidate.getAttribute('data-src') != null ||
+  invalidFirstBannerCandidate.getAttribute('data-srcset') != null ||
+  invalidFirstBannerCandidate.classes.has('lazyload') ||
+  invalidFirstBannerCandidate.classes.has('lazyloading') ||
+  removeLazyIndex < 0 ||
+  setLoadingIndex <= removeLazyIndex ||
+  setPriorityIndex <= removeLazyIndex ||
+  setSourceIndex <= setLoadingIndex ||
+  setSourceIndex <= setPriorityIndex ||
+  setSourceSetIndex <= setLoadingIndex ||
+  setSourceSetIndex <= setPriorityIndex ||
+  setSourceSetIndex >= setSourceIndex ||
+  removeDataSourceIndex <= setSourceIndex ||
+  removeDataSourceSetIndex <= setSourceSetIndex ||
+  promotedList !== secondPostCandidate ||
+  promoteJoeLcpImage(
+    createPriorityHarnessRoot({ high: existingHigh, banner: existingHighSibling })
+  ) !== null ||
+  existingHighSibling.getAttribute('fetchpriority') != null
+) {
+  throw new Error(
+    `${commonScriptPath}: defer-time LCP fallback must run immediately, skip big heroes and existing high-priority images, and set priority before migrating the first actual image source`
+  );
+}
+if (
+  sourceCommonMinScript != null &&
+  (!sourceCommonMinScript.includes('#EvanBigBanner') ||
+    !sourceCommonMinScript.includes('fetchpriority') ||
+    !sourceCommonMinScript.includes('data-srcset'))
+) {
+  throw new Error(`${commonMinScriptPath}: built runtime must contain the verified LCP fallback`);
+}
+
+const lazyAsyncImageExpectations = new Map([
+  ['templates/categories.html', 1],
+  ['templates/friends.html', 1],
+  ['templates/links.html', 1],
+  ['templates/moment.html', 2],
+  ['templates/moments.html', 2],
+  ['templates/page.html', 1],
+  ['templates/page_leaving.html', 3],
+  ['templates/page_links.html', 1],
+  ['templates/post.html', 1],
+  ['templates/tags.html', 1],
+  ['templates/modules/ads/ads_aside.html', 1],
+  ['templates/modules/ads/ads_post.html', 1],
+  ['templates/modules/common/blogger.html', 6],
+  ['templates/modules/common/footer.html', 8],
+  ['templates/modules/donate.html', 3],
+  ['templates/modules/macro/hot_category.html', 2],
+  ['templates/modules/macro/navbar.html', 5],
+  ['templates/modules/macro/relate_cards.html', 2],
+  ['templates/modules/widgets/asideWidget.html', 3],
+]);
+for (const [path, expectedCount] of lazyAsyncImageExpectations) {
+  const source = maskInactiveMarkup(readFileSync(resolve(path), 'utf8'));
+  const imageTags = [...source.matchAll(/<img\b[\s\S]*?>/g)].map((match) => match[0]);
+  const lazyAsyncCount = imageTags.filter((tag) => {
+    const attributes = readTagAttributes(tag);
+    return attributes.get('loading') === 'lazy' && attributes.get('decoding') === 'async';
+  }).length;
+  if (lazyAsyncCount !== expectedCount) {
+    throw new Error(
+      `${path}: expected ${expectedCount} non-critical images with loading=lazy and decoding=async, found ${lazyAsyncCount}`
+    );
+  }
+}
+
+const photoImage = photosTemplate.match(/<img\b[^>]*class="lazy-load"[^>]*>/)?.[0];
+if (
+  !photoImage ||
+  !/th:data-src="\$\{photo\.spec\.url\}"/.test(photoImage) ||
+  !/th:src="@\{\/assets\/img\/photo_loading\.gif\}"/.test(photoImage) ||
+  /\bloading\s*=/.test(photoImage) ||
+  /\bdecoding\s*=/.test(photoImage)
+) {
+  throw new Error(
+    'templates/photos.html: gallery images must keep the existing observer pipeline without native loading or decoding attributes'
+  );
+}
+
+const photosAst = parseAst(photosScript, { sourceType: 'script' });
+let photoPageLoaderNode = null;
+visitAstNodes(photosAst, (node) => {
+  if (node.type === 'FunctionDeclaration' && node.id?.name === 'createPhotoPageLoader') {
+    photoPageLoaderNode = node;
+  }
+});
+const createPhotoPageLoader = photoPageLoaderNode
+  ? Function(`return (${photosScript.slice(photoPageLoaderNode.start, photoPageLoaderNode.end)})`)()
+  : null;
+const createPhotoDeferred = () => {
+  let resolvePromise;
+  const promise = new Promise((resolvePromiseValue) => {
+    resolvePromise = resolvePromiseValue;
+  });
+  return { promise, resolve: resolvePromise };
+};
+const firstPhotoPage = createPhotoDeferred();
+const emptyPhotoPage = createPhotoDeferred();
+const requestedPhotoPages = [];
+let finishPhotoLoadingCount = 0;
+const photoPageLoader = createPhotoPageLoader?.({
+  initialPage: 1,
+  totalPage: 3,
+  fetchPage(page) {
+    requestedPhotoPages.push(page);
+    return page === 1 ? firstPhotoPage.promise : emptyPhotoPage.promise;
+  },
+  appendItems() {},
+  finish() {
+    finishPhotoLoadingCount++;
+  },
+  onError(error) {
+    throw error;
+  },
+});
+const firstPhotoLoad = photoPageLoader?.();
+const duplicatePhotoLoad = photoPageLoader?.();
+if (!createPhotoPageLoader || requestedPhotoPages.length !== 1) {
+  throw new Error(`${photosScriptPath}: concurrent observer callbacks must start only one request`);
+}
+firstPhotoPage.resolve([{}]);
+await Promise.all([firstPhotoLoad, duplicatePhotoLoad]);
+const secondPhotoLoad = photoPageLoader();
+if (requestedPhotoPages.join(',') !== '1,2') {
+  throw new Error(
+    `${photosScriptPath}: the next page must remain loadable after the lock releases`
+  );
+}
+emptyPhotoPage.resolve([]);
+await secondPhotoLoad;
+await photoPageLoader();
+
+let finalPageRequests = 0;
+let finalPageFinishCount = 0;
+const finalPageLoader = createPhotoPageLoader({
+  initialPage: 1,
+  totalPage: 1,
+  fetchPage() {
+    finalPageRequests++;
+    return Promise.resolve([{}]);
+  },
+  appendItems() {},
+  finish() {
+    finalPageFinishCount++;
+  },
+  onError(error) {
+    throw error;
+  },
+});
+await finalPageLoader();
+await finalPageLoader();
+let exhaustedPageRequests = 0;
+let exhaustedPageFinishCount = 0;
+const exhaustedPageLoader = createPhotoPageLoader({
+  initialPage: 2,
+  totalPage: 1,
+  fetchPage() {
+    exhaustedPageRequests++;
+    return Promise.resolve([{}]);
+  },
+  appendItems() {},
+  finish() {
+    exhaustedPageFinishCount++;
+  },
+  onError(error) {
+    throw error;
+  },
+});
+await exhaustedPageLoader();
+await exhaustedPageLoader();
+if (
+  requestedPhotoPages.join(',') !== '1,2' ||
+  finishPhotoLoadingCount !== 1 ||
+  finalPageRequests !== 1 ||
+  finalPageFinishCount !== 1 ||
+  exhaustedPageRequests !== 0 ||
+  exhaustedPageFinishCount !== 1 ||
+  !photosScript.includes('observerForLoading.disconnect()') ||
+  !photosScript.includes('loadingIndicator.remove()') ||
+  !photosScript.includes('if (!response.ok)')
+) {
+  throw new Error(
+    `${photosScriptPath}: empty and final pages must disconnect pagination, remove its indicator, and prevent later requests`
+  );
+}
+
+const shouldExpandJournalBlockSource = journalsScript.match(
+  /function shouldExpandJournalBlock\(block, threshold\) \{[\s\S]*?\n\}/
+)?.[0];
+const shouldExpandJournalBlock = shouldExpandJournalBlockSource
+  ? Function(`return (${shouldExpandJournalBlockSource})`)()
+  : null;
+const journalFoldHarnessBlock = {
+  scrollHeight: 120,
+  getBoundingClientRect: () => ({ height: 120 }),
+};
+const expanderHarness = { visible: false };
+const updateExpanderHarness = () => {
+  expanderHarness.visible = shouldExpandJournalBlock?.(journalFoldHarnessBlock, 300) === true;
+};
+updateExpanderHarness();
+const visibleAtWindowLoad = expanderHarness.visible;
+journalFoldHarnessBlock.scrollHeight = 420;
+updateExpanderHarness();
+if (
+  !shouldExpandJournalBlock ||
+  visibleAtWindowLoad ||
+  !expanderHarness.visible ||
+  !journalsScript.includes('.on("load.joeJournalFold error.joeJournalFold", update)') ||
+  !journalsScript.includes('block.__joeJournalFoldObserver = new ResizeObserver(update)') ||
+  !journalsScript.includes('block.__joeJournalFoldObserver.observe(block)') ||
+  !journalsScript.includes('$expander.toggle(shouldExpandJournalBlock(block, threshold))') ||
+  !journalsScript.includes(
+    'window.addEventListener("load", function () {\n\t\tjournalContext.foldBlock();'
+  )
+) {
+  throw new Error(
+    `${journalsScriptPath}: fold expander must remeasure idempotently after lazy image load/error and ResizeObserver growth`
+  );
+}
+if (
+  sourceJournalsMinScript != null &&
+  (!sourceJournalsMinScript.includes('ResizeObserver') ||
+    !sourceJournalsMinScript.includes('joeJournalFold'))
+) {
+  throw new Error(
+    `${journalsMinScriptPath}: built runtime must preserve lazy-image fold remeasurement`
+  );
+}
+
+for (const path of ['templates/page_leaving.html', 'templates/modules/widgets/asideWidget.html']) {
+  const source = readFileSync(resolve(path), 'utf8');
+  if (
+    !source.includes(
+      'loading="lazy" decoding="async" onload="Joe.loadedPlaceholderReplaceImg(this, \'AvatarImg\')"'
+    )
+  ) {
+    throw new Error(
+      `${path}: dynamically rendered avatar must load lazily and decode asynchronously`
+    );
+  }
+}
+
+const navbar = readFileSync(resolve('templates/modules/macro/navbar.html'), 'utf8');
+const navbarLogo = navbar.match(/<img\b[^>]*th:src="\$\{site\.logo\}"[^>]*>/)?.[0];
+const loadingTemplate = readFileSync(resolve('templates/modules/macro/loading.html'), 'utf8');
+const error404 = readFileSync(resolve('templates/error/404.html'), 'utf8');
+if (
+  !navbarLogo ||
+  /\bloading\s*=/.test(navbarLogo) ||
+  /\bloading\s*=/.test(loadingTemplate) ||
+  /\bloading\s*=/.test(error404)
+) {
+  throw new Error(
+    'critical logo, loading indicator and 404 illustration must not be delayed with native lazy loading'
+  );
+}
+
+for (const [script, label, expectedCount] of [
+  [commonScript, commonScriptPath, 1],
+  [customScript, customScriptPath, 2],
+  ...(sourceCommonMinScript == null
+    ? []
+    : [[sourceCommonMinScript.toString('utf8'), commonMinScriptPath, 1]]),
+  ...(sourceCustomMinScript == null
+    ? []
+    : [[sourceCustomMinScript.toString('utf8'), customMinScriptPath, 2]]),
+]) {
+  const lazyIframeCount = script.match(/<iframe loading="lazy"/g)?.length ?? 0;
+  if (lazyIframeCount !== expectedCount) {
+    throw new Error(
+      `${label}: expected ${expectedCount} deferred PDF or video iframes with native loading=lazy, found ${lazyIframeCount}`
+    );
+  }
+}
+
+const bigBanner = readFileSync(resolve('templates/modules/macro/big_banner.html'), 'utf8');
+const bigBannerVideo = bigBanner.match(/<video\b[\s\S]*?>/)?.[0];
+if (
+  !bigBannerVideo ||
+  !/\bpreload="auto"/.test(bigBannerVideo) ||
+  !/\bautoplay=""/.test(bigBannerVideo) ||
+  !/\bmuted=""/.test(bigBannerVideo)
+) {
+  throw new Error(
+    'templates/modules/macro/big_banner.html: autoplay hero video must preserve preload=auto and muted playback semantics'
   );
 }
 

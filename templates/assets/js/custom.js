@@ -271,58 +271,282 @@ document.addEventListener("DOMContentLoaded", () => {
 					commentName: this.getAttribute("comment-name"),
 					commentKind: this.getAttribute("comment-kind"),
 					commentPlugin: this.getAttribute("comment-plugin"), // 'CommentWidgetPlugin' | 'WalinePlugin'
-				}
-				// JRL-debug: console.log('JoeReadLimited options:', this.options)
-
+				};
+				this.$article = this.closest('.joe_detail__article');
+				this.$comment = document.querySelector('.joe_comment');
+				this.$commentHost = null;
+				this.$header = document.querySelector('.joe_header');
 				this.isUserCommented = false; // 是否已经评论过
-				this.render();
 				this.checking = false; // 是否正在检查评论
-		
+				// JRL-debug: console.log('JoeReadLimited options:', this.options)
+				this.initialize().catch((error) => {
+					console.error('JoeReadLimited 初始化失败，已展示完整内容：', error);
+					this.failOpen();
+				});
+			}
+
+			disconnectedCallback() {
+				if (this.isRemoving) return;
+				if (this.ownsRuntime || window.__joeReadLimitedOwner === this) {
+					const ownsRuntime = this.ownsRuntime === true;
+					this.cleanupRuntime();
+					if (ownsRuntime) this.$article?.classList.remove('limited');
+				}
+			}
+
+			async initialize() {
+				if (
+					this.options.commentPlugin !== 'CommentWidgetPlugin' ||
+					!this.$article ||
+					!this.$comment ||
+					!this.$header ||
+					!this.options.username ||
+					!this.options.commentName ||
+					!this.options.commentKind ||
+					(this.options.username !== 'anonymousUser' && !this.options.displayName)
+				) {
+					this.failOpen();
+					return;
+				}
+				if (!this.claimOwnership()) {
+					this.failOpen();
+					return;
+				}
+
+				this.$commentHost = await this.waitForCommentHost();
+				if (!this.$commentHost || !this.isCommentHostReady(this.$commentHost)) {
+					this.failOpen();
+					return;
+				}
+
+				if (!this.render()) return;
+				if (!this.isConnected || !this.isCommentHostReady(this.$commentHost)) {
+					this.failOpen();
+					return;
+				}
+
+				this.$article.classList.add('limited');
+				if (!this.startCommentHostObserver()) return;
+
 				if (this.options.username !== 'anonymousUser') { // 非匿名用户才检查评论
-					if (this.options.commentPlugin === 'CommentWidgetPlugin') { // halo-comment-widget 插件，即 halo 默认评论插件
-						this.commentWidgetPluginCheckComment();
-					} else if (this.options.commentPlugin === 'WalinePlugin') { // waline 插件
-						this.walineCheckComment();
-					} else {
-						console.warn('JoeReadLimited 评论插件未实现或不可用，不检查评论！');
+					this.commentWidgetPluginCheckComment();
+				}
+			}
+
+			claimOwnership() {
+				if (window.__joeReadLimitedOwner && window.__joeReadLimitedOwner !== this) {
+					return false;
+				}
+				window.__joeReadLimitedOwner = this;
+				this.ownsRuntime = true;
+				return true;
+			}
+
+			waitForCommentHost() {
+				const deadline = Date.now() + 2500;
+				return new Promise((resolve) => {
+					const check = () => {
+						this.readinessTimer = null;
+						if (!this.isConnected) return resolve(null);
+						const host =
+							document.querySelector('.joe_comment halo-comment') ||
+							document.querySelector('.joe_comment comment-widget') ||
+							document.getElementById(this.getCommentMountId());
+						if (this.isCommentHostReady(host)) return resolve(host);
+						if (Date.now() >= deadline) return resolve(null);
+						this.readinessTimer = setTimeout(check, 50);
+					};
+					check();
+				});
+			}
+
+			getCommentMountId() {
+				return `comment-content-halo-run-${this.options.commentKind}-${this.options.commentName}`;
+			}
+
+			isCommentMountReady(host) {
+				return Boolean(
+					host &&
+					host.isConnected &&
+					host.id === this.getCommentMountId() &&
+					this.$comment?.contains(host) &&
+					customElements.get('comment-widget')
+				);
+			}
+
+			isActivatedCommentWidgetReady(widget, mount) {
+				return Boolean(
+					widget &&
+					widget.localName === 'comment-widget' &&
+					widget.isConnected &&
+					mount?.contains(widget) &&
+					customElements.get('comment-widget') &&
+					this.getCommentHostRoot(widget)
+				);
+			}
+
+			waitForMountActivation() {
+				const mount = this.$commentHost;
+				if (!this.isCommentMountReady(mount) || this.activationTimer) return;
+				const deadline = Date.now() + 3000;
+				const check = () => {
+					this.activationTimer = null;
+					if (!this.ownsRuntime || !this.isConnected || !this.isCommentMountReady(mount)) {
+						this.failOpen();
+						return;
 					}
+					const widget = mount.querySelector('comment-widget');
+					if (this.isActivatedCommentWidgetReady(widget, mount)) return;
+					if (Date.now() >= deadline) {
+						this.failOpen();
+						return;
+					}
+					this.activationTimer = setTimeout(check, 50);
+				};
+				check();
+			}
+
+			getCommentHostRoot(host) {
+				if (!host?.shadowRoot) return null;
+				if (host.localName === 'halo-comment') {
+					return host.shadowRoot.querySelector('#halo-comment');
+				}
+				if (host.localName === 'comment-widget') {
+					const root = host.shadowRoot.querySelector(
+						'.comment-widget, #comment-widget, [data-comment-widget-root]'
+					);
+					if (!root) return null;
+					return root.childElementCount > 0 || root.querySelector('form, textarea, button')
+						? root
+						: null;
+				}
+				return null;
+			}
+
+			isCommentHostReady(host) {
+				if (this.isCommentMountReady(host)) return true;
+				return Boolean(
+					host &&
+					host.isConnected &&
+					customElements.get(host.localName) &&
+					this.getCommentHostRoot(host) &&
+					(host === document.querySelector('.joe_comment halo-comment') ||
+						host === document.querySelector('.joe_comment comment-widget'))
+				);
+			}
+
+			startCommentHostObserver() {
+				const observerRoot = this.$comment?.parentElement;
+				if (!observerRoot || typeof MutationObserver !== 'function') {
+					this.failOpen();
+					return false;
+				}
+				this.commentHostObserver = new MutationObserver(() => {
+					if (
+						!this.isConnected ||
+						!this.$comment?.isConnected ||
+						!this.isCommentHostReady(this.$commentHost)
+					) {
+						this.failOpen();
+					}
+				});
+				this.commentHostObserver.observe(observerRoot, { childList: true, subtree: true });
+				return true;
+			}
+
+			isCommentSubmissionRequest(url, options) {
+				const requestUrl =
+					typeof url === 'string'
+						? url
+						: typeof URL === 'function' && url instanceof URL
+							? url.href
+							: typeof Request === 'function' && url instanceof Request
+								? url.url
+								: url?.url;
+				const requestMethod = String(options?.method || url?.method || 'GET').toUpperCase();
+				if (!requestUrl || requestMethod !== 'POST') return false;
+				try {
+					return new URL(requestUrl, window.location.origin).pathname ===
+						'/apis/api.halo.run/v1alpha1/comments';
+				} catch (error) {
+					return false;
 				}
 			}
 
 			commentWidgetPluginCheckComment() {
 				// JRL-debug: console.log('call commentWidgetPluginCheckComment');
 				this.runIntervalTask();
+				if (
+					!this.isConnected ||
+					!this.$article?.classList.contains('limited') ||
+					!this.isCommentHostReady(this.$commentHost)
+				) return;
 
 				const isUseResetFetch = true; // 是否使用重置 fetch 请求 ajax 方法，在其中进行捕获提交的评论
-				if (!isUseResetFetch || !window.fetch) {
+				if (!isUseResetFetch || typeof window.fetch !== 'function') {
 					// 方式一：定时检查评论方式
 					this.checkTimer = setInterval(() => {
 						this.runIntervalTask();
 					}, 3000);
 				} else {
 					// 方式二：覆盖 commentWidgetPlugin fetch 请求 ajax 方法，在其中进行捕获提交的评论
-					if (!window._commentWidgetPluginFetch)
-						window._commentWidgetPluginFetch = window.fetch;
-
+					const originalFetch = window.fetch;
+					this.originalFetch = originalFetch;
 					// JRL-debug: console.log('JoeReadLimited 覆盖 commentWidgetPlugin fetch 请求 ajax 方法！')
-					window.fetch = (url, options, ...args) => {
-						const pro = window._commentWidgetPluginFetch(url, options, ...args);
-						if (pro && typeof pro === 'object' && typeof pro.then === 'function') {
-							return pro.then((res) => {
-								if (
-									url === '/apis/api.halo.run/v1alpha1/comments' && options.method === 'POST'
-									&& res.ok && this.options.username !== 'anonymousUser' && !this.isUserCommented
-								) { // 提交评论，则说明用户已经评论了，注意：这里不能使用 res.json，否则会报错
-									// JRL-debug: console.log('JoeReadLimited commentWidgetPlugin 拦截到用户评论，不再检查评论！');
-									this.removeReadLimited();
-								}
-
-								return res;
-							})
+					this.fetchWrapper = (url, options, ...args) => {
+						let isCommentSubmission;
+						try {
+							isCommentSubmission = this.isCommentSubmissionRequest(url, options);
+						} catch (error) {
+							this.failOpen();
+							throw error;
 						}
-
-						return pro
-					}
+						let pro;
+						try {
+							pro = originalFetch.call(window, url, options, ...args);
+						} catch (error) {
+							if (isCommentSubmission) this.failOpen();
+							throw error;
+						}
+						try {
+							if (!isCommentSubmission) return pro;
+							if (!pro || typeof pro.then !== 'function') {
+								this.failOpen();
+								return pro;
+							}
+							return pro.then(
+								(res) => {
+									let responseOk;
+									try {
+										if (!res || typeof res.ok !== 'boolean') {
+											this.failOpen();
+											return res;
+										}
+										responseOk = res.ok;
+									} catch (error) {
+										this.failOpen();
+										throw error;
+									}
+									if (
+										responseOk &&
+										this.options.username !== 'anonymousUser' &&
+										!this.isUserCommented
+									) { // 提交评论成功，说明用户已经评论
+										this.removeReadLimited();
+									}
+									return res;
+								},
+								(error) => {
+									this.failOpen();
+									throw error;
+								}
+							);
+						} catch (error) {
+							this.failOpen();
+							throw error;
+						}
+					};
+					window.fetch = this.fetchWrapper;
 				}
 			}
 
@@ -357,47 +581,90 @@ document.addEventListener("DOMContentLoaded", () => {
 					return;
 
 				this.checking = true;
-				this.findFirstMyComment(1, (isFinduserComment) => {
-					this.checking = false;
+				try {
+					this.findFirstMyComment(1, (isFinduserComment) => {
+						this.checking = false;
 
-					if (isFinduserComment === null) {
-						// JRL-debug: console.log('JoeReadLimited 评论查找功能未实现或不可用，不再检查评论！');
-						this.checkTimer && clearInterval(this.checkTimer);
-						this.checkTimer = null;
-						return;
-					}
+						if (isFinduserComment == null) {
+							// JRL-debug: console.log('JoeReadLimited 评论查找功能未实现或不可用，展示完整内容！');
+							this.failOpen();
+							return;
+						}
 
-					if (isFinduserComment) {
-						// JRL-debug: console.log('JoeReadLimited 找到评论，不再检查评论！')
-						this.isUserCommented = true;
-						this.removeReadLimited();
-						return;
+						if (isFinduserComment) {
+							// JRL-debug: console.log('JoeReadLimited 找到评论，不再检查评论！')
+							this.isUserCommented = true;
+							this.removeReadLimited();
+							return;
+						}
+					});
+				} catch (error) {
+					console.error('JoeReadLimited 评论检查失败，已展示完整内容：', error);
+					this.failOpen();
+				}
+			}
+
+			cleanupRuntime() {
+				if (!this.ownsRuntime) return;
+				this.checking = false;
+				this.readinessTimer && clearTimeout(this.readinessTimer);
+				this.readinessTimer = null;
+				this.activationTimer && clearTimeout(this.activationTimer);
+				this.activationTimer = null;
+				this.checkTimer && clearInterval(this.checkTimer);
+				this.checkTimer = null;
+				this.commentHostObserver?.disconnect();
+				this.commentHostObserver = null;
+				if (this.fetchWrapper && this.originalFetch && window.fetch === this.fetchWrapper) {
+					window.fetch = this.originalFetch;
+				}
+				this.fetchWrapper = null;
+				this.originalFetch = null;
+				if (window.__joeReadLimitedOwner === this) {
+					delete window.__joeReadLimitedOwner;
+				}
+				this.ownsRuntime = false;
+			}
+
+			failOpen() {
+				const ownsRuntime = this.ownsRuntime === true;
+				this.cleanupRuntime();
+				if (ownsRuntime) this.$article?.classList.remove('limited');
+				if (!this.isRemoving) {
+					this.isRemoving = true;
+					try {
+						this.remove();
+					} finally {
+						this.isRemoving = false;
 					}
-				});
+				}
 			}
 
 			removeReadLimited () {
 				// JRL-debug: console.log('call removeReadLimited')
-				this.checking = false;
-				this.isUserCommented = true;
-				this.checkTimer && clearInterval(this.checkTimer);
-				this.checkTimer = null;
-				$('.joe_read_limited').hide();
-				$('.joe_detail__article.limited').removeClass('limited');
-
-				// 恢复 commentWidgetPlugin fetch 请求 ajax 方法
-				if (window._commentWidgetPluginFetch) {
-					// JRL-debug: console.log('JoeReadLimited 恢复 commentWidgetPlugin fetch 请求 ajax 方法！')
-					window.fetch = window._commentWidgetPluginFetch;
-					delete window._commentWidgetPluginFetch;
+				if (!this.ownsRuntime) {
+					this.remove();
+					return;
 				}
+				this.cleanupRuntime();
+				this.isUserCommented = true;
+				this.querySelector('.joe_read_limited')?.setAttribute('hidden', '');
+				this.$article?.classList.remove('limited');
 			}
 			
 			findFirstMyComment (page, onCallback) {
 				const username = this.options.username;
 				const displayName = this.options.displayName;
 
-				if (displayName === 'anonymousUser') {
+				if (
+					username === 'anonymousUser' ||
+					!username ||
+					!displayName ||
+					!this.options.commentName ||
+					!this.options.commentKind ||
+					typeof $ === 'undefined' ||
+					typeof $.ajax !== 'function'
+				) {
 					// JRL-debug: console.log('findFirstMyComment 匿名用户，不查找评论！, page:', page, ' ,displayName:', displayName, ' ,username:', username)
 					return onCallback(null);
 				}
@@ -410,6 +677,9 @@ document.addEventListener("DOMContentLoaded", () => {
 						type: "GET",
 						timeout: 10000, // 10秒超时
 					}).then((res) => {
+						if (!res || !Array.isArray(res.items)) {
+							return onCallback(null);
+						}
 						const items = res.items;
 						if (!items.length) {
 							// // JRL-debug: console.log('findFirstMyComment CommentWidgetPlugin 没有找到评论！, reqUrl:', reqUrl, ' ,page:', page, ' ,displayName:', displayName, ' ,username:', username)
@@ -449,7 +719,7 @@ document.addEventListener("DOMContentLoaded", () => {
 						return onCallback(false);
 					}).catch((xhr, status, error) => {
 						console.error('findFirstMyComment CommentWidgetPlugin catch err:', !!xhr, status, error, ' ,reqUrl:', reqUrl, ' ,page:', page, ' ,displayName:', displayName, ' ,username:', username);
-						return onCallback(false);
+						return onCallback(null);
 					});
 
 					return;
@@ -472,21 +742,22 @@ document.addEventListener("DOMContentLoaded", () => {
 						<p><i class="joe-font joe-icon-locker" style="color:#f5840d;"></i>
 						${
 							this.options.username === 'anonymousUser' ? 
-							'&nbsp;此处内容仅 <span class="joe_read_limited__button need-login">登陆后评论</span> 后可见' :
-							'&nbsp;'+(this.options.displayName)+' 您已登陆，此处内容仅 <span class="joe_read_limited__button logined">评论</span> 后可见'
+							'&nbsp;此处内容仅作客户端视觉折叠，请 <span class="joe_read_limited__button need-login">登录并评论后展开</span>；仅为客户端视觉效果，不适合私密或付费内容' :
+							'&nbsp;'+(this.options.displayName)+' 您已登录，请 <span class="joe_read_limited__button logined">评论后展开</span>；仅为客户端视觉效果，不适合私密或付费内容'
 						}
 						</p>
 					</div>`;
 				this.$button = this.querySelector(".joe_read_limited__button");
-				const $comment = document.querySelector(".joe_comment");
-				const $header = document.querySelector(".joe_header");
 				const postID = $(".joe_detail").attr("data-cid");
 				// JRL-debug: console.log(postID)
-				if (!$comment || !$header) return;
+				if (!this.$button || !this.$comment || !this.$commentHost || !this.$header) {
+					this.failOpen();
+					return false;
+				}
 				this.$button.addEventListener("click", (e) => {
 					e.stopPropagation();
-					if (!Boolean(document.querySelector('[id*="comment-"]')) &&!Boolean(document.querySelector("#waline"))) {
-						Qmsg.warning("评论功能不可用！");
+					if (!this.isCommentHostReady(this.$commentHost)) {
+						this.failOpen();
 						return;
 					}
 
@@ -497,7 +768,14 @@ document.addEventListener("DOMContentLoaded", () => {
 					}
 
 					// 下滑到评论区
-					const scrollTop = $comment.offsetTop - $header.offsetHeight - 15;
+					const scrollTarget = this.isCommentMountReady(this.$commentHost)
+						? this.$commentHost
+						: this.$comment;
+					const scrollTop =
+						scrollTarget.getBoundingClientRect().top +
+						window.pageYOffset -
+						this.$header.offsetHeight -
+						15;
 					const scrollDuration = window.matchMedia(
 						"(prefers-reduced-motion: reduce)"
 					).matches
@@ -509,7 +787,11 @@ document.addEventListener("DOMContentLoaded", () => {
 						},
 						scrollDuration
 					);
+					if (this.isCommentMountReady(this.$commentHost)) {
+						this.waitForMountActivation();
+					}
 				});
+				return true;
 			}
 		}
 	);
@@ -850,7 +1132,7 @@ document.addEventListener("DOMContentLoaded", () => {
 			}
 			render() {
 				if (this.options.src)
-					this.innerHTML = `<iframe allowfullscreen="true" class="joe_vplayer" src="${
+					this.innerHTML = `<iframe loading="lazy" allowfullscreen="true" class="joe_vplayer" src="${
 						this.options.player + this.options.src
 					}" style="width:${this.options.width};height:${
 						this.options.height
@@ -875,7 +1157,7 @@ document.addEventListener("DOMContentLoaded", () => {
 			}
 			render() {
 				if (this.options.bvid)
-					this.innerHTML = `<iframe allowfullscreen="true" class="joe_vplayer" src="//player.bilibili.com/player.html?bvid=${this.options.bvid}&page=${this.options.page}" style="width:${this.options.width};height:${this.options.height}"></iframe>`;
+					this.innerHTML = `<iframe loading="lazy" allowfullscreen="true" class="joe_vplayer" src="//player.bilibili.com/player.html?bvid=${this.options.bvid}&page=${this.options.page}" style="width:${this.options.width};height:${this.options.height}"></iframe>`;
 				else this.innerHTML = "bvid未填写！";
 			}
 		}

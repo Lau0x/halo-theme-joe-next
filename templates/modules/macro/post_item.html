@@ -16,23 +16,21 @@
           th:if="${#strings.trim(post.spec.cover) != ''} or ${not #lists.isEmpty(theme.config.home.post_thumbnail)} or ${not #lists.isEmpty(theme.config.basic.random_img_api_url)}"
         >
           <th:block
-            th:with="postCover = ${#lists.isEmpty(theme.config.home.post_thumbnail)? theme.config.basic.random_img_api_url+'?pageid='+post.metadata.name : theme.config.home.post_thumbnail}"
+            th:with="postCover = ${#lists.isEmpty(theme.config.home.post_thumbnail)? theme.config.basic.random_img_api_url+'?pageid='+post.metadata.name : theme.config.home.post_thumbnail},
+                     prioritize = ${iteration.first and ((htmlType == 'index' and not #bools.isTrue(theme.config.beauty.enable_big_banner) and (not #bools.isTrue(theme.config.carousel.enable_banner) or #lists.isEmpty(theme.config.carousel.banner_data_group))) or ((htmlType == 'category' or htmlType == 'tag') and not #bools.isTrue(theme.config.beauty.enable_big_banner)) or (htmlType == 'author' and (not #bools.isTrue(theme.config.beauty.enable_big_banner) or not #bools.isTrue(theme.config.tags.larger_tabs_image))))}"
           >
             <img
               width="1600"
               height="900"
-              class="lazyload"
+              th:class="${prioritize ? '' : 'lazyload'}"
               th:with="cover = ${post.spec.cover ?: postCover}"
-              th:data-src="${cover}"
-              th:data-srcset="|${thumbnail.gen(cover, 's')} 400w,
-              ${thumbnail.gen(cover, 'm')} 800w,
-              ${thumbnail.gen(cover, 'l')} 1200w,
-              ${thumbnail.gen(cover, 'xl')} 1600w|"
+              th:data-src="${prioritize ? null : cover}"
+              th:srcset="${prioritize ? thumbnail.gen(cover, 's') + ' 400w, ' + thumbnail.gen(cover, 'm') + ' 800w, ' + thumbnail.gen(cover, 'l') + ' 1200w, ' + thumbnail.gen(cover, 'xl') + ' 1600w' : null}"
+              th:data-srcset="${prioritize ? null : thumbnail.gen(cover, 's') + ' 400w, ' + thumbnail.gen(cover, 'm') + ' 800w, ' + thumbnail.gen(cover, 'l') + ' 1200w, ' + thumbnail.gen(cover, 'xl') + ' 1600w'}"
               sizes="(max-width: 768px) 120px, (max-width: 1200px) 185px, 210px"
-              th:src="${theme.config.home.lazyload_thumbnail == '/themes/theme-Joe3/assets/img/lazyload.gif' ? theme.config.home.lazyload_thumbnail + '?v=' + theme.spec.version : theme.config.home.lazyload_thumbnail}"
+              th:src="${prioritize ? cover : (theme.config.home.lazyload_thumbnail == '/themes/theme-Joe3/assets/img/lazyload.gif' ? theme.config.home.lazyload_thumbnail + '?v=' + theme.spec.version : theme.config.home.lazyload_thumbnail)}"
               th:alt="${post.spec.title}"
-              loading="lazy"
-              decoding="async"
+              th:attr="loading=${prioritize ? 'eager' : 'lazy'},fetchpriority=${prioritize ? 'high' : null},decoding=${prioritize ? null : 'async'}"
               onerror="Joe.errorImg(this, 'HomeErrImg')"
             />
           </th:block>

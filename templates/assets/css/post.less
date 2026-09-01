@@ -312,7 +312,8 @@
       font-size: 20px;
     }
 
-    span {
+    > .post-operate-like > .nums,
+    > .post-operate-comment > span {
       display: none;
       position: absolute;
       left: 30px;
@@ -345,6 +346,14 @@
   }
 
   .post-operate-like {
+    appearance: none;
+    width: 100%;
+    height: 100%;
+    padding: 0;
+    border: 0;
+    color: inherit;
+    background: transparent;
+    cursor: pointer;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -370,6 +379,17 @@
     }
   }
 
+  .post-operate-comment {
+    appearance: none;
+    width: 100%;
+    height: 100%;
+    padding: 0;
+    border: 0;
+    color: inherit;
+    background: transparent;
+    cursor: pointer;
+  }
+
   .post-operate-share {
     overflow: hidden;
 
@@ -388,11 +408,20 @@
       transition: all 0.25s;
       box-shadow: 0 0 10px rgba(0, 0, 0, 0.15);
 
-      a {
+      a,
+      button {
         position: relative;
         display: block;
         line-height: 1;
         margin: 5px 0;
+      }
+
+      button {
+        appearance: none;
+        padding: 0;
+        border: 0;
+        background: transparent;
+        cursor: pointer;
       }
 
       &:before {
@@ -426,7 +455,8 @@
         border-right-color: #e0e0e0;
       }
 
-      p {
+      .qrcode_text {
+        display: block;
         padding: 6px 0 0;
         text-align: center;
         font-size: 12px;
@@ -434,7 +464,8 @@
       }
     }
 
-    &:hover {
+    &:hover,
+    &:focus-within {
       overflow: initial;
 
       .share-icon-list {
@@ -444,7 +475,8 @@
       }
     }
 
-    .share_to_weixin:hover .qrcode_wrapper {
+    .share_to_weixin:hover .qrcode_wrapper,
+    .share_to_weixin.active .qrcode_wrapper {
       display: block;
     }
   }

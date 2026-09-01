@@ -35,6 +35,8 @@
                       th:data-src="${category.spec.cover}"
                       th:data-srcset="${category.spec.cover}"
                       th:src="@{/assets/img/hot_cover1.jpg}"
+                      loading="lazy"
+                      decoding="async"
                       onerror="Joe.errorImg(this, 'HomeErrImg')"
                       alt=""
                     />
@@ -60,6 +62,8 @@
                       th:data-src="${custom_data.hot_custom_img}"
                       th:data-srcset="${custom_data.hot_custom_img}"
                       th:src="@{/assets/img/hot_cover1.jpg}"
+                      loading="lazy"
+                      decoding="async"
                       onerror="Joe.errorImg(this, 'HomeErrImg')"
                       alt=""
                     />

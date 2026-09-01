@@ -14,7 +14,9 @@
           <th:block th:replace="~{modules/macro/big_banner :: big_banner(${title})}" />
         </th:block>
 
-        <div
+        <main
+          id="joe-main-content"
+          tabindex="-1"
           class="joe_container joe_main_container page-index"
           th:classappend="|${theme.config.theme.enable_show_in_up ? 'animated showInUp':''} ${theme.config.aside.aside_position == 'left' ? 'revert':''}|"
         >
@@ -92,15 +94,24 @@
                 class="joe_load_container"
                 th:with="nextPage = ${posts.totalPages == posts.page?'':posts.nextUrl}"
               >
-                <div class="joe_load" th:data-next="@{${nextPage}}">查看更多</div>
+                <button
+                  class="joe_load"
+                  type="button"
+                  aria-busy="false"
+                  aria-describedby="joe-load-status"
+                  th:data-next="@{${nextPage}}"
+                >
+                  查看更多
+                </button>
               </div>
+              <p id="joe-load-status" class="sr-only" role="status" aria-live="polite"></p>
             </th:block>
           </div>
           <!--              aside-->
-          <th:block th:if="${theme.config.aside.enable_aside}">
+          <th:block th:if="${#bools.isTrue(theme.config.aside.enable_aside)}">
             <th:block th:replace="~{modules/common/aside :: aside}" />
           </th:block>
-        </div>
+        </main>
 
         <!--悬浮按钮-->
         <th:block

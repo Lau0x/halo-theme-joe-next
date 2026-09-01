@@ -295,13 +295,25 @@ const homeContext = {
 				: 0;
 		$(document).ready(() => {
 			const $domLoadContainer = $(".joe_load_container");
+			const $loadStatus = $("#joe-load-status");
+			const requestedNextUrls = new Set();
 			$domLoadContainer.on('click','.joe_load', function () {
-				if ($(this).attr("loading") === "true") return;
 				const $domLoad = $(this);
+				if ($domLoad.prop("disabled") || $domLoad.attr("loading") === "true") return;
 				const domNext = $domLoad.attr('data-next');
 				if (!domNext) return;
+				if (requestedNextUrls.has(domNext)) {
+					$loadStatus.text("已加载全部文章");
+					$domLoadContainer.remove();
+					return;
+				}
+				requestedNextUrls.add(domNext);
 				const lastItemTop = document.querySelector(".joe_list__item:last-child")?.offsetTop;
-				$domLoad.html("加载中...").attr("loading", "true");
+				$domLoad
+					.html("加载中...")
+					.attr({ loading: "true", "aria-busy": "true" })
+					.prop("disabled", true);
+				$loadStatus.text("正在加载更多文章");
 				fetch(domNext, {
 					method: "GET",
 				})
@@ -324,9 +336,33 @@ const homeContext = {
 						}
 						const $newDomLoad = $(doc).find(".joe_load");
 						const nextPage = $newDomLoad.attr('data-next');
-						if ($newDomLoad.length && nextPage && nextPage !== '/') {
-							$domLoadContainer.empty().append($newDomLoad);
+						const hasUnvisitedNext =
+							$newDomLoad.length &&
+							nextPage &&
+							nextPage !== '/' &&
+							!requestedNextUrls.has(nextPage);
+						if (hasUnvisitedNext) {
+							$domLoad
+								.attr({
+									"data-next": nextPage,
+									"aria-busy": "false",
+									"aria-label": "加载更多文章",
+								})
+								.removeAttr("loading")
+								.prop("disabled", false)
+								.html("查看更多");
+							if (postListNewElements.length > 0) {
+								$loadStatus.text(`已新增 ${postListNewElements.length} 篇文章`);
+							} else {
+								$loadStatus.text("当前分页没有公开文章，正在继续查找");
+								setTimeout(() => $domLoad.trigger("click"), 0);
+							}
 						} else {
+							$loadStatus.text(
+								postListNewElements.length > 0
+									? `已新增 ${postListNewElements.length} 篇文章，已加载全部文章`
+									: "已加载全部文章"
+							);
 							$domLoadContainer.remove();
 						}
 						// 向下滚动一段距离
@@ -346,7 +382,13 @@ const homeContext = {
 					})
 					.catch((error) => {
 						console.error(error);
-						$domLoad.html("加载失败，点击重试").removeAttr("loading");
+						requestedNextUrls.delete(domNext);
+						$domLoad
+							.html("加载失败，点击重试")
+							.attr({ "aria-busy": "false", "aria-label": "加载失败，点击重试" })
+							.removeAttr("loading")
+							.prop("disabled", false);
+						$loadStatus.text("文章加载失败，请重试");
 					});
 			});
 		});

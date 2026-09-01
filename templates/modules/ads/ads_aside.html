@@ -22,6 +22,8 @@
           th:data-src="${ads_img}"
           th:src="${theme.config.home.lazyload_thumbnail == '/themes/theme-Joe3/assets/img/lazyload.gif' ? theme.config.home.lazyload_thumbnail + '?v=' + theme.spec.version : theme.config.home.lazyload_thumbnail}"
           alt=""
+          loading="lazy"
+          decoding="async"
           onerror="Joe.errorImg(this)"
         />
         <span class="icon">广告</span>

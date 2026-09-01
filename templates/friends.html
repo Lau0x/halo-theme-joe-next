@@ -8,7 +8,9 @@
     <body>
       <div id="Joe">
         <th:block th:replace="~{modules/macro/navbar :: navbar}" />
-        <div
+        <main
+          id="joe-main-content"
+          tabindex="-1"
           class="joe_container joe_main_container page-friends"
           th:classappend="|${theme.config.theme.enable_show_in_up ? 'animated showInUp':''} ${theme.config.aside.aside_position == 'left' ? 'revert':''}|"
         >
@@ -45,6 +47,8 @@
                         class="joe_friend_info_logo"
                         th:src="${spec.logo}"
                         th:alt="${spec.author}"
+                        loading="lazy"
+                        decoding="async"
                       />
                       <a
                         class="joe_friend_info_author"
@@ -79,10 +83,10 @@
               <th:block th:replace="~{modules/common/pagination::friends(${friends},'/friends')}" />
             </div>
           </div>
-          <th:block th:if="${theme.config.aside.enable_friends_aside}">
+          <th:block th:if="${#bools.isTrue(theme.config.aside.enable_friends_aside)}">
             <th:block th:replace="~{modules/common/aside :: aside}" />
           </th:block>
-        </div>
+        </main>
         <th:block th:replace="~{modules/common/actions :: actions}" />
         <th:block th:replace="~{modules/common/footer :: footer}" />
       </div>

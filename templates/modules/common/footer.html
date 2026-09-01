@@ -3,6 +3,7 @@
   <th:block th:fragment="footer">
     <footer
       class="joe_footer"
+      th:if="${#bools.isTrue(theme.config.footer.enable_footer)}"
       th:classappend="|${theme.config.footer.footer_position == 'fixed'? 'fixed' :''} ${theme.config.footer.enable_full_footer ? 'full' :''} |"
     >
       <div
@@ -68,6 +69,8 @@
                     th:class="${theme.config.footer.driven_by}"
                     th:src="@{/assets/img/cloud}+'/'+${theme.config.footer.driven_by}+'.svg'"
                     alt="云服务商"
+                    loading="lazy"
+                    decoding="async"
                     onerror="Joe.errorImg(this, 'LoadFailedImg')"
                   />
                 </a>
@@ -86,6 +89,8 @@
                     th:class="${theme.config.footer.driven_by}"
                     th:src="@{/assets/img/cloud}+'/'+${theme.config.footer.driven_by}+'.svg'"
                     alt="云服务商"
+                    loading="lazy"
+                    decoding="async"
                     onerror="Joe.errorImg(this, 'LoadFailedImg')"
                   /> </a
                 >提供云服务
@@ -103,6 +108,8 @@
                     th:class="${theme.config.footer.driven_by}"
                     th:src="@{/assets/img/cloud}+'/'+${theme.config.footer.driven_by}+'.svg'"
                     alt="云服务商"
+                    loading="lazy"
+                    decoding="async"
                     onerror="Joe.errorImg(this, 'LoadFailedImg')"
                   /> </a
                 >提供云服务
@@ -116,6 +123,8 @@
                     th:class="${theme.config.footer.driven_by}"
                     th:src="@{/assets/img/cloud}+'/'+${theme.config.footer.driven_by}+'.svg'"
                     alt="云服务商"
+                    loading="lazy"
+                    decoding="async"
                     onerror="Joe.errorImg(this, 'LoadFailedImg')"
                   /> </a
                 >提供云服务
@@ -129,6 +138,8 @@
                     th:class="${theme.config.footer.driven_by}"
                     th:src="@{/assets/img/cloud}+'/'+${theme.config.footer.driven_by}+'.svg'"
                     alt="云服务商"
+                    loading="lazy"
+                    decoding="async"
                     onerror="Joe.errorImg(this, 'LoadFailedImg')"
                   /> </a
                 >提供云服务
@@ -146,6 +157,8 @@
                     th:class="${theme.config.footer.driven_by}"
                     th:src="@{/assets/img/cloud}+'/'+${theme.config.footer.driven_by}+'.svg'"
                     alt="云服务商"
+                    loading="lazy"
+                    decoding="async"
                     onerror="Joe.errorImg(this, 'LoadFailedImg')"
                   /> </a
                 >提供云服务
@@ -159,6 +172,8 @@
                     th:class="${theme.config.footer.driven_by}"
                     th:src="@{/assets/img/cloud}+'/'+${theme.config.footer.driven_by}+'.svg'"
                     alt="云服务商"
+                    loading="lazy"
+                    decoding="async"
                     onerror="Joe.errorImg(this, 'LoadFailedImg')"
                   /> </a
                 >提供云服务
@@ -179,6 +194,8 @@
                     th:class="${theme.config.footer.driven_by}"
                     th:src="${theme.config.footer.driven_by_custom_img}"
                     alt="云服务商"
+                    loading="lazy"
+                    decoding="async"
                     onerror="Joe.errorImg(this, 'LoadFailedImg')"
                   /> </a
                 >提供云服务

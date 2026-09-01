@@ -7,6 +7,42 @@
  * 3. isotope 加 sortBy='original-order'，锚定后端给的顺序——防 append 跨页导致视觉"乱序"
  * 4. loadingIndicator null-safe，分页完成后不再崩
  */
+function createPhotoPageLoader({ initialPage, totalPage, fetchPage, appendItems, finish, onError }) {
+    let page = initialPage;
+    let inFlight = false;
+    let finished = false;
+
+    return async function loadPageData() {
+        if (inFlight || finished) return false;
+        inFlight = true;
+        try {
+            if (page > totalPage) {
+                finished = true;
+                finish();
+                return false;
+            }
+            const items = await fetchPage(page);
+            if (!items.length) {
+                finished = true;
+                finish();
+                return false;
+            }
+            appendItems(items);
+            page++;
+            if (page > totalPage) {
+                finished = true;
+                finish();
+            }
+            return true;
+        } catch (error) {
+            onError(error);
+            return false;
+        } finally {
+            inFlight = false;
+        }
+    };
+}
+
 $(document).ready(function () {
     const gridEl = document.querySelector('#image-grid');
     if (!gridEl) return;
@@ -26,10 +62,15 @@ $(document).ready(function () {
         sortBy: 'original-order'
     });
 
-    let page = Number(gridEl.getAttribute('data-index')) + 1;
+    const initialPage = Number(gridEl.getAttribute('data-index')) + 1;
     const totalPage = Number(gridEl.getAttribute('data-total'));
     const baseUrl = ThemeConfig.blog_url;
     const loadingIndicator = document.querySelector('.joe_loading');
+    let observerForLoading = null;
+    function finishLoading() {
+        if (observerForLoading) observerForLoading.disconnect();
+        if (loadingIndicator) loadingIndicator.remove();
+    }
 
     // 合并 layout — 多张图并发加载时 debounce 80ms 再 layout，避免抖动
     let layoutTimer = null;
@@ -69,20 +110,18 @@ $(document).ready(function () {
 
     observeLazy(); // 首屏绑定
 
-    const loadPageData = async function () {
-        if (page > totalPage) {
-            if (loadingIndicator) loadingIndicator.remove();
-            return;
-        }
-        try {
+    const loadPageData = createPhotoPageLoader({
+        initialPage,
+        totalPage,
+        fetchPage: async function (page) {
             const response = await fetch(baseUrl + '/photos/page/' + page);
+            if (!response.ok) throw new Error('Photo page request failed: ' + response.status);
             const html = await response.text();
             const parser = new DOMParser();
             const doc = parser.parseFromString(html, 'text/html');
-            const nextPageImages = doc.querySelectorAll('.grid-item');
-
-            if (!nextPageImages.length) return;
-
+            return doc.querySelectorAll('.grid-item');
+        },
+        appendItems: function (nextPageImages) {
             const newItems = [];
             nextPageImages.forEach(function (image) {
                 $grid.append(image).isotope('appended', image);
@@ -90,17 +129,15 @@ $(document).ready(function () {
             });
             observeLazy(newItems);       // 只观察新增节点，不 rebind 全部
             $grid.isotope('layout');
-            page++;
-            if (page > totalPage && loadingIndicator) {
-                loadingIndicator.remove();
-            }
-        } catch (error) {
+        },
+        finish: finishLoading,
+        onError: function (error) {
             console.error('Error fetching next page data:', error);
         }
-    };
+    });
 
     if (loadingIndicator) {
-        const observerForLoading = new IntersectionObserver(function (entries) {
+        observerForLoading = new IntersectionObserver(function (entries) {
             if (entries[0].isIntersecting) {
                 loadPageData();
             }

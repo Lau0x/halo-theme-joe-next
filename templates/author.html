@@ -14,7 +14,9 @@
         >
           <th:block th:replace="~{modules/macro/big_banner :: big_banner(${title})}" />
         </th:block>
-        <div
+        <main
+          id="joe-main-content"
+          tabindex="-1"
           class="joe_container joe_main_container page-tag"
           th:classappend="${theme.config.theme.enable_show_in_up ? 'animated fadeIn':''}"
         >
@@ -36,7 +38,7 @@
               <th:block th:replace="~{modules/common/pagination :: author}" />
             </div>
           </div>
-        </div>
+        </main>
         <th:block th:replace="~{modules/common/actions :: actions}" />
         <th:block th:replace="~{modules/common/footer :: footer}" />
       </div>

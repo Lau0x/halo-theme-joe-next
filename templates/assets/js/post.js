@@ -1,7 +1,34 @@
 /**文章页逻辑 */
+function focusJoeTocHeading(event, fallback) {
+	const anchor =
+		event?.currentTarget?.closest?.("a[href]") || event?.target?.closest?.("a[href]");
+	let heading = null;
+	try {
+		const hash = anchor?.hash || "";
+		if (hash.startsWith("#") && hash.length > 1) {
+			heading = document.getElementById(decodeURIComponent(hash.slice(1)));
+		}
+	} catch (_error) {}
+	if (!heading) {
+		fallback?.focus();
+		return;
+	}
+	const originalTabindex = heading.getAttribute("tabindex");
+	if (originalTabindex === null) heading.setAttribute("tabindex", "-1");
+	heading.addEventListener(
+		"blur",
+		() => {
+			if (originalTabindex === null) heading.removeAttribute("tabindex");
+			else heading.setAttribute("tabindex", originalTabindex);
+		},
+		{ once: true }
+	);
+	heading.focus({ preventScroll: true });
+}
+
 const postContext = {
 	limited: false,
-	/* 初始化评论后可见 */
+	/* 初始化评论后展开 */
 	// initReadLimit() {
 	// 	if (
 	// 		PageAttrs.metas_enable_read_limit &&
@@ -90,7 +117,7 @@ const postContext = {
 
 			const appendLink = (ThemeConfig.enable_copy_right_text
 				? ThemeConfig.copy_right_text ||
-				`\r\n\r\n====================================\r\n文章作者： ${author}\r\n文章来源： ${ThemeConfig.blog_title}(${ThemeConfig.blog_url})\r\n文章标题： ${postTitle}\r\n文章链接： ${curl}\r\n版权声明： 内容遵循 CC 4.0 BY-SA 版权协议，转载请附上原文出处链接及本声明。`
+				`\r\n\r\n====================================\r\n文章作者： ${author}\r\n文章来源： ${ThemeConfig.blog_title}(${ThemeConfig.blog_url})\r\n文章标题： ${postTitle}\r\n文章链接： ${curl}\r\n版权声明： 内容遵循 CC BY-NC-SA 4.0 版权协议，转载请附上原文出处链接及本声明。`
 				: "")
 				.replace(/{postUrl}/g, curl)
 				.replace(/{postTitle}/g, postTitle)
@@ -162,6 +189,39 @@ const postContext = {
 				text: location.href,
 			});
 		}
+		const $weixinButtons = $(".share_to_weixin");
+		if ($weixinButtons.length) {
+			const closeWeixinQrcode = () => {
+				$weixinButtons
+					.removeClass("active")
+					.attr("aria-expanded", "false")
+					.attr("aria-label", "显示微信分享二维码")
+					.attr("title", "显示微信分享二维码");
+			};
+			closeWeixinQrcode();
+			$weixinButtons.off("click.joeWeixinShare").on("click.joeWeixinShare", function (e) {
+				e.stopPropagation();
+				const $button = $(this);
+				const willOpen = !$button.hasClass("active");
+				closeWeixinQrcode();
+				if (!willOpen) return;
+				$button
+					.addClass("active")
+					.attr("aria-expanded", "true")
+					.attr("aria-label", "收起微信分享二维码")
+					.attr("title", "收起微信分享二维码");
+			});
+			$(document)
+				.off("click.joeWeixinShare keydown.joeWeixinShare")
+				.on("click.joeWeixinShare", closeWeixinQrcode)
+				.on("keydown.joeWeixinShare", (e) => {
+					if (e.key !== "Escape") return;
+					const $activeButton = $weixinButtons.filter(".active");
+					if (!$activeButton.length) return;
+					closeWeixinQrcode();
+					$activeButton.trigger("focus");
+				});
+		}
 	},
 	/* 文章点赞 */
 	initLike() {
@@ -181,22 +241,40 @@ const postContext = {
 		const $iconLike = $icons.find(".icon-like");
 		const $iconUnlike = $icons.find(".icon-unlike");
 		const $likeNum = $icons.find(".nums");
+		let likeCount = clikes;
+		const syncLikeControl = (pressed) => {
+			const label = pressed
+				? `已点赞，当前 ${likeCount} 次点赞`
+				: `点赞，当前 ${likeCount} 次点赞`;
+			$icons
+				.attr("aria-pressed", String(pressed))
+				.attr("aria-label", label)
+				.attr("title", label)
+				.prop("disabled", pressed);
+		};
 		if (flag) {
 			$iconUnlike.addClass("active");
 		} else {
 			$iconLike.addClass("active");
 		}
 		$likeNum.html(clikes);
+		syncLikeControl(flag);
 		let _loading = false;
-		$iconLike.on("click", function (e) {
+		$icons.on("click", function (e) {
 			e.stopPropagation();
-			if (_loading) return;
+			if (_loading || flag) return;
 			_loading = true;
+			$icons.prop("disabled", true).attr("aria-busy", "true");
 			agreeArr = localStorage.getItem(encryption("agree"))
 				? JSON.parse(decrypt(localStorage.getItem(encryption("agree"))))
 				: [];
 			flag = agreeArr.includes(cid);
-			// console.log(cid)
+			if (flag) {
+				_loading = false;
+				$icons.attr("aria-busy", "false");
+				syncLikeControl(true);
+				return;
+			}
 
 			$.ajax({
 				url: "/apis/api.halo.run/v1alpha1/trackers/upvote",
@@ -209,28 +287,26 @@ const postContext = {
 				}),
 			})
 				.then((_res) => {
-					let likes = clikes;
-					if (flag) {
-						likes--;
-						const index = agreeArr.findIndex((_) => _ === cid);
-						agreeArr.splice(index, 1);
-						$iconUnlike.removeClass("active");
-						$iconLike.addClass("active");
-						$icons.removeClass("active");
-					} else {
-						likes++;
-						agreeArr.push(cid);
-						$iconLike.removeClass("active");
-						$iconUnlike.addClass("active");
-						$icons.addClass("active");
-					}
+					likeCount++;
+					agreeArr = localStorage.getItem(encryption("agree"))
+						? JSON.parse(decrypt(localStorage.getItem(encryption("agree"))))
+						: [];
+					if (!agreeArr.includes(cid)) agreeArr.push(cid);
+					$iconLike.removeClass("active");
+					$iconUnlike.addClass("active");
+					$icons.addClass("active");
+					flag = true;
 					const name = encryption("agree");
 					const val = encryption(JSON.stringify(agreeArr));
 					localStorage.setItem(name, val);
-					$likeNum.html(likes).show();
-				})
-				.catch((err) => {
+					$likeNum.html(likeCount).show();
+					syncLikeControl(flag);
 					_loading = false;
+					$icons.attr("aria-busy", "false");
+				})
+				.catch(() => {
+					_loading = false;
+					$icons.prop("disabled", false).attr("aria-busy", "false");
 				});
 		});
 	},
@@ -259,7 +335,7 @@ const postContext = {
 			postContext.limited
 		) {
 			$("#js-toc").html(
-				"<div class=\"toc-nodata\">文章内容不完整，目录仅评论后可见</div>"
+				"<div class=\"toc-nodata\">文章内容已在客户端视觉折叠，目录将在评论后展开</div>"
 			);
 			$(".toc-container").show();
 			return;
@@ -299,6 +375,12 @@ const postContext = {
 					$html.removeClass("disable-scroll");
 					$mobile_toc.removeClass("active");
 					$mask.removeClass("active slideout");
+					$btn_mobile_toc
+						.attr("aria-expanded", "false")
+						.attr("aria-label", "打开文章目录")
+						.attr("title", "打开文章目录");
+					window.JoeOverlayScroll.clear();
+					focusJoeTocHeading(e, $btn_mobile_toc[0]);
 					// if (location.hash) {
 					// 	$("html,body").animate(
 					// 		{
@@ -330,12 +412,49 @@ const postContext = {
 
 		// 移动端toc菜单交互
 		if (Joe.isMobile) {
+			const $drawer = $(".joe_header__slideout");
+			const $drawerTrigger = $(".joe_header__above-slideicon");
+			const restoreScroll = () => {
+				const savedScroll = window.JoeOverlayScroll.restore();
+				savedScroll !== null && $html.scrollTop(savedScroll);
+			};
+			const closeMobileToc = (restoreFocus = false) => {
+				$html.removeClass("disable-scroll");
+				$mask.removeClass("active slideout");
+				$mobile_toc.removeClass("active");
+				$btn_mobile_toc
+					.attr("aria-expanded", "false")
+					.attr("aria-label", "打开文章目录")
+					.attr("title", "打开文章目录");
+				restoreScroll();
+				if (restoreFocus) $btn_mobile_toc.trigger("focus");
+			};
 			$btn_mobile_toc.show();
-			$btn_mobile_toc.on("click", () => {
-				window.sessionStorage.setItem("lastScroll", $html.scrollTop());
+			$btn_mobile_toc.off("click.joeMobileToc").on("click.joeMobileToc", () => {
+				if ($mobile_toc.hasClass("active")) {
+					closeMobileToc(true);
+					return;
+				}
+				window.JoeOverlayScroll.remember($html.scrollTop());
+				$drawer.removeClass("active");
+				$drawerTrigger
+					.attr("aria-expanded", "false")
+					.attr("aria-label", "打开移动端菜单");
 				$html.addClass("disable-scroll");
 				$mask.addClass("active slideout");
 				$mobile_toc.addClass("active");
+				$btn_mobile_toc
+					.attr("aria-expanded", "true")
+					.attr("aria-label", "关闭文章目录")
+					.attr("title", "关闭文章目录");
+				window.requestAnimationFrame(() => {
+					$mobile_toc.find('a[href]').filter(":visible").first().trigger("focus");
+				});
+			});
+			$(document).off("keydown.joeMobileToc").on("keydown.joeMobileToc", (e) => {
+				if (e.key !== "Escape" || !$mobile_toc.hasClass("active")) return;
+				e.preventDefault();
+				closeMobileToc(true);
 			});
 		}
 

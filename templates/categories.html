@@ -12,7 +12,9 @@
         <th:block th:if="${theme.config.beauty.enable_big_banner}">
           <th:block th:replace="~{modules/macro/big_banner :: big_banner(${title})}" />
         </th:block>
-        <div
+        <main
+          id="joe-main-content"
+          tabindex="-1"
           class="joe_container joe_main_container page-categories"
           th:classappend="|${theme.config.theme.enable_show_in_up ?'animated showInUp':''} ${theme.config.aside.aside_position == 'left' ? 'revert':''}|"
         >
@@ -57,6 +59,8 @@
                             sizes="(max-width: 1600px) 100vw, 1600px"
                             th:src="${theme.config.home.lazyload_thumbnail == '/themes/theme-Joe3/assets/img/lazyload.gif' ? theme.config.home.lazyload_thumbnail + '?v=' + theme.spec.version : theme.config.home.lazyload_thumbnail}"
                             th:alt="${category.spec.displayName}"
+                            loading="lazy"
+                            decoding="async"
                             onerror="Joe.errorImg(this, 'HomeErrImg')"
                           />
                           <figcaption class="title">[[${category.spec.displayName}]]</figcaption>
@@ -82,10 +86,10 @@
               </div>
             </div>
           </div>
-          <th:block th:if="${theme.config.aside.enable_categories_aside}">
+          <th:block th:if="${#bools.isTrue(theme.config.aside.enable_categories_aside)}">
             <th:block th:replace="~{modules/common/aside :: aside}" />
           </th:block>
-        </div>
+        </main>
         <th:block th:replace="~{modules/common/actions :: actions}" />
         <th:block th:replace="~{modules/common/footer :: footer}" />
       </div>

@@ -3,6 +3,7 @@
   <th:block th:fragment="aside">
     <aside
       class="joe_aside"
+      th:if="${#bools.isTrue(theme.config.aside.enable_aside)}"
       th:classappend="${theme.config.aside.aside_position == 'left' ? 'pos_left':''}"
     >
       <th:block th:each="aside : ${theme.config.aside.enable_outpost_aside}">

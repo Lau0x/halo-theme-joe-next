@@ -2,6 +2,121 @@
 window.encryption = (str) => window.btoa(unescape(encodeURIComponent(str)));
 window.decrypt = (str) => decodeURIComponent(escape(window.atob(str)));
 
+function promoteJoeLcpImage(root = document) {
+	if (root.querySelector("#EvanBigBanner")) return null;
+	if (root.querySelector('img[fetchpriority="high"]')) return null;
+	const candidate =
+		root.querySelector(".joe_index__banner .swiper-slide img") ||
+		root.querySelector(".joe_list__item .thumbnail img");
+	if (!candidate) return null;
+	candidate.classList.remove("lazyload", "lazyloading");
+	candidate.setAttribute("loading", "eager");
+	candidate.setAttribute("fetchpriority", "high");
+	const dataSrc = candidate.getAttribute("data-src");
+	const dataSrcset = candidate.getAttribute("data-srcset");
+	if (dataSrcset) candidate.setAttribute("srcset", dataSrcset);
+	if (dataSrc) candidate.setAttribute("src", dataSrc);
+	candidate.removeAttribute("data-src");
+	candidate.removeAttribute("data-srcset");
+	return candidate;
+}
+
+promoteJoeLcpImage(document);
+
+function createJoeOverlayScrollState(storage, isOverlayOpen) {
+	const key = "joeOverlayScroll";
+	let savedScroll = null;
+	const normalize = (value) => {
+		if (value === null || value === undefined || value === "") return null;
+		const number = Number(value);
+		return Number.isFinite(number) && number >= 0 ? number : null;
+	};
+	const clear = () => {
+		savedScroll = null;
+		try {
+			storage?.removeItem(key);
+		} catch (_error) {}
+	};
+	return {
+		remember(value) {
+			if (isOverlayOpen()) return;
+			const normalized = normalize(value);
+			if (normalized === null) {
+				clear();
+				return;
+			}
+			savedScroll = normalized;
+			try {
+				storage?.getItem(key);
+			} catch (_error) {}
+			try {
+				storage?.setItem(key, String(normalized));
+			} catch (_error) {}
+		},
+		restore() {
+			const normalized = normalize(savedScroll);
+			clear();
+			return normalized;
+		},
+		clear,
+	};
+}
+
+let joeOverlayStorage = null;
+try {
+	joeOverlayStorage = window.sessionStorage;
+} catch (_error) {}
+window.JoeOverlayScroll = createJoeOverlayScrollState(
+	joeOverlayStorage,
+	() =>
+		document.querySelector(".joe_header__slideout.active, .joe_header__toc.active") !== null
+);
+
+function scheduleJoeDrawerFocus(requestFrame, isOpen, getItems, focusGeneration, getGeneration) {
+	requestFrame(() => {
+		requestFrame(() => {
+			if (focusGeneration !== getGeneration() || !isOpen()) return;
+			const firstMenuItem = getItems().find((item) => {
+				if (!item.getClientRects().length) return false;
+				if (item.closest('[aria-hidden="true"]')) return false;
+				if (item.closest("[inert]")) return false;
+				if (item.closest("[hidden]")) return false;
+				for (let node = item; node; node = node.parentElement) {
+					if (window.getComputedStyle(node).visibility === "hidden") return false;
+				}
+				return true;
+			});
+			firstMenuItem?.focus();
+		});
+	});
+}
+
+function createJoeDrawerFocusController(requestFrame) {
+	let generation = 0;
+	return {
+		beginInit() {
+			generation += 1;
+			return {
+				invalidate() {
+					generation += 1;
+				},
+				schedule(isOpen, getItems) {
+					const focusGeneration = ++generation;
+					scheduleJoeDrawerFocus(
+						requestFrame,
+						isOpen,
+						getItems,
+						focusGeneration,
+						() => generation
+					);
+				},
+			};
+		},
+	};
+}
+
+const joeDrawerFocusController = createJoeDrawerFocusController(window.requestAnimationFrame);
+
 const commonContext = {
 	/* 初始化主题模式（仅用户模式） */
 	initMode() {
@@ -229,7 +344,8 @@ const commonContext = {
 	 *   或直接阻止请求。bbchin.com 不受我们控制，无法修复服务端。
 	 *
 	 * 新行为：不再自动检测 / 自动推送。如果用户开了该开关，直接显示"查询百度收录"的
-	 *   站长平台链接 — 点击在新标签页打开官方入口。
+	 *   站长平台链接 — 点击在新标签页打开官方入口。旧版 baidu_token 配置保留在后台，
+	 *   但不再输出到页面或参与运行时逻辑。
 	 *
 	 * 保留 ThemeConfig.check_baidu_collect 开关只是为了向下兼容 — 未来版本里会把
 	 *   这个字段以及 baidu_token 字段一起淘汰。
@@ -241,7 +357,7 @@ const commonContext = {
 			window.location.href
 		)}`;
 		$("#joe_baidu_record").html(
-			`<a target="_blank" href="${url}" rel="noopener noreferrer nofollow" style="color: #f56c6c">查询/提交收录</a>`
+			`<a target="_blank" href="${url}" rel="noopener noreferrer nofollow" style="color: #f56c6c">查询/提交百度收录</a>`
 		);
 	},
 	/* 音乐播放器 */
@@ -286,7 +402,7 @@ const commonContext = {
 				const file = encodeURIComponent(options.src);
 				htmlStr = `
 	      <div class="joe_pdf">
-	        <iframe src="${ThemeConfig.BASE_RES_URL}/assets/lib/pdfjs/web/viewer.html?file=${file}" style="width:${options.width};height:${options.height}"></iframe>
+	        <iframe loading="lazy" src="${ThemeConfig.BASE_RES_URL}/assets/lib/pdfjs/web/viewer.html?file=${file}" style="width:${options.width};height:${options.height}"></iframe>
 	      </div>`;
 			}
 			$(item).replaceWith(htmlStr);
@@ -649,25 +765,71 @@ const commonContext = {
 	},
 	/* 小屏幕伸缩侧边栏 */
 	drawerMobile() {
-		$(".joe_header__above-slideicon").on("click", function (e) {
+		const drawerFocusContext = joeDrawerFocusController.beginInit();
+		const $trigger = $(".joe_header__above-slideicon");
+		const $html = $("html");
+		const $mask = $(".joe_header__mask");
+		const $slideOut = $(".joe_header__slideout");
+		const $mobileToc = $(".joe_header__toc");
+		const syncExpandedState = (expanded) => {
+			$trigger
+				.attr("aria-expanded", String(expanded))
+				.attr("aria-label", expanded ? "关闭移动端菜单" : "打开移动端菜单");
+		};
+		const restoreScroll = () => {
+			const savedScroll = window.JoeOverlayScroll.restore();
+			savedScroll !== null && $html.scrollTop(savedScroll);
+		};
+		const closeDrawer = (restoreFocus = false) => {
+			drawerFocusContext.invalidate();
+			$html.removeClass("disable-scroll");
+			$mask.removeClass("active slideout");
+			$slideOut.removeClass("active");
+			syncExpandedState(false);
+			restoreScroll();
+			if (restoreFocus) $trigger.trigger("focus");
+		};
+		const openDrawer = () => {
+			window.JoeOverlayScroll.remember($html.scrollTop());
+			$mobileToc.removeClass("active");
+			$(".joe_action .toc")
+				.attr("aria-expanded", "false")
+				.attr("aria-label", "打开文章目录")
+				.attr("title", "打开文章目录");
+			$html.addClass("disable-scroll");
+			$mask.addClass("active slideout");
+			$slideOut.addClass("active");
+			syncExpandedState(true);
+			drawerFocusContext.schedule(
+				() => $slideOut.hasClass("active") && $trigger.attr("aria-expanded") === "true",
+				() =>
+					$slideOut
+						.find('a[href], button:not([disabled]), [tabindex]:not([tabindex="-1"])')
+						.toArray()
+			);
+		};
+
+		$trigger.off("click.joeMobileDrawer").on("click.joeMobileDrawer", function (e) {
 			e.stopPropagation();
 			/* 关闭搜索框 */
 			$(".joe_header__searchout").removeClass("active");
-			/* 处理开启关闭状态 */
-			const $html = $("html");
-			const $mask = $(".joe_header__mask");
-			const $slide_out = $(".joe_header__slideout");
-			if ($slide_out.hasClass("active")) {
-				$html.removeClass("disable-scroll");
-				$mask.removeClass("active slideout");
-				$slide_out.removeClass("active");
-			} else {
-				// 保存滚动位置
-				window.sessionStorage.setItem("lastScroll", $html.scrollTop());
-				$html.addClass("disable-scroll");
-				$mask.addClass("active slideout");
-				$slide_out.addClass("active");
-			}
+			$slideOut.hasClass("active") ? closeDrawer() : openDrawer();
+		});
+		$(document).off("keydown.joeMobileDrawer").on("keydown.joeMobileDrawer", function (e) {
+			if (e.key !== "Escape" || !$slideOut.hasClass("active")) return;
+			e.preventDefault();
+			closeDrawer(true);
+		});
+	},
+	/* 跳到主要内容 */
+	initSkipLink() {
+		$(".joe_skip-link").off("click.joeSkipLink").on("click.joeSkipLink", function (e) {
+			const target = document.getElementById("joe-main-content");
+			if (!target) return;
+			e.preventDefault();
+			history.pushState(null, "", this.hash);
+			target.focus({ preventScroll: true });
+			target.scrollIntoView();
 		});
 	},
 	/* 小屏幕搜索框 */
@@ -703,22 +865,33 @@ const commonContext = {
 	/* 点击遮罩层关闭 */
 	maskClose() {
 		$(".joe_header__mask")
-			.on("click", function (e) {
+			.off("click.joeOverlay touchmove.joeOverlay")
+			.on("click.joeOverlay", function (e) {
 				e.stopPropagation();
 				const $html = $("html");
+				const drawerWasOpen = $(".joe_header__slideout").hasClass("active");
+				const tocWasOpen = $(".joe_header__toc").hasClass("active");
 				$html.removeClass("disable-scroll");
 				$(".joe_header__mask").removeClass("active slideout");
 				$(".joe_header__searchout").removeClass("active");
 				$(".joe_header__slideout").removeClass("active");
+				$(".joe_header__above-slideicon")
+					.attr("aria-expanded", "false")
+					.attr("aria-label", "打开移动端菜单");
 				$(".joe_header__toc").removeClass("active");
+				$(".joe_action .toc")
+					.attr("aria-expanded", "false")
+					.attr("aria-label", "打开文章目录")
+					.attr("title", "打开文章目录");
 				$(".joe_header__above").removeClass("solid");
 
 				// 还原滚动位置
-				const lastScroll = window.sessionStorage.getItem("lastScroll");
-				lastScroll && $html.scrollTop(lastScroll);
-				window.sessionStorage.removeItem("lastScroll");
+				const savedScroll = window.JoeOverlayScroll.restore();
+				savedScroll !== null && $html.scrollTop(savedScroll);
+				if (tocWasOpen) $(".joe_action .toc").trigger("focus");
+				else if (drawerWasOpen) $(".joe_header__above-slideicon").trigger("focus");
 			})
-			.on("touchmove", (e) => e.preventDefault);
+			.on("touchmove.joeOverlay", (e) => e.preventDefault);
 	},
 	/* 移动端侧边栏菜单手风琴 */
 	sideMenuMobile() {
@@ -1121,6 +1294,17 @@ const commonContext = {
 			renderer(linksData);
 		}
 		init();
+	},
+	/* 初始化分页语义 */
+	initPaginationSemantics() {
+		$(".joe_pagination").each(function () {
+			const $pagination = $(this);
+			$pagination.find("li.active > a").attr("aria-current", "page");
+			$pagination
+				.find("li.disabled > a")
+				.removeAttr("href")
+				.attr({ "aria-disabled": "true", tabindex: "-1" });
+		});
 	},
 };
 
