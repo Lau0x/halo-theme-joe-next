@@ -6,7 +6,7 @@
 >
   <th:block
     th:fragment="content"
-    th:with="days=${(new java.util.Date().getTime()-post.status.lastModifyTime.toEpochMilli())/86400000}"
+    th:with="lastModified=${post.status.lastModifyTime ?: post.spec.publishTime}, days=${(new java.util.Date().getTime()-lastModified.toEpochMilli())/86400000}"
   >
     <body>
       <div id="Joe">
@@ -115,8 +115,8 @@
                       </div>
                       <time
                         class="joe_detail__count-created"
-                        th:datetime="${#dates.format(post.status.lastModifyTime,'MM/dd')}"
-                        >[[${#dates.format(post.status.lastModifyTime,'MM/dd')}]]</time
+                        th:datetime="${#dates.format(lastModified,'yyyy-MM-dd''T''HH:mm:ssXXX')}"
+                        >[[${#dates.format(lastModified,'MM/dd')}]]</time
                       >
                     </div>
                   </th:block>
@@ -156,7 +156,7 @@
                               th:if="${theme.config.post.passage_tips_content != null} and ${theme.config.post.passage_tips_content != ''}"
                             >
                               <th:block th:if="${days} >= ${theme.config.post.days}"
-                                >本文最后更新于[[${#dates.format(post.status.lastModifyTime,'yyyy-MM-dd')}]]，若内容或图片失效，请留言反馈。</th:block
+                                >本文最后更新于[[${#dates.format(lastModified,'yyyy-MM-dd')}]]，若内容或图片失效，请留言反馈。</th:block
                               >
                               [[${theme.config.post.passage_tips_content}]]
                             </th:block>
@@ -164,7 +164,7 @@
                               th:if="${theme.config.post.passage_tips_content == null} or ${theme.config.post.passage_tips_content == ''}"
                             >
                               <th:block th:if="${days} >= ${theme.config.post.days}"
-                                >本文最后更新于[[${#dates.format(post.status.lastModifyTime,'yyyy-MM-dd')}]]，若内容或图片失效，请留言反馈。</th:block
+                                >本文最后更新于[[${#dates.format(lastModified,'yyyy-MM-dd')}]]，若内容或图片失效，请留言反馈。</th:block
                               >
                               部分素材来自网络，若不小心影响到您的利益，请联系我们删除。
                             </th:block>
@@ -210,7 +210,31 @@
                       <th:block
                         th:if="${#annotations.getOrDefault(post, 'use_raw_content', 'false') == 'false'}"
                       >
-                        <th:block th:utext="${post.content.content}"></th:block>
+                        <th:block
+                          th:if="${#strings.containsIgnoreCase(post.content.content, '<img')}"
+                        >
+                          <th:block
+                            th:with="articleDocument=${T(org.jsoup.Jsoup).parseBodyFragment(post.content.content)}"
+                          >
+                            <th:block
+                              th:with="outputSettings=${articleDocument.outputSettings().prettyPrint(false)}"
+                            >
+                              <th:block
+                                th:each="image, imageStatus : ${articleDocument.select('img')}"
+                              >
+                                <th:block
+                                  th:with="imageLoading=${image.attr('loading', imageStatus.first ? 'eager' : 'lazy')}, imageDecoding=${imageStatus.first ? null : image.attr('decoding', 'async')}"
+                                ></th:block>
+                              </th:block>
+                              <th:block th:utext="${articleDocument.body().html()}"></th:block>
+                            </th:block>
+                          </th:block>
+                        </th:block>
+                        <th:block
+                          th:if="${!#strings.containsIgnoreCase(post.content.content, '<img')}"
+                        >
+                          <th:block th:utext="${post.content.content}"></th:block>
+                        </th:block>
                       </th:block>
                       <th:block
                         th:if="${#annotations.getOrDefault(post, 'use_raw_content', 'false') =='true'}"

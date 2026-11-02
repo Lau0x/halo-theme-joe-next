@@ -4,7 +4,14 @@
   th:fragment="html (title,header,content,head,footer,leftSidebar,htmlType)"
   xmlns:th="http://www.thymeleaf.org"
 >
-  <head>
+  <head
+    th:with="pageList = ${posts != null ? posts : (archives != null ? archives : (moments != null ? moments : friends))},
+             pageNumber = ${pageList != null ? pageList.page : 1},
+             pageTitle = ${pageNumber > 1 ? ((htmlType == 'category' or htmlType == 'tag') ? (htmlType == 'category' ? category.spec.displayName : tag.spec.displayName) + ' - 第 ' + pageNumber + ' 页 - ' + site.title : title + ' - 第 ' + pageNumber + ' 页') : title},
+             pageSuffix = ${pageNumber > 1 ? '（第 ' + pageNumber + ' 页）' : ''},
+             archiveDescription = ${category != null ? (!#strings.isEmpty(#strings.trim(category.spec.description)) ? category.spec.description : site.title + '「' + category.spec.displayName + '」分类下的 ' + posts.total + ' 篇文章') + pageSuffix : (tag != null ? site.title + '中与「' + tag.spec.displayName + '」相关的 ' + posts.total + ' 篇文章' + pageSuffix : null)},
+             seoMetaDescription = ${archiveDescription != null ? archiveDescription : seoMetaDescription}"
+  >
     <meta charset="utf-8" />
     <!--
       🧹 遗留 Service Worker 迁移清理（refs v1.5.1-next.15）
@@ -76,7 +83,7 @@
       })();
     </script>
 
-    <title th:text="${title}"></title>
+    <title th:text="${pageTitle}"></title>
 
     <meta name="renderer" content="webkit" />
     <meta name="format-detection" content="email=no" />
@@ -96,48 +103,46 @@
     <meta http-equiv="x-dns-prefetch-control" content="on" />
     <meta name="site" th:content="${site.url}" />
 
-    <!--
-      统一计算本页权威 URL（canonical + og:url 共用）
-      - 文章页：站点 URL + 文章 permalink（两端 / 规范化，防双斜杠）
-      - 其它页：站点 URL
-      Halo 的 site.url 可能带或不带尾 /，permalink 带前导 /，这里统一剥尾 / 再拼接
-    -->
+    <!-- 使用 Halo 固定链接和分页 URL，兼容自定义分类、标签和归档路由。 -->
     <th:block
       th:with="siteUrlClean = ${#strings.endsWith(site.url, '/') ? #strings.substring(site.url, 0, #strings.length(site.url) - 1) : site.url},
-               pageUrl  = ${post != null ? siteUrlClean + post.status.permalink : site.url},
-               hasCover = ${post != null and !#strings.isEmpty(post.spec.cover)},
-               ogTitle  = ${post != null ? post.spec.title : title},
-               ogDesc   = ${post != null and !#strings.isEmpty(post.status.excerpt) ? post.status.excerpt : site.seo.description}"
+               basePath = ${post != null ? post.status.permalink : (singlePage != null ? singlePage.status.permalink : (category != null ? category.status.permalink : (tag != null ? tag.status.permalink : (author != null ? posts.prevUrl.replaceAll('[?#].*$', '').replaceAll('/page/[0-9]+/?$', '') : (htmlType == 'index' ? '/' : (htmlType == 'categories' ? site.routes.categoriesUri : (htmlType == 'tags' ? site.routes.tagsUri : (htmlType == 'archives' ? archives.prevUrl.replaceAll('[?#].*$', '').replaceAll('/page/[0-9]+/?$', '') : (htmlType == 'journals' ? '/moments' + (moment != null ? '/' + moment.metadata.name : '') : '/' + htmlType)))))))))},
+               pagePath = ${pageNumber > 1 ? pageList.prevUrl.replaceAll('[?#].*$', '').replaceAll('/page/[0-9]+/?$', '').replaceAll('/$', '') + '/page/' + pageNumber : basePath},
+               pageUrl = ${#strings.startsWith(pagePath, 'http://') or #strings.startsWith(pagePath, 'https://') ? pagePath : siteUrlClean + (#strings.startsWith(pagePath, '/') ? '' : '/') + pagePath},
+               shareImage = ${post != null ? post.spec.cover : (category != null and !#strings.isEmpty(category.spec.cover) ? category.spec.cover : theme.config.seo?.default_share_image)},
+               hasCover = ${!#strings.isEmpty(shareImage)},
+               ogTitle = ${post != null ? post.spec.title : (singlePage != null ? singlePage.spec.title : pageTitle)},
+               ogDesc = ${post != null ? (!#strings.isEmpty(post.status.excerpt) ? post.status.excerpt : site.seo.description) : (singlePage != null ? singlePage.status.excerpt : (archiveDescription != null ? archiveDescription : (htmlType == 'categories' ? site.title + '的文章分类' : (htmlType == 'tags' ? site.title + '的文章标签' : site.seo.description))))}"
     >
-      <!-- Base SEO · description 补齐（原主题只有 og:description） -->
-      <meta name="description" th:content="${ogDesc}" />
-      <!-- canonical · 文章页指向文章 URL 而非站点根（SEO 必要，否则 Google 可能降权文章） -->
+      <!-- 首页 description 由 Halo 自动注入，其余页面由主题补齐。 -->
+      <meta name="description" th:if="${htmlType != 'index'}" th:content="${ogDesc}" />
       <link rel="canonical" th:href="${pageUrl}" />
+      <meta
+        name="robots"
+        content="noindex, follow"
+        th:if="${htmlType == 'tag' or htmlType == 'tags'}"
+      />
       <!-- theme-color · 移动端地址栏着色 -->
       <meta name="theme-color" content="#3a63ed" />
       <meta name="msapplication-TileColor" content="#3a63ed" />
 
-      <!-- Open Graph · 文章页用文章封面 + 摘要 + 文章 URL，其它页用站点级 -->
-      <!-- v1.6.11.6: og:image 改为条件输出, 仅文章有 cover 时才输出 image 类 meta.
-                      原 fallback site.favicon (e.g. 1024x1024 正方形吉祥物) 会被
-                      Telegram 当 large preview 撑高预览框, 视觉丑.
-                      无 cover 时干脆不输出 og:image → 渲染纯文字紧凑卡片.
-                      同时把相对路径绝对化, 防社交媒体抓取器拼错 host. -->
+      <!-- 无封面文章保持纯文字分享；非文章页可配置横版默认分享图。 -->
       <th:block
         th:if="${hasCover}"
-        th:with="ogImageAbs = ${#strings.startsWith(post.spec.cover, 'http') ? post.spec.cover : siteUrlClean + post.spec.cover}"
+        th:with="ogImageAbs = ${#strings.startsWith(shareImage, 'http://') or #strings.startsWith(shareImage, 'https://') ? shareImage : (#strings.startsWith(shareImage, '//') ? #strings.substringBefore(site.url, ':') + ':' + shareImage : siteUrlClean + (#strings.startsWith(shareImage, '/') ? '' : '/') + shareImage)},
+                 ogImagePath = ${#strings.toLowerCase(ogImageAbs.replaceAll('[?#].*$', ''))}"
       >
         <meta property="og:image" th:content="${ogImageAbs}" />
         <!-- v1.6.9: og:image:alt 提升分享卡辅助文本 + a11y -->
-        <meta property="og:image:alt" th:content="${post.spec.title}" />
+        <meta property="og:image:alt" th:content="${ogTitle}" />
         <!-- v1.6.9: og:image:type (按 URL 后缀推断) -->
         <meta
           property="og:image:type"
-          th:content="${#strings.endsWith(#strings.toLowerCase(ogImageAbs), '.png') ? 'image/png' : (#strings.endsWith(#strings.toLowerCase(ogImageAbs), '.webp') ? 'image/webp' : (#strings.endsWith(#strings.toLowerCase(ogImageAbs), '.gif') ? 'image/gif' : 'image/jpeg'))}"
+          th:content="${#strings.endsWith(ogImagePath, '.png') ? 'image/png' : (#strings.endsWith(ogImagePath, '.webp') ? 'image/webp' : (#strings.endsWith(ogImagePath, '.gif') ? 'image/gif' : 'image/jpeg'))}"
         />
         <meta name="twitter:image" th:content="${ogImageAbs}" />
         <!-- v1.6.9: twitter:image:alt · X 辅助文本 -->
-        <meta name="twitter:image:alt" th:content="${post.spec.title}" />
+        <meta name="twitter:image:alt" th:content="${ogTitle}" />
       </th:block>
       <!-- Fix upstream bug: was th:content="site.seo.description" (missing ${}),
            rendered the literal string "site.seo.description" as the social
@@ -145,12 +150,17 @@
       <meta property="og:description" th:content="${ogDesc}" />
       <meta property="og:type" th:content="${post != null ? 'article' : 'website'}" />
       <meta property="og:locale" content="zh_CN" />
-      <meta property="og:site_name" th:content="${site.title}+'-'+${site.subtitle}" />
+      <meta property="og:site_name" th:content="${site.title}" />
       <meta property="og:url" th:content="${pageUrl}" />
       <!-- v1.6.11.6: og:title 改用 ogTitle (post 用 post.spec.title) 而非 ${title}.
                       原 ${title} = "post.spec.title - site.title", 跟 og:site_name
                       重复显示, Telegram 渲染标题超长 + 看着像撞名. -->
       <meta property="og:title" th:content="${ogTitle}" />
+      <meta
+        property="article:modified_time"
+        th:if="${post != null and (post.status.lastModifyTime != null or post.spec.publishTime != null)}"
+        th:content="${#dates.format(post.status.lastModifyTime ?: post.spec.publishTime, 'yyyy-MM-dd''T''HH:mm:ssXXX')}"
+      />
 
       <!-- Twitter Card · summary_large_image 让 X 分享卡显示大图 -->
       <meta name="twitter:card" content="summary_large_image" />

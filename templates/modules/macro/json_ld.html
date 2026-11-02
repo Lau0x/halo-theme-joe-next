@@ -3,7 +3,7 @@
   <!--
     JSON-LD structured data · v1.6.8
     Schema types emitted:
-      - WebSite   (所有页面 · 含 SearchAction)
+      - WebSite   (所有页面)
       - BlogPosting   (post != null · 文章页)
       - BreadcrumbList   (post != null 且 有 category · 文章页)
     Author 优先取文章作者，其次取主题博主昵称，最后回落到站点标题.
@@ -24,15 +24,7 @@
         "@context": "https://schema.org",
         "@type": "WebSite",
         "name": [[${site.title}]],
-        "url": [[${siteUrlClean + '/'}]],
-        "potentialAction": {
-          "@type": "SearchAction",
-          "target": {
-            "@type": "EntryPoint",
-            "urlTemplate": [[${siteUrlClean + '/search?keyword={search_term_string}'}]]
-          },
-          "query-input": "required name=search_term_string"
-        }
+        "url": [[${siteUrlClean + '/'}]]
       }
     </script>
 
@@ -44,7 +36,8 @@
                postImage = ${#strings.startsWith(postImageRaw, 'http') ? postImageRaw : siteUrlClean + postImageRaw},
                postDesc = ${!#strings.isEmpty(post.status.excerpt) ? post.status.excerpt : site.seo.description},
                postAuthor = ${post.owner != null and !#strings.isEmpty(post.owner.displayName) ? post.owner.displayName : jsonAuthor},
-               datePub = ${post.spec.publishTime != null ? #dates.format(post.spec.publishTime, 'yyyy-MM-dd''T''HH:mm:ssXXX') : ''}"
+               datePub = ${post.spec.publishTime != null ? #dates.format(post.spec.publishTime, 'yyyy-MM-dd''T''HH:mm:ssXXX') : ''},
+               dateMod = ${(post.status.lastModifyTime != null or post.spec.publishTime != null) ? #dates.format(post.status.lastModifyTime ?: post.spec.publishTime, 'yyyy-MM-dd''T''HH:mm:ssXXX') : ''}"
     >
       <script type="application/ld+json" th:inline="javascript">
         {
@@ -54,7 +47,7 @@
           "description": [[${postDesc}]],
           "image": [[${postImage}]],
           "datePublished": [[${datePub}]],
-          "dateModified": [[${datePub}]],
+          "dateModified": [[${dateMod}]],
           "author": {
             "@type": "Person",
             "name": [[${postAuthor}]]

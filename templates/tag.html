@@ -19,6 +19,7 @@
           th:classappend="${theme.config.theme.enable_show_in_up ? 'animated fadeIn':''}"
         >
           <div class="joe_main">
+            <h1 class="sr-only" th:text="${tag.spec.displayName}"></h1>
             <div class="joe_archive">
               <div class="joe_archive__title">
                 <div class="joe_archive__title-title">

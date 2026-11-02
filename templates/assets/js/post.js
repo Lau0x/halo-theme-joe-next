@@ -28,6 +28,12 @@ function focusJoeTocHeading(event, fallback) {
 
 const postContext = {
 	limited: false,
+	initImages() {
+		document.querySelectorAll(".joe_detail__article img").forEach((image, index) => {
+			image.loading = index === 0 ? "eager" : "lazy";
+			if (index > 0) image.decoding = "async";
+		});
+	},
 	/* 初始化评论后展开 */
 	// initReadLimit() {
 	// 	if (

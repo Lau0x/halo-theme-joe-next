@@ -4,6 +4,26 @@ metadata:
   name: theme-Joe-setting
 spec:
   forms:
+    - group: seo
+      label: SEO 与分享
+      formSchema:
+        - $formkit: text
+          name: home_title
+          label: 首页标题
+          value: ''
+          help: '留空时使用站点标题和副标题，分页会自动追加页码。'
+        - $formkit: text
+          name: home_heading
+          label: 首页主标题（h1）
+          value: ''
+          help: '留空时使用首页标题，仅供读屏和搜索引擎读取，不改变首页布局。'
+        - $formkit: attachment
+          name: default_share_image
+          label: 默认分享图
+          value: ''
+          accepts:
+            - image/*
+          help: '用于非文章页，分类封面优先。建议使用 1200×630 横图；留空时不输出默认分享图。'
     - group: basic
       label: 基本设置
       formSchema:
