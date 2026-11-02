@@ -19,9 +19,9 @@
   },
   "devDependencies": {
     "@halo-dev/theme-package-cli": "^1.1.1",
-    "fflate": "0.8.2",
+    "fflate": "0.8.3",
     "husky": "^9.1.7",
-    "js-yaml": "4.3.1",
+    "js-yaml": "4.3.2",
     "less": "4.8.1",
     "lint-staged": "^15.5.2",
     "postcss": "8.5.26",
@@ -31,13 +31,22 @@
   },
   "pnpm": {
     "overrides": {
-      "brace-expansion@>=2.0.0 <2.1.4": "2.1.4",
       "nanoid@>=3.0.0 <3.3.18": "3.3.18",
       "picomatch@<2.3.2": "2.3.2",
       "postcss@>=8.0.0 <8.5.26": "8.5.26",
-      "svgo@>=1.0.0 <2.8.3": "2.8.3",
       "yaml@<1.10.3": "1.10.3",
-      "yaml@>=2.0.0 <2.8.3": "2.8.3"
+      "yaml@>=2.0.0 <2.8.3": "2.8.3",
+      "brace-expansion@>=2.0.0 <2.1.7": "2.1.7",
+      "svgo@>=1.0.0 <2.8.4": "2.8.4",
+      "browserslist@<4.28.7": "4.28.7",
+      "baseline-browser-mapping@>=2.0.0 <2.11.0": "2.11.0",
+      "colord@<2.9.4": "2.9.4",
+      "probe-image-size@<=7.3.0": "7.4.0",
+      "source-map-js@>=1.0.0 <1.2.2": "1.2.2",
+      "postcss-selector-parser@<6.1.5": "6.1.5",
+      "postcss-selector-parser@>=7.0.0 <7.1.6": "7.1.6",
+      "minimatch@<11.0.1": "11.0.1",
+      "glob@>=9.0.0 <=14.0.1": "14.0.2"
     }
   },
   "packageManager": "pnpm@10.26.0"

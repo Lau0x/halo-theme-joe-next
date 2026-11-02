@@ -386,7 +386,7 @@ const packageJsonPath = 'package.json';
 const sourcePackageJson = JSON.parse(readFileSync(resolve(packageJsonPath), 'utf8'));
 if (
   sourcePackageJson.scripts?.build !== 'pnpm build-only && node scripts/package-theme.mjs' ||
-  sourcePackageJson.devDependencies?.fflate !== '0.8.2'
+  sourcePackageJson.devDependencies?.fflate !== '0.8.3'
 ) {
   throw new Error(
     `${packageJsonPath}: build must use the direct pinned fflate package workflow without system ZIP tools`
