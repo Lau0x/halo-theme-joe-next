@@ -7,8 +7,9 @@
   <head
     th:with="pageList = ${posts != null ? posts : (archives != null ? archives : (moments != null ? moments : friends))},
              pageNumber = ${pageList != null ? pageList.page : 1},
+             emptyPagination = ${pageList != null and pageNumber > 1 and #lists.isEmpty(pageList.items)},
              pageTitle = ${pageNumber > 1 ? ((htmlType == 'category' or htmlType == 'tag') ? (htmlType == 'category' ? category.spec.displayName : tag.spec.displayName) + ' - 第 ' + pageNumber + ' 页 - ' + site.title : title + ' - 第 ' + pageNumber + ' 页') : title},
-             pageSuffix = ${pageNumber > 1 ? '（第 ' + pageNumber + ' 页）' : ''},
+             pageSuffix = ${pageNumber > 1 and !emptyPagination ? '（第 ' + pageNumber + ' 页）' : ''},
              archiveDescription = ${category != null ? (!#strings.isEmpty(#strings.trim(category.spec.description)) ? category.spec.description : site.title + '「' + category.spec.displayName + '」分类下的 ' + posts.total + ' 篇文章') + pageSuffix : (tag != null ? site.title + '中与「' + tag.spec.displayName + '」相关的 ' + posts.total + ' 篇文章' + pageSuffix : null)},
              seoMetaDescription = ${archiveDescription != null ? archiveDescription : seoMetaDescription}"
   >
@@ -107,7 +108,7 @@
     <th:block
       th:with="siteUrlClean = ${#strings.endsWith(site.url, '/') ? #strings.substring(site.url, 0, #strings.length(site.url) - 1) : site.url},
                basePath = ${post != null ? post.status.permalink : (singlePage != null ? singlePage.status.permalink : (category != null ? category.status.permalink : (tag != null ? tag.status.permalink : (author != null ? posts.prevUrl.replaceAll('[?#].*$', '').replaceAll('/page/[0-9]+/?$', '') : (htmlType == 'index' ? '/' : (htmlType == 'categories' ? site.routes.categoriesUri : (htmlType == 'tags' ? site.routes.tagsUri : (htmlType == 'archives' ? archives.prevUrl.replaceAll('[?#].*$', '').replaceAll('/page/[0-9]+/?$', '') : (htmlType == 'journals' ? '/moments' + (moment != null ? '/' + moment.metadata.name : '') : '/' + htmlType)))))))))},
-               pagePath = ${pageNumber > 1 ? pageList.prevUrl.replaceAll('[?#].*$', '').replaceAll('/page/[0-9]+/?$', '').replaceAll('/$', '') + '/page/' + pageNumber : basePath},
+               pagePath = ${pageNumber > 1 and !emptyPagination ? pageList.prevUrl.replaceAll('[?#].*$', '').replaceAll('/page/[0-9]+/?$', '').replaceAll('/$', '') + '/page/' + pageNumber : basePath},
                pageUrl = ${#strings.startsWith(pagePath, 'http://') or #strings.startsWith(pagePath, 'https://') ? pagePath : siteUrlClean + (#strings.startsWith(pagePath, '/') ? '' : '/') + pagePath},
                shareImage = ${post != null ? post.spec.cover : (category != null and !#strings.isEmpty(category.spec.cover) ? category.spec.cover : theme.config.seo?.default_share_image)},
                hasCover = ${!#strings.isEmpty(shareImage)},
@@ -120,7 +121,7 @@
       <meta
         name="robots"
         content="noindex, follow"
-        th:if="${htmlType == 'tag' or htmlType == 'tags'}"
+        th:if="${htmlType == 'tag' or htmlType == 'tags' or emptyPagination}"
       />
       <!-- theme-color · 移动端地址栏着色 -->
       <meta name="theme-color" content="#3a63ed" />
