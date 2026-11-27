@@ -29,7 +29,7 @@
             >
               <img
                 th:style="'border-radius:'+${theme.config.navbar.logo_radius} ?:'4px'"
-                th:src="${site.logo}"
+                th:src="${#strings.isEmpty(site.logo) ? site.logo : site.logo + (#strings.contains(site.logo, '?') ? '&' : '?') + 'v=' + theme.spec.version}"
                 th:alt="${site.title}"
                 onerror="Joe.errorImg(this, 'ErrAvatarImg')"
               />
@@ -224,7 +224,8 @@
               height="50"
               class="avatar ls-is-cached lazyloaded"
               th:data-src="${theme.config.blogger.lazyload_avatar}"
-              th:src="${theme.config.blogger.avatar ?: (theme.config.blogger.default_avatar ?: '/themes/theme-Joe3/assets/img/transparent-placeholder.png')}"
+              th:with="avatarRaw=${theme.config.blogger.avatar ?: (theme.config.blogger.default_avatar ?: '/themes/theme-Joe3/assets/img/transparent-placeholder.png')}"
+              th:src="${avatarRaw + (#strings.contains(avatarRaw, '?') ? '&' : '?') + 'v=' + theme.spec.version}"
               alt="博主头像"
               th:data-text-avatar="${theme.config.blogger.name ?: site.title}"
               loading="lazy"

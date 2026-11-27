@@ -4542,6 +4542,10 @@ const placeholderPolicies = [
         allowedWrappers: [['direct', 1]],
       },
       {
+        path: 'templates/modules/macro/hot_category.html',
+        allowedWrappers: [['direct', 2]],
+      },
+      {
         path: 'templates/modules/macro/post_item.html',
         allowedWrappers: [['prioritize', 1]],
       },
@@ -6131,14 +6135,21 @@ if (
 
 const hotCategory = readFileSync(resolve('templates/modules/macro/hot_category.html'), 'utf8');
 for (const source of ['category.spec.cover', 'custom_data.hot_custom_img']) {
-  if (
-    !hotCategory.includes(`th:data-src="\${${source}}"`) ||
-    !hotCategory.includes(`th:data-srcset="\${${source}}"`)
-  ) {
+  if (!hotCategory.includes(`th:with="cover = \${${source}}"`)) {
     throw new Error(
-      `templates/modules/macro/hot_category.html: ${source} must lazy-load both src and srcset`
+      `templates/modules/macro/hot_category.html: ${source} must be bound as the card cover`
     );
   }
+}
+const hotLazySrc = `th:data-src="\${#strings.isEmpty(cover) ? null : thumbnail.gen(cover, 's')}"`;
+const hotLazySrcset = `th:data-srcset="\${#strings.isEmpty(cover) ? null : thumbnail.gen(cover, 's') + ' 400w, ' + thumbnail.gen(cover, 'm') + ' 800w'}"`;
+if (
+  countOccurrences(hotCategory, hotLazySrc) !== 2 ||
+  countOccurrences(hotCategory, hotLazySrcset) !== 2
+) {
+  throw new Error(
+    'templates/modules/macro/hot_category.html: both cards must lazy-load thumbnail src and srcset'
+  );
 }
 
 const postItem = readFileSync(resolve('templates/modules/macro/post_item.html'), 'utf8');
@@ -6511,7 +6522,7 @@ for (const path of ['templates/page_leaving.html', 'templates/modules/widgets/as
 }
 
 const navbar = readFileSync(resolve('templates/modules/macro/navbar.html'), 'utf8');
-const navbarLogo = navbar.match(/<img\b[^>]*th:src="\$\{site\.logo\}"[^>]*>/)?.[0];
+const navbarLogo = navbar.match(/<img\b[^>]*th:src="\$\{[^"]*site\.logo[^"]*\}"[^>]*>/)?.[0];
 const loadingTemplate = readFileSync(resolve('templates/modules/macro/loading.html'), 'utf8');
 const error404 = readFileSync(resolve('templates/error/404.html'), 'utf8');
 if (

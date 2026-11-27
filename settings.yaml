@@ -2181,6 +2181,18 @@ spec:
           label: 相关文章最大条数
           value: '5'
           help: '相关文章模块展示的最大文章数，默认5条'
+        - $formkit: radio
+          name: post_cursor_scope
+          id: post_cursor_scope
+          key: post_cursor_scope
+          value: all
+          label: 上一篇 / 下一篇范围
+          help: '选「同分类」时只在文章的第一个分类内切换；需要 Halo 2.25 及以上，低版本或未分类文章仍按全站切换'
+          options:
+            - value: all
+              label: 全站
+            - value: category
+              label: 同分类
         # --- 评论区上方 · 相关推荐横向卡片 (since v1.5.1-next.20) ---
         - $formkit: switch
           name: enable_post_related_recommend

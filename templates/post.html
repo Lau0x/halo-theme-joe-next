@@ -279,31 +279,35 @@
                 </th:block>
               </div>
               <th:block th:replace="~{modules/post_operate_aside :: post_operate_aside}" />
-              <ul
-                class="joe_post__pagination"
-                th:with="postCursor = ${postFinder.cursor(post.metadata.name)}"
+              <th:block
+                th:with="cursorByCategory = ${theme.config.post.post_cursor_scope == 'category' and not #lists.isEmpty(post.spec.categories) and #halo?.matchVersion('>=2.25.0') == true}"
               >
-                <li
-                  class="joe_post__pagination-item prev"
-                  th:if="${postCursor.hasPrevious() and postCursor.previous.spec.visible != null and postCursor.previous.spec.visible.name == 'PUBLIC'}"
+                <ul
+                  class="joe_post__pagination"
+                  th:with="postCursor = ${cursorByCategory ? postFinder.cursorByCategory(post.metadata.name) : postFinder.cursor(post.metadata.name)}"
                 >
-                  <a
-                    th:href="@{${postCursor.previous.status.permalink}}"
-                    th:title="${postCursor.previous.spec.title}"
-                    >上一篇</a
+                  <li
+                    class="joe_post__pagination-item prev"
+                    th:if="${postCursor.hasPrevious() and postCursor.previous.spec.visible != null and postCursor.previous.spec.visible.name == 'PUBLIC'}"
                   >
-                </li>
-                <li
-                  class="joe_post__pagination-item next"
-                  th:if="${postCursor.hasNext() and postCursor.next.spec.visible != null and postCursor.next.spec.visible.name == 'PUBLIC'}"
-                >
-                  <a
-                    th:href="@{${postCursor.next.status.permalink}}"
-                    th:title="${postCursor.next.spec.title}"
-                    >下一篇</a
+                    <a
+                      th:href="@{${postCursor.previous.status.permalink}}"
+                      th:title="${postCursor.previous.spec.title}"
+                      >上一篇</a
+                    >
+                  </li>
+                  <li
+                    class="joe_post__pagination-item next"
+                    th:if="${postCursor.hasNext() and postCursor.next.spec.visible != null and postCursor.next.spec.visible.name == 'PUBLIC'}"
                   >
-                </li>
-              </ul>
+                    <a
+                      th:href="@{${postCursor.next.status.permalink}}"
+                      th:title="${postCursor.next.spec.title}"
+                      >下一篇</a
+                    >
+                  </li>
+                </ul>
+              </th:block>
               <!-- 相关推荐卡片 · 评论区上方 (refs since v1.5.1-next.20) -->
               <th:block th:if="${#bools.isTrue(theme.config.post.enable_post_related_recommend)}">
                 <th:block th:replace="~{modules/macro/relate_cards :: relate_cards}" />
