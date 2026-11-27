@@ -160,24 +160,29 @@
                     th:if="${result.spec.subjectRef.kind == 'SinglePage'}  and ${result.spec.subjectRef.name != 'links'}"
                   >
                     <a
-                      class="link aside-reply-content"
+                      class="reply-cover"
                       th:href="@{${pageSubject.status.permalink}}"
-                    >
+                      aria-label="查看评论"
+                    ></a>
+                    <div class="link aside-reply-content">
                       <p th:utext="${result.spec.content}"></p>
-                    </a>
+                    </div>
                   </th:block>
                   <th:block th:if="${result.spec.subjectRef.kind == 'Plugin'}">
-                    <a class="link aside-reply-content" th:href="@{/links}">
+                    <a class="reply-cover" th:href="@{/links}" aria-label="查看评论"></a>
+                    <div class="link aside-reply-content">
                       <p th:utext="${result.spec.content}"></p>
-                    </a>
+                    </div>
                   </th:block>
                   <th:block th:if="${result.spec.subjectRef.kind == 'Post'}">
                     <a
-                      class="link aside-reply-content"
+                      class="reply-cover"
                       th:href="@{${postSubject.status.permalink}}"
-                    >
+                      aria-label="查看评论"
+                    ></a>
+                    <div class="link aside-reply-content">
                       <p th:utext="${result.spec.content}"></p>
-                    </a>
+                    </div>
                   </th:block>
                 </div>
               </li>
